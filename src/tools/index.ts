@@ -26,10 +26,17 @@ export {
 	updateColumnTool,
 } from "./columns.js";
 export {
+	createCommentTool,
+	deleteCommentTool,
+	listCommentsTool,
+	updateCommentTool,
+} from "./comments.js";
+export {
 	getDefaultAccountTool,
 	setDefaultAccountTool,
 	whoamiTool,
 } from "./identity.js";
+export { createStepTool, deleteStepTool, updateStepTool } from "./steps.js";
 export { listTagsTool } from "./tags.js";
 
 import {
@@ -60,10 +67,17 @@ import {
 	updateColumnTool,
 } from "./columns.js";
 import {
+	createCommentTool,
+	deleteCommentTool,
+	listCommentsTool,
+	updateCommentTool,
+} from "./comments.js";
+import {
 	getDefaultAccountTool,
 	setDefaultAccountTool,
 	whoamiTool,
 } from "./identity.js";
+import { createStepTool, deleteStepTool, updateStepTool } from "./steps.js";
 import { listTagsTool } from "./tags.js";
 
 export const allTools = [
@@ -92,4 +106,11 @@ export const allTools = [
 	createColumnTool,
 	updateColumnTool,
 	deleteColumnTool,
+	createStepTool,
+	updateStepTool,
+	deleteStepTool,
+	listCommentsTool,
+	createCommentTool,
+	updateCommentTool,
+	deleteCommentTool,
 ];

@@ -62,7 +62,24 @@ describe("createServer", () => {
 		expect(toolNames).toContain("fizzy_toggle_assignee");
 	});
 
-	test("should export exactly 25 tools in allTools", () => {
-		expect(allTools.length).toBe(25);
+	test("should have step tools available", () => {
+		const toolNames = allTools.map((t) => t.name);
+
+		expect(toolNames).toContain("fizzy_create_step");
+		expect(toolNames).toContain("fizzy_update_step");
+		expect(toolNames).toContain("fizzy_delete_step");
+	});
+
+	test("should have comment tools available", () => {
+		const toolNames = allTools.map((t) => t.name);
+
+		expect(toolNames).toContain("fizzy_list_comments");
+		expect(toolNames).toContain("fizzy_create_comment");
+		expect(toolNames).toContain("fizzy_update_comment");
+		expect(toolNames).toContain("fizzy_delete_comment");
+	});
+
+	test("should export exactly 32 tools in allTools", () => {
+		expect(allTools.length).toBe(32);
 	});
 });

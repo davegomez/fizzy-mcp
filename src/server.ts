@@ -4,8 +4,12 @@ import {
 	createBoardTool,
 	createCardTool,
 	createColumnTool,
+	createCommentTool,
+	createStepTool,
 	deleteCardTool,
 	deleteColumnTool,
+	deleteCommentTool,
+	deleteStepTool,
 	getBoardTool,
 	getCardTool,
 	getColumnTool,
@@ -13,6 +17,7 @@ import {
 	listBoardsTool,
 	listCardsTool,
 	listColumnsTool,
+	listCommentsTool,
 	listTagsTool,
 	notNowCardTool,
 	reopenCardTool,
@@ -24,6 +29,8 @@ import {
 	updateBoardTool,
 	updateCardTool,
 	updateColumnTool,
+	updateCommentTool,
+	updateStepTool,
 	whoamiTool,
 } from "./tools/index.js";
 
@@ -58,6 +65,13 @@ export function createServer(): FastMCP {
 	server.addTool(createColumnTool);
 	server.addTool(updateColumnTool);
 	server.addTool(deleteColumnTool);
+	server.addTool(createStepTool);
+	server.addTool(updateStepTool);
+	server.addTool(deleteStepTool);
+	server.addTool(listCommentsTool);
+	server.addTool(createCommentTool);
+	server.addTool(updateCommentTool);
+	server.addTool(deleteCommentTool);
 
 	return server;
 }
