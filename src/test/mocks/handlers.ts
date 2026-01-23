@@ -757,4 +757,84 @@ export const handlers = [
 			return new HttpResponse(null, { status: 204 });
 		},
 	),
+
+	// Triage card (POST)
+	http.post(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			const body = (await request.json()) as {
+				column_id?: string;
+				position?: string;
+			};
+			if (!body.column_id) {
+				return HttpResponse.json(
+					{ column_id: ["can't be blank"] },
+					{ status: 422 },
+				);
+			}
+
+			return HttpResponse.json({
+				...card,
+				column_id: body.column_id,
+				updated_at: "2024-03-15T00:00:00Z",
+			});
+		},
+	),
+
+	// Untriage card (DELETE)
+	http.delete(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			return HttpResponse.json({
+				...card,
+				column_id: null,
+				updated_at: "2024-03-15T00:00:00Z",
+			});
+		},
+	),
+
+	// Not Now card (POST)
+	http.post(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/not_now`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			return HttpResponse.json({
+				...card,
+				status: "deferred",
+				updated_at: "2024-03-15T00:00:00Z",
+			});
+		},
+	),
 ];

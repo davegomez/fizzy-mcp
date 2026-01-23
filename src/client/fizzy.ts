@@ -462,6 +462,89 @@ export class FizzyClient {
 		}
 		return result;
 	}
+
+	async triageCard(
+		accountSlug: string,
+		cardNumber: number,
+		columnId: string,
+		position?: "top" | "bottom",
+	): Promise<Result<Card, FizzyApiError>> {
+		const body: { column_id: string; position?: string } = {
+			column_id: columnId,
+		};
+		if (position) {
+			body.position = position;
+		}
+		const result = await this.request<Card>(
+			"POST",
+			`/${accountSlug}/cards/${cardNumber}/triage`,
+			{ body },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async unTriageCard(
+		accountSlug: string,
+		cardNumber: number,
+	): Promise<Result<Card, FizzyApiError>> {
+		const result = await this.request<Card>(
+			"DELETE",
+			`/${accountSlug}/cards/${cardNumber}/triage`,
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async notNowCard(
+		accountSlug: string,
+		cardNumber: number,
+	): Promise<Result<Card, FizzyApiError>> {
+		const result = await this.request<Card>(
+			"POST",
+			`/${accountSlug}/cards/${cardNumber}/not_now`,
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async toggleTag(
+		accountSlug: string,
+		cardNumber: number,
+		tagTitle: string,
+	): Promise<Result<void, FizzyApiError>> {
+		const result = await this.request<void>(
+			"POST",
+			`/${accountSlug}/cards/${cardNumber}/taggings`,
+			{ body: { tag_title: tagTitle } },
+		);
+		if (result.ok) {
+			return ok(undefined);
+		}
+		return result;
+	}
+
+	async toggleAssignee(
+		accountSlug: string,
+		cardNumber: number,
+		userId: string,
+	): Promise<Result<void, FizzyApiError>> {
+		const result = await this.request<void>(
+			"POST",
+			`/${accountSlug}/cards/${cardNumber}/assignees`,
+			{ body: { user_id: userId } },
+		);
+		if (result.ok) {
+			return ok(undefined);
+		}
+		return result;
+	}
 }
 
 let clientInstance: FizzyClient | undefined;

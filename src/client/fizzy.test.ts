@@ -903,4 +903,193 @@ describe("FizzyClient", () => {
 			}
 		});
 	});
+
+	describe("triageCard", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should triage card to column", async () => {
+			const client = new FizzyClient();
+			const result = await client.triageCard("897362094", 4, "col_1");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.column_id).toBe("col_1");
+			}
+		});
+
+		test("should triage card with position", async () => {
+			const client = new FizzyClient();
+			const result = await client.triageCard("897362094", 4, "col_1", "top");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.column_id).toBe("col_1");
+			}
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.triageCard("897362094", 999, "col_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.triageCard("897362094", 4, "col_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("unTriageCard", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should untriage card back to inbox", async () => {
+			const client = new FizzyClient();
+			const result = await client.unTriageCard("897362094", 1);
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.column_id).toBeNull();
+			}
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.unTriageCard("897362094", 999);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.unTriageCard("897362094", 1);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("notNowCard", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should defer card", async () => {
+			const client = new FizzyClient();
+			const result = await client.notNowCard("897362094", 1);
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.status).toBe("deferred");
+			}
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.notNowCard("897362094", 999);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.notNowCard("897362094", 1);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("toggleTag", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should toggle tag on card", async () => {
+			const client = new FizzyClient();
+			const result = await client.toggleTag("897362094", 1, "Bug");
+
+			expect(isOk(result)).toBe(true);
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.toggleTag("897362094", 999, "Bug");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.toggleTag("897362094", 1, "Bug");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("toggleAssignee", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should toggle assignee on card", async () => {
+			const client = new FizzyClient();
+			const result = await client.toggleAssignee("897362094", 1, "user_1");
+
+			expect(isOk(result)).toBe(true);
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.toggleAssignee("897362094", 999, "user_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.toggleAssignee("897362094", 1, "user_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
 });
