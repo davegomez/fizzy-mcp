@@ -129,3 +129,104 @@ export const getCardTool = {
 		return formatCard(result.value);
 	},
 };
+
+export const createCardTool = {
+	name: "fizzy_create_card",
+	description:
+		"Create a new card on a board. Description can be markdown (auto-converted to HTML). Card goes to inbox by default. Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		board_id: z.string().describe("Board ID to create the card on."),
+		title: z.string().describe("Card title."),
+		description: z
+			.string()
+			.optional()
+			.describe("Card description (markdown supported)."),
+	}),
+	execute: async (args: {
+		account_slug?: string;
+		board_id: string;
+		title: string;
+		description?: string;
+	}) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.createCard(slug, args.board_id, {
+			title: args.title,
+			description: args.description,
+		});
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		const card = result.value;
+		return JSON.stringify(
+			{
+				id: card.id,
+				number: card.number,
+				title: card.title,
+				url: card.url,
+			},
+			null,
+			2,
+		);
+	},
+};
+
+export const updateCardTool = {
+	name: "fizzy_update_card",
+	description:
+		"Update a card's title and/or description. Description can be markdown (auto-converted to HTML). Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		card_number: z.number().describe("Card number to update."),
+		title: z.string().optional().describe("New title."),
+		description: z
+			.string()
+			.optional()
+			.describe("New description (markdown supported)."),
+	}),
+	execute: async (args: {
+		account_slug?: string;
+		card_number: number;
+		title?: string;
+		description?: string;
+	}) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.updateCard(slug, args.card_number, {
+			title: args.title,
+			description: args.description,
+		});
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		return formatCard(result.value);
+	},
+};
+
+export const deleteCardTool = {
+	name: "fizzy_delete_card",
+	description: "Delete a card by number. Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		card_number: z.number().describe("Card number to delete."),
+	}),
+	execute: async (args: { account_slug?: string; card_number: number }) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.deleteCard(slug, args.card_number);
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		return `Card #${args.card_number} deleted.`;
+	},
+};
