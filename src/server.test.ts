@@ -79,7 +79,14 @@ describe("createServer", () => {
 		expect(toolNames).toContain("fizzy_delete_comment");
 	});
 
-	test("should export exactly 32 tools in allTools", () => {
-		expect(allTools.length).toBe(32);
+	test("should have composite tools available", () => {
+		const toolNames = allTools.map((t) => t.name);
+
+		expect(toolNames).toContain("fizzy_create_card_full");
+		expect(toolNames).toContain("fizzy_bulk_close_cards");
+	});
+
+	test("should export exactly 34 tools in allTools", () => {
+		expect(allTools.length).toBe(34);
 	});
 });

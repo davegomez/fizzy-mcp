@@ -31,6 +31,7 @@ export {
 	listCommentsTool,
 	updateCommentTool,
 } from "./comments.js";
+export { bulkCloseCardsTool, createCardFullTool } from "./composite.js";
 export {
 	getDefaultAccountTool,
 	setDefaultAccountTool,
@@ -72,6 +73,7 @@ import {
 	listCommentsTool,
 	updateCommentTool,
 } from "./comments.js";
+import { bulkCloseCardsTool, createCardFullTool } from "./composite.js";
 import {
 	getDefaultAccountTool,
 	setDefaultAccountTool,
@@ -113,4 +115,6 @@ export const allTools = [
 	createCommentTool,
 	updateCommentTool,
 	deleteCommentTool,
+	createCardFullTool,
+	bulkCloseCardsTool,
 ];

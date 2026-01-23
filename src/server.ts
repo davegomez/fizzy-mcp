@@ -1,7 +1,9 @@
 import { FastMCP } from "fastmcp";
 import {
+	bulkCloseCardsTool,
 	closeCardTool,
 	createBoardTool,
+	createCardFullTool,
 	createCardTool,
 	createColumnTool,
 	createCommentTool,
@@ -72,6 +74,8 @@ export function createServer(): FastMCP {
 	server.addTool(createCommentTool);
 	server.addTool(updateCommentTool);
 	server.addTool(deleteCommentTool);
+	server.addTool(createCardFullTool);
+	server.addTool(bulkCloseCardsTool);
 
 	return server;
 }
