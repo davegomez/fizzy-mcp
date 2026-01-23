@@ -1,41 +1,47 @@
 {
-  "name": "fizzy-mcp",
-  "version": "0.1.0",
-  "description": "MCP server for Fizzy task management",
-  "author": "David Gómez",
-  "homepage": "https://github.com/davegomez/fizzy-mcp",
-  "license": "AGPL-3.0-or-later",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/davegomez/fizzy-mcp.git"
-  },
-  "engines": {
-    "node": "^24"
-  },
-  "type": "module",
-  "main": "dist/index.js",
-  "keywords": [
-    "mcp",
-    "fizzy",
-    "task-management"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "dev": "tsx src/index.ts",
-    "test": "vitest",
-    "start": "node dist/index.js"
-  },
-  "dependencies": {
-    "fastmcp": "^3.28.0",
-    "parse-link-header": "^2.0.0",
-    "zod": "^4.3.6"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "2.3.11",
-    "@types/node": "^25.0.10",
-    "@types/parse-link-header": "^2.0.3",
-    "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
-  }
+	"name": "fizzy-mcp",
+	"version": "0.1.0",
+	"description": "MCP server for Fizzy task management",
+	"author": "David Gómez",
+	"homepage": "https://github.com/davegomez/fizzy-mcp",
+	"license": "AGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/davegomez/fizzy-mcp.git"
+	},
+	"engines": {
+		"node": "^24"
+	},
+	"type": "module",
+	"main": "dist/index.js",
+	"keywords": [
+		"mcp",
+		"fizzy",
+		"task-management"
+	],
+	"scripts": {
+		"build": "tsc",
+		"dev": "tsx src/index.ts",
+		"test": "vitest",
+		"test:run": "vitest run",
+		"lint": "biome check .",
+		"lint:fix": "biome check --write .",
+		"format": "biome format --write .",
+		"check": "biome check . && tsc --noEmit",
+		"start": "node dist/index.js"
+	},
+	"dependencies": {
+		"fastmcp": "^3.28.0",
+		"parse-link-header": "^2.0.0",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "2.3.11",
+		"@types/node": "^25.0.10",
+		"@types/parse-link-header": "^2.0.3",
+		"msw": "^2.12.7",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.18"
+	}
 }
