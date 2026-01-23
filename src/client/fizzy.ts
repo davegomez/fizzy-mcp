@@ -335,8 +335,12 @@ export class FizzyClient {
 		if (filters?.board_id) params.set("board_id", filters.board_id);
 		if (filters?.column_id) params.set("column_id", filters.column_id);
 		if (filters?.status) params.set("status", filters.status);
-		filters?.tag_ids?.forEach((id) => params.append("tag_ids[]", id));
-		filters?.assignee_ids?.forEach((id) => params.append("assignee_ids[]", id));
+		for (const id of filters?.tag_ids ?? []) {
+			params.append("tag_ids[]", id);
+		}
+		for (const id of filters?.assignee_ids ?? []) {
+			params.append("assignee_ids[]", id);
+		}
 
 		const queryString = params.toString();
 		const basePath = `/${accountSlug}/cards${queryString ? `?${queryString}` : ""}`;
@@ -370,6 +374,63 @@ export class FizzyClient {
 		);
 		if (result.ok) {
 			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async createCard(
+		accountSlug: string,
+		boardId: string,
+		data: { title: string; description?: string },
+	): Promise<Result<Card, FizzyApiError>> {
+		const body: { title: string; description?: string } = { title: data.title };
+		if (data.description) {
+			body.description = markdownToHtml(data.description);
+		}
+		const result = await this.request<Card>(
+			"POST",
+			`/${accountSlug}/boards/${boardId}/cards`,
+			{ body: { card: body } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async updateCard(
+		accountSlug: string,
+		cardNumber: number,
+		data: { title?: string; description?: string },
+	): Promise<Result<Card, FizzyApiError>> {
+		const body: { title?: string; description?: string } = {};
+		if (data.title !== undefined) {
+			body.title = data.title;
+		}
+		if (data.description !== undefined) {
+			body.description = markdownToHtml(data.description);
+		}
+		const result = await this.request<Card>(
+			"PUT",
+			`/${accountSlug}/cards/${cardNumber}`,
+			{ body: { card: body } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async deleteCard(
+		accountSlug: string,
+		cardNumber: number,
+	): Promise<Result<void, FizzyApiError>> {
+		const result = await this.request<void>(
+			"DELETE",
+			`/${accountSlug}/cards/${cardNumber}`,
+		);
+		if (result.ok) {
+			return ok(undefined);
 		}
 		return result;
 	}

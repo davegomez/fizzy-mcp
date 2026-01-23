@@ -497,22 +497,25 @@ export const handlers = [
 		return HttpResponse.json([]);
 	}),
 
-	http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, ({ request, params }) => {
-		const auth = request.headers.get("Authorization");
-		if (!auth || auth === "Bearer invalid") {
-			return HttpResponse.json({}, { status: 401 });
-		}
+	http.get(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
 
-		const cardNumber = Number(params.cardNumber);
-		const card = mockCards.find((c) => c.number === cardNumber);
-		if (!card) {
-			return HttpResponse.json({}, { status: 404 });
-		}
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
 
-		return HttpResponse.json(card);
-	}),
+			return HttpResponse.json(card);
+		},
+	),
 
-	http.get(`${BASE_URL}/:accountSlug/cards`, ({ request, params }) => {
+	http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
 		const auth = request.headers.get("Authorization");
 		if (!auth || auth === "Bearer invalid") {
 			return HttpResponse.json({}, { status: 401 });
@@ -581,7 +584,10 @@ export const handlers = [
 				card?: { title?: string; description?: string };
 			};
 			if (!body.card?.title) {
-				return HttpResponse.json({ title: ["can't be blank"] }, { status: 422 });
+				return HttpResponse.json(
+					{ title: ["can't be blank"] },
+					{ status: 422 },
+				);
 			}
 
 			return HttpResponse.json({
@@ -605,42 +611,48 @@ export const handlers = [
 		},
 	),
 
-	http.put(`${BASE_URL}/:accountSlug/cards/:cardNumber`, async ({ request, params }) => {
-		const auth = request.headers.get("Authorization");
-		if (!auth || auth === "Bearer invalid") {
-			return HttpResponse.json({}, { status: 401 });
-		}
+	http.put(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
 
-		const cardNumber = Number(params.cardNumber);
-		const card = mockCards.find((c) => c.number === cardNumber);
-		if (!card) {
-			return HttpResponse.json({}, { status: 404 });
-		}
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
 
-		const body = (await request.json()) as {
-			card?: { title?: string; description?: string };
-		};
+			const body = (await request.json()) as {
+				card?: { title?: string; description?: string };
+			};
 
-		return HttpResponse.json({
-			...card,
-			title: body.card?.title ?? card.title,
-			description_html: body.card?.description ?? card.description_html,
-			updated_at: "2024-03-15T00:00:00Z",
-		});
-	}),
+			return HttpResponse.json({
+				...card,
+				title: body.card?.title ?? card.title,
+				description_html: body.card?.description ?? card.description_html,
+				updated_at: "2024-03-15T00:00:00Z",
+			});
+		},
+	),
 
-	http.delete(`${BASE_URL}/:accountSlug/cards/:cardNumber`, ({ request, params }) => {
-		const auth = request.headers.get("Authorization");
-		if (!auth || auth === "Bearer invalid") {
-			return HttpResponse.json({}, { status: 401 });
-		}
+	http.delete(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
 
-		const cardNumber = Number(params.cardNumber);
-		const card = mockCards.find((c) => c.number === cardNumber);
-		if (!card) {
-			return HttpResponse.json({}, { status: 404 });
-		}
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
 
-		return new HttpResponse(null, { status: 204 });
-	}),
+			return new HttpResponse(null, { status: 204 });
+		},
+	),
 ];
