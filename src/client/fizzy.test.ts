@@ -1092,4 +1092,163 @@ describe("FizzyClient", () => {
 			}
 		});
 	});
+
+	describe("createStep", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should create step with content", async () => {
+			const client = new FizzyClient();
+			const result = await client.createStep("897362094", 1, {
+				content: "New step",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.content).toBe("New step");
+				expect(result.value.completed).toBe(false);
+				expect(result.value.id).toBe("step_new");
+			}
+		});
+
+		test("should create step with completed flag", async () => {
+			const client = new FizzyClient();
+			const result = await client.createStep("897362094", 1, {
+				content: "Completed step",
+				completed: true,
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.completed).toBe(true);
+			}
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.createStep("897362094", 999, {
+				content: "Test",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return ValidationError on 422", async () => {
+			const client = new FizzyClient();
+			const result = await client.createStep("897362094", 1, {
+				content: "",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(ValidationError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.createStep("897362094", 1, {
+				content: "Test",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("updateStep", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should update step content", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateStep("897362094", 1, "step_1", {
+				content: "Updated content",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.content).toBe("Updated content");
+			}
+		});
+
+		test("should update step completed status", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateStep("897362094", 1, "step_1", {
+				completed: true,
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.completed).toBe(true);
+			}
+		});
+
+		test("should return NotFoundError for missing step", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateStep("897362094", 1, "nonexistent", {
+				content: "Test",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.updateStep("897362094", 1, "step_1", {
+				content: "Test",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("deleteStep", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should delete step", async () => {
+			const client = new FizzyClient();
+			const result = await client.deleteStep("897362094", 1, "step_1");
+
+			expect(isOk(result)).toBe(true);
+		});
+
+		test("should return NotFoundError for missing step", async () => {
+			const client = new FizzyClient();
+			const result = await client.deleteStep("897362094", 1, "nonexistent");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.deleteStep("897362094", 1, "step_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
 });
