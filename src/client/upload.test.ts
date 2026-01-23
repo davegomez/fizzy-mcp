@@ -1,20 +1,29 @@
-import { mkdir, rm, writeFile } from "fs/promises";
-import { tmpdir } from "os";
-import { join } from "path";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test, vi } from "vitest";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+	vi,
+} from "vitest";
 import { isErr, isOk } from "../types/result.js";
 import { resetClient } from "./fizzy.js";
 import {
-	MAX_FILE_SIZE,
 	computeChecksum,
 	createDirectUpload,
 	embedAttachment,
+	MAX_FILE_SIZE,
 	uploadFile,
 } from "./upload.js";
 
 describe("upload utilities", () => {
 	const originalEnv = process.env;
-	const testDir = join(tmpdir(), "fizzy-mcp-test-" + Date.now());
+	const testDir = join(tmpdir(), `fizzy-mcp-test-${Date.now()}`);
 
 	beforeAll(async () => {
 		await mkdir(testDir, { recursive: true });

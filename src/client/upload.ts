@@ -1,8 +1,8 @@
-import { createHash } from "crypto";
-import { readFile, stat } from "fs/promises";
-import { basename } from "path";
+import { createHash } from "node:crypto";
+import { readFile, stat } from "node:fs/promises";
+import { basename } from "node:path";
 import { err, ok, type Result } from "../types/result.js";
-import { FizzyApiError } from "./errors.js";
+import type { FizzyApiError } from "./errors.js";
 import { getFizzyClient } from "./fizzy.js";
 
 export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB

@@ -42,6 +42,14 @@ export interface RequestResult<T> {
 	etag?: string;
 }
 
+export interface DirectUploadResponse {
+	signed_id: string;
+	direct_upload: {
+		url: string;
+		headers: Record<string, string>;
+	};
+}
+
 export class FizzyClient {
 	readonly baseUrl: string;
 	private readonly token: string;
@@ -679,6 +687,26 @@ export class FizzyClient {
 		);
 		if (result.ok) {
 			return ok(undefined);
+		}
+		return result;
+	}
+
+	async createDirectUpload(
+		accountSlug: string,
+		blob: {
+			filename: string;
+			byte_size: number;
+			checksum: string;
+			content_type: string;
+		},
+	): Promise<Result<DirectUploadResponse, FizzyApiError>> {
+		const result = await this.request<DirectUploadResponse>(
+			"POST",
+			`/${accountSlug}/rails/active_storage/direct_uploads`,
+			{ body: { blob } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
 		}
 		return result;
 	}

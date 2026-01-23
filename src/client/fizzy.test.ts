@@ -1541,4 +1541,43 @@ describe("FizzyClient", () => {
 			}
 		});
 	});
+
+	describe("createDirectUpload", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should create direct upload with blob data", async () => {
+			const client = new FizzyClient();
+			const result = await client.createDirectUpload("897362094", {
+				filename: "test.txt",
+				byte_size: 100,
+				checksum: "XrY7u+Ae7tCTyyK7j1rNww==",
+				content_type: "text/plain",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.signed_id).toContain("signed_");
+				expect(result.value.direct_upload.url).toBeDefined();
+				expect(result.value.direct_upload.headers).toBeDefined();
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.createDirectUpload("897362094", {
+				filename: "test.txt",
+				byte_size: 100,
+				checksum: "abc123",
+				content_type: "text/plain",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
 });

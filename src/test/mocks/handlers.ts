@@ -1155,10 +1155,7 @@ export const handlers = [
 			};
 
 			if (!body.blob?.filename || !body.blob?.checksum) {
-				return HttpResponse.json(
-					{ blob: ["is invalid"] },
-					{ status: 422 },
-				);
+				return HttpResponse.json({ blob: ["is invalid"] }, { status: 422 });
 			}
 
 			return HttpResponse.json({
@@ -1166,7 +1163,8 @@ export const handlers = [
 				direct_upload: {
 					url: "https://storage.example.com/upload",
 					headers: {
-						"Content-Type": body.blob.content_type ?? "application/octet-stream",
+						"Content-Type":
+							body.blob.content_type ?? "application/octet-stream",
 						"Content-MD5": body.blob.checksum,
 					},
 				},
