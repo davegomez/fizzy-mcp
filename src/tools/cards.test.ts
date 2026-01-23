@@ -8,6 +8,8 @@ import {
 	deleteCardTool,
 	getCardTool,
 	listCardsTool,
+	toggleAssigneeTool,
+	toggleTagTool,
 	updateCardTool,
 } from "./cards.js";
 
@@ -144,10 +146,12 @@ describe("listCardsTool", () => {
 
 		expect(result).toContain("...");
 		// Original description was >100 chars, should be truncated
-		const descriptionLine = result.split("\n").find((l) => l.includes("This is a very"));
+		const descriptionLine = result
+			.split("\n")
+			.find((l) => l.includes("This is a very"));
 		expect(descriptionLine).toBeDefined();
 		// 100 chars + "..." + possible prefix whitespace
-		expect(descriptionLine!.length).toBeLessThan(120);
+		expect(descriptionLine?.length).toBeLessThan(120);
 	});
 
 	test("should return message when no cards found", async () => {

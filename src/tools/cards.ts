@@ -65,8 +65,7 @@ function formatCard(card: Card): string {
 
 export const listCardsTool = {
 	name: "fizzy_list_cards",
-	description:
-		"List cards with optional filters. Uses default account if set.",
+	description: "List cards with optional filters. Uses default account if set.",
 	parameters: z.object({
 		account_slug: z
 			.string()
@@ -228,5 +227,188 @@ export const deleteCardTool = {
 			throw toUserError(result.error);
 		}
 		return `Card #${args.card_number} deleted.`;
+	},
+};
+
+export const toggleTagTool = {
+	name: "fizzy_toggle_tag",
+	description:
+		"Add or remove a tag from a card. If the tag is present, removes it. If absent, adds it. Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		card_number: z.number().describe("Card number to toggle tag on."),
+		tag_title: z.string().describe("Tag title to add or remove."),
+	}),
+	execute: async (args: {
+		account_slug?: string;
+		card_number: number;
+		tag_title: string;
+	}) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.toggleTag(
+			slug,
+			args.card_number,
+			args.tag_title,
+		);
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		return `Toggled tag "${args.tag_title}" on card #${args.card_number}.`;
+	},
+};
+
+export const toggleAssigneeTool = {
+	name: "fizzy_toggle_assignee",
+	description:
+		"Assign or unassign a user to a card. If assigned, removes assignment. If not assigned, adds it. Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		card_number: z.number().describe("Card number to toggle assignee on."),
+		user_id: z.string().describe("User ID to assign or unassign."),
+	}),
+	execute: async (args: {
+		account_slug?: string;
+		card_number: number;
+		user_id: string;
+	}) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.toggleAssignee(
+			slug,
+			args.card_number,
+			args.user_id,
+		);
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		return `Toggled assignee "${args.user_id}" on card #${args.card_number}.`;
+	},
+};
+
+export const closeCardTool = {
+	name: "fizzy_close_card",
+	description: "Mark a card as done/closed. Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		card_number: z.number().describe("Card number to close."),
+	}),
+	execute: async (args: { account_slug?: string; card_number: number }) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.closeCard(slug, args.card_number);
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		return `Card #${args.card_number} closed. Status: ${result.value.status}`;
+	},
+};
+
+export const reopenCardTool = {
+	name: "fizzy_reopen_card",
+	description: "Reopen a closed card. Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		card_number: z.number().describe("Card number to reopen."),
+	}),
+	execute: async (args: { account_slug?: string; card_number: number }) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.reopenCard(slug, args.card_number);
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		return `Card #${args.card_number} reopened. Status: ${result.value.status}`;
+	},
+};
+
+export const triageCardTool = {
+	name: "fizzy_triage_card",
+	description:
+		"Move a card from inbox to a column. Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		card_number: z.number().describe("Card number to triage."),
+		column_id: z.string().describe("Target column ID."),
+		position: z
+			.enum(["top", "bottom"])
+			.optional()
+			.describe("Position in column (top or bottom)."),
+	}),
+	execute: async (args: {
+		account_slug?: string;
+		card_number: number;
+		column_id: string;
+		position?: "top" | "bottom";
+	}) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.triageCard(
+			slug,
+			args.card_number,
+			args.column_id,
+			args.position,
+		);
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		return `Card #${args.card_number} triaged to column ${args.column_id}.`;
+	},
+};
+
+export const unTriageCardTool = {
+	name: "fizzy_untriage_card",
+	description: "Move a card back to the inbox. Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		card_number: z.number().describe("Card number to untriage."),
+	}),
+	execute: async (args: { account_slug?: string; card_number: number }) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.unTriageCard(slug, args.card_number);
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		return `Card #${args.card_number} moved back to inbox.`;
+	},
+};
+
+export const notNowCardTool = {
+	name: "fizzy_not_now_card",
+	description: "Defer a card (mark as not now). Uses default account if set.",
+	parameters: z.object({
+		account_slug: z
+			.string()
+			.optional()
+			.describe("Account slug. Uses default if not provided."),
+		card_number: z.number().describe("Card number to defer."),
+	}),
+	execute: async (args: { account_slug?: string; card_number: number }) => {
+		const slug = resolveAccount(args.account_slug);
+		const client = getFizzyClient();
+		const result = await client.notNowCard(slug, args.card_number);
+		if (isErr(result)) {
+			throw toUserError(result.error);
+		}
+		return `Card #${args.card_number} deferred. Status: ${result.value.status}`;
 	},
 };
