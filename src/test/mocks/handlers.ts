@@ -2,6 +2,39 @@ import { HttpResponse, http } from "msw";
 
 const BASE_URL = "https://app.fizzy.do";
 
+const mockColumns = [
+	{
+		id: "col_1",
+		name: "Backlog",
+		color: "#808080",
+		position: 0,
+		cards_count: 5,
+		created_at: "2024-01-01T00:00:00Z",
+		updated_at: "2024-01-15T00:00:00Z",
+		url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_1",
+	},
+	{
+		id: "col_2",
+		name: "In Progress",
+		color: "#0000ff",
+		position: 1,
+		cards_count: 3,
+		created_at: "2024-01-02T00:00:00Z",
+		updated_at: "2024-01-16T00:00:00Z",
+		url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_2",
+	},
+	{
+		id: "col_3",
+		name: "Done",
+		color: "#00ff00",
+		position: 2,
+		cards_count: 10,
+		created_at: "2024-01-03T00:00:00Z",
+		updated_at: "2024-01-17T00:00:00Z",
+		url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_3",
+	},
+];
+
 const mockTags = [
 	{
 		id: "tag_1",
@@ -246,4 +279,126 @@ export const handlers = [
 
 		return HttpResponse.json(pageData, { headers });
 	}),
+
+	// Column handlers
+	http.get(`${BASE_URL}/empty-account/boards/:boardId/columns`, ({ request }) => {
+		const auth = request.headers.get("Authorization");
+		if (!auth || auth === "Bearer invalid") {
+			return HttpResponse.json({}, { status: 401 });
+		}
+		return HttpResponse.json([]);
+	}),
+
+	http.get(
+		`${BASE_URL}/:accountSlug/boards/:boardId/columns/:columnId`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const column = mockColumns.find((c) => c.id === params.columnId);
+			if (!column) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			return HttpResponse.json(column);
+		},
+	),
+
+	http.get(
+		`${BASE_URL}/:accountSlug/boards/:boardId/columns`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const url = new URL(request.url);
+			const page = Number.parseInt(url.searchParams.get("page") || "1", 10);
+			const perPage = 2; // Small page size to test pagination
+
+			const start = (page - 1) * perPage;
+			const end = start + perPage;
+			const pageData = mockColumns.slice(start, end);
+
+			const headers: Record<string, string> = {};
+			if (end < mockColumns.length) {
+				headers.Link = `<${BASE_URL}/${params.accountSlug}/boards/${params.boardId}/columns?page=${page + 1}>; rel="next"`;
+			}
+
+			return HttpResponse.json(pageData, { headers });
+		},
+	),
+
+	http.post(
+		`${BASE_URL}/:accountSlug/boards/:boardId/columns`,
+		async ({ request }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const body = (await request.json()) as {
+				column?: { name?: string; color?: string };
+			};
+			if (!body.column?.name) {
+				return HttpResponse.json({ name: ["can't be blank"] }, { status: 422 });
+			}
+
+			return HttpResponse.json({
+				id: "col_new",
+				name: body.column.name,
+				color: body.column.color ?? "#808080",
+				position: 3,
+				cards_count: 0,
+				created_at: "2024-03-01T00:00:00Z",
+				updated_at: "2024-03-01T00:00:00Z",
+				url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_new",
+			});
+		},
+	),
+
+	http.put(
+		`${BASE_URL}/:accountSlug/boards/:boardId/columns/:columnId`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const column = mockColumns.find((c) => c.id === params.columnId);
+			if (!column) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			const body = (await request.json()) as {
+				column?: { name?: string; color?: string };
+			};
+
+			return HttpResponse.json({
+				...column,
+				name: body.column?.name ?? column.name,
+				color: body.column?.color ?? column.color,
+				updated_at: "2024-03-15T00:00:00Z",
+			});
+		},
+	),
+
+	http.delete(
+		`${BASE_URL}/:accountSlug/boards/:boardId/columns/:columnId`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const column = mockColumns.find((c) => c.id === params.columnId);
+			if (!column) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			return new HttpResponse(null, { status: 204 });
+		},
+	),
 ];

@@ -211,6 +211,94 @@ describe("FizzyClient", () => {
 		});
 	});
 
+	describe("createBoard", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should create board with name only", async () => {
+			const client = new FizzyClient();
+			const result = await client.createBoard("897362094", {
+				name: "New Board",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.name).toBe("New Board");
+				expect(result.value.id).toBe("board_new");
+			}
+		});
+
+		test("should create board with name and description (converts markdown)", async () => {
+			const client = new FizzyClient();
+			const result = await client.createBoard("897362094", {
+				name: "New Board",
+				description: "# Heading\n\nSome **bold** text",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.name).toBe("New Board");
+				// Description is converted to HTML by client before sending
+				expect(result.value.description).toContain("<h1>");
+			}
+		});
+
+		test("should return ValidationError on 422", async () => {
+			const client = new FizzyClient();
+			const result = await client.createBoard("897362094", {
+				name: "",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(ValidationError);
+			}
+		});
+	});
+
+	describe("updateBoard", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should update board name", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateBoard("897362094", "board_1", {
+				name: "Updated Name",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.name).toBe("Updated Name");
+			}
+		});
+
+		test("should update board description (converts markdown)", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateBoard("897362094", "board_1", {
+				description: "## New Description\n\n- item 1\n- item 2",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.description).toContain("<h2>");
+			}
+		});
+
+		test("should return NotFoundError for missing board", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateBoard("897362094", "nonexistent", {
+				name: "Test",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+	});
+
 	describe("listTags", () => {
 		beforeEach(() => {
 			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
@@ -243,6 +331,218 @@ describe("FizzyClient", () => {
 			process.env.FIZZY_ACCESS_TOKEN = "invalid";
 			const client = new FizzyClient();
 			const result = await client.listTags("897362094");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("listColumns", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should return all columns across pages", async () => {
+			const client = new FizzyClient();
+			const result = await client.listColumns("897362094", "board_1");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(3);
+				expect(result.value[0]?.name).toBe("Backlog");
+				expect(result.value[1]?.name).toBe("In Progress");
+				expect(result.value[2]?.name).toBe("Done");
+			}
+		});
+
+		test("should handle empty column list", async () => {
+			const client = new FizzyClient();
+			const result = await client.listColumns("empty-account", "board_1");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(0);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.listColumns("897362094", "board_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("getColumn", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should return column details", async () => {
+			const client = new FizzyClient();
+			const result = await client.getColumn("897362094", "board_1", "col_1");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.name).toBe("Backlog");
+				expect(result.value.color).toBe("#808080");
+				expect(result.value.position).toBe(0);
+				expect(result.value.cards_count).toBe(5);
+			}
+		});
+
+		test("should return NotFoundError for missing column", async () => {
+			const client = new FizzyClient();
+			const result = await client.getColumn(
+				"897362094",
+				"board_1",
+				"nonexistent",
+			);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.getColumn("897362094", "board_1", "col_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("createColumn", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should create column with name only", async () => {
+			const client = new FizzyClient();
+			const result = await client.createColumn("897362094", "board_1", {
+				name: "New Column",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.name).toBe("New Column");
+				expect(result.value.id).toBe("col_new");
+			}
+		});
+
+		test("should create column with name and color", async () => {
+			const client = new FizzyClient();
+			const result = await client.createColumn("897362094", "board_1", {
+				name: "New Column",
+				color: "#FF0000",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.name).toBe("New Column");
+				expect(result.value.color).toBe("#FF0000");
+			}
+		});
+
+		test("should return ValidationError on 422", async () => {
+			const client = new FizzyClient();
+			const result = await client.createColumn("897362094", "board_1", {
+				name: "",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(ValidationError);
+			}
+		});
+	});
+
+	describe("updateColumn", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should update column name", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateColumn("897362094", "board_1", "col_1", {
+				name: "Updated Name",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.name).toBe("Updated Name");
+			}
+		});
+
+		test("should update column color", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateColumn("897362094", "board_1", "col_1", {
+				color: "#0000FF",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.color).toBe("#0000FF");
+			}
+		});
+
+		test("should return NotFoundError for missing column", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateColumn(
+				"897362094",
+				"board_1",
+				"nonexistent",
+				{ name: "Test" },
+			);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+	});
+
+	describe("deleteColumn", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should delete column", async () => {
+			const client = new FizzyClient();
+			const result = await client.deleteColumn("897362094", "board_1", "col_1");
+
+			expect(isOk(result)).toBe(true);
+		});
+
+		test("should return NotFoundError for missing column", async () => {
+			const client = new FizzyClient();
+			const result = await client.deleteColumn(
+				"897362094",
+				"board_1",
+				"nonexistent",
+			);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.deleteColumn("897362094", "board_1", "col_1");
 
 			expect(isErr(result)).toBe(true);
 			if (isErr(result)) {
