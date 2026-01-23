@@ -24,8 +24,7 @@ function formatTagList(tags: Tag[]): string {
 
 export const listTagsTool = {
 	name: "fizzy_list_tags",
-	description:
-		"List all tags in the account. Uses default account if set.",
+	description: "List all tags in the account. Uses default account if set.",
 	parameters: z.object({
 		account_slug: z
 			.string()

@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { AuthenticationError } from "../client/errors.js";
 import * as client from "../client/index.js";
-import {
-	clearDefaultAccount,
-	setDefaultAccount,
-} from "../state/session.js";
+import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
 import { err, ok } from "../types/result.js";
 import { listTagsTool } from "./tags.js";
 
