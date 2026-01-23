@@ -1,3 +1,5 @@
+import { UserError } from "fastmcp";
+
 export class FizzyApiError extends Error {
 	constructor(
 		public readonly status: number,
@@ -51,4 +53,11 @@ function formatValidationErrors(details: Record<string, string[]>): string {
 	return Object.entries(details)
 		.map(([field, errors]) => `${field}: ${errors.join(", ")}`)
 		.join("; ");
+}
+
+/**
+ * Convert FizzyApiError to fastmcp UserError for tool responses
+ */
+export function toUserError(error: FizzyApiError): UserError {
+	return new UserError(error.message);
 }

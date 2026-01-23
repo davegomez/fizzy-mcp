@@ -4,6 +4,7 @@ export {
 	ForbiddenError,
 	NotFoundError,
 	RateLimitError,
+	toUserError,
 	ValidationError,
 } from "./errors.js";
 export {
