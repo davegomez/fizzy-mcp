@@ -99,13 +99,13 @@ export async function createDirectUpload(
 export async function uploadFile(
 	uploadUrl: string,
 	headers: Record<string, string>,
-	fileContent: Buffer,
+	fileContent: Uint8Array,
 ): Promise<Result<void, Error>> {
 	try {
 		const response = await fetch(uploadUrl, {
 			method: "PUT",
 			headers,
-			body: fileContent,
+			body: fileContent as BodyInit,
 		});
 
 		if (!response.ok) {
