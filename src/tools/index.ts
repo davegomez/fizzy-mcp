@@ -39,6 +39,7 @@ export {
 } from "./identity.js";
 export { createStepTool, deleteStepTool, updateStepTool } from "./steps.js";
 export { listTagsTool } from "./tags.js";
+export { attachFileTool } from "./upload.js";
 
 import {
 	createBoardTool,
@@ -81,6 +82,7 @@ import {
 } from "./identity.js";
 import { createStepTool, deleteStepTool, updateStepTool } from "./steps.js";
 import { listTagsTool } from "./tags.js";
+import { attachFileTool } from "./upload.js";
 
 export const allTools = [
 	whoamiTool,
@@ -117,4 +119,5 @@ export const allTools = [
 	deleteCommentTool,
 	createCardFullTool,
 	bulkCloseCardsTool,
+	attachFileTool,
 ];

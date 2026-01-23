@@ -86,7 +86,13 @@ describe("createServer", () => {
 		expect(toolNames).toContain("fizzy_bulk_close_cards");
 	});
 
-	test("should export exactly 34 tools in allTools", () => {
-		expect(allTools.length).toBe(34);
+	test("should have upload tools available", () => {
+		const toolNames = allTools.map((t) => t.name);
+
+		expect(toolNames).toContain("fizzy_attach_file");
+	});
+
+	test("should export exactly 35 tools in allTools", () => {
+		expect(allTools.length).toBe(35);
 	});
 });
