@@ -1,2 +1,8 @@
-export * from "./client/index.js";
-export * from "./types/result.js";
+#!/usr/bin/env node
+import { createServer } from "./server.js";
+
+const server = createServer();
+
+server.start({
+	transportType: "stdio",
+});
