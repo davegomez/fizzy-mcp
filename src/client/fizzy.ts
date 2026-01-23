@@ -1,5 +1,8 @@
 import type { Board } from "../schemas/boards.js";
+import type { Column } from "../schemas/columns.js";
+import type { Tag } from "../schemas/tags.js";
 import { err, ok, type Result } from "../types/result.js";
+import { markdownToHtml } from "./markdown.js";
 import {
 	AuthenticationError,
 	FizzyApiError,
@@ -162,6 +165,165 @@ export class FizzyClient {
 		);
 		if (result.ok) {
 			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async createBoard(
+		accountSlug: string,
+		data: { name: string; description?: string },
+	): Promise<Result<Board, FizzyApiError>> {
+		const body: { name: string; description?: string } = { name: data.name };
+		if (data.description) {
+			body.description = markdownToHtml(data.description);
+		}
+		const result = await this.request<Board>(
+			"POST",
+			`/${accountSlug}/boards`,
+			{ body: { board: body } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async updateBoard(
+		accountSlug: string,
+		boardId: string,
+		data: { name?: string; description?: string },
+	): Promise<Result<Board, FizzyApiError>> {
+		const body: { name?: string; description?: string } = {};
+		if (data.name !== undefined) {
+			body.name = data.name;
+		}
+		if (data.description !== undefined) {
+			body.description = markdownToHtml(data.description);
+		}
+		const result = await this.request<Board>(
+			"PUT",
+			`/${accountSlug}/boards/${boardId}`,
+			{ body: { board: body } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async listTags(accountSlug: string): Promise<Result<Tag[], FizzyApiError>> {
+		const generator = paginatedFetch<Tag>(
+			`${this.baseUrl}/${accountSlug}/tags`,
+			async (url) => {
+				const path = url.replace(this.baseUrl, "");
+				const result = await this.request<Tag[]>("GET", path);
+				if (!result.ok) {
+					throw result.error;
+				}
+				return { data: result.value.data, linkHeader: result.value.linkHeader };
+			},
+		);
+		try {
+			const tags = await collectAll(generator);
+			return ok(tags);
+		} catch (error) {
+			return err(error as FizzyApiError);
+		}
+	}
+
+	async listColumns(
+		accountSlug: string,
+		boardId: string,
+	): Promise<Result<Column[], FizzyApiError>> {
+		const generator = paginatedFetch<Column>(
+			`${this.baseUrl}/${accountSlug}/boards/${boardId}/columns`,
+			async (url) => {
+				const path = url.replace(this.baseUrl, "");
+				const result = await this.request<Column[]>("GET", path);
+				if (!result.ok) {
+					throw result.error;
+				}
+				return { data: result.value.data, linkHeader: result.value.linkHeader };
+			},
+		);
+		try {
+			const columns = await collectAll(generator);
+			return ok(columns);
+		} catch (error) {
+			return err(error as FizzyApiError);
+		}
+	}
+
+	async getColumn(
+		accountSlug: string,
+		boardId: string,
+		columnId: string,
+	): Promise<Result<Column, FizzyApiError>> {
+		const result = await this.request<Column>(
+			"GET",
+			`/${accountSlug}/boards/${boardId}/columns/${columnId}`,
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async createColumn(
+		accountSlug: string,
+		boardId: string,
+		data: { name: string; color?: string },
+	): Promise<Result<Column, FizzyApiError>> {
+		const body: { name: string; color?: string } = { name: data.name };
+		if (data.color) {
+			body.color = data.color;
+		}
+		const result = await this.request<Column>(
+			"POST",
+			`/${accountSlug}/boards/${boardId}/columns`,
+			{ body: { column: body } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async updateColumn(
+		accountSlug: string,
+		boardId: string,
+		columnId: string,
+		data: { name?: string; color?: string },
+	): Promise<Result<Column, FizzyApiError>> {
+		const body: { name?: string; color?: string } = {};
+		if (data.name !== undefined) {
+			body.name = data.name;
+		}
+		if (data.color !== undefined) {
+			body.color = data.color;
+		}
+		const result = await this.request<Column>(
+			"PUT",
+			`/${accountSlug}/boards/${boardId}/columns/${columnId}`,
+			{ body: { column: body } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async deleteColumn(
+		accountSlug: string,
+		boardId: string,
+		columnId: string,
+	): Promise<Result<void, FizzyApiError>> {
+		const result = await this.request<void>(
+			"DELETE",
+			`/${accountSlug}/boards/${boardId}/columns/${columnId}`,
+		);
+		if (result.ok) {
+			return ok(undefined);
 		}
 		return result;
 	}

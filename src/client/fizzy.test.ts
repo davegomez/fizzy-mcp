@@ -210,4 +210,44 @@ describe("FizzyClient", () => {
 			}
 		});
 	});
+
+	describe("listTags", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should return all tags across pages", async () => {
+			const client = new FizzyClient();
+			const result = await client.listTags("897362094");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(3);
+				expect(result.value[0]?.title).toBe("Bug");
+				expect(result.value[1]?.title).toBe("Feature");
+				expect(result.value[2]?.title).toBe("Documentation");
+			}
+		});
+
+		test("should handle empty tag list", async () => {
+			const client = new FizzyClient();
+			const result = await client.listTags("empty-account");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(0);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.listTags("897362094");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
 });
