@@ -65,23 +65,50 @@ function formatCard(card: Card): string {
 
 export const listCardsTool = {
 	name: "fizzy_list_cards",
-	description: "List cards with optional filters. Uses default account if set.",
+	description: `List cards in an account with optional filters.
+Find cards matching criteria or review board/column contents.
+
+**When to use:**
+- Find cards by status, tag, assignee, or location
+- Review what's on a board or in a column
+
+**Don't use when:** You already know the card number - use \`fizzy_get_card\` for full details.
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`board_id\` (optional), \`column_id\` (optional), \`tag_ids\` (optional array), \`assignee_ids\` (optional array), \`status\`: open | closed | deferred (optional). Filters AND together. Returns first 50 cards.
+
+**Returns:**
+Formatted list with truncated descriptions. Each entry: \`#number: title\`, status, tags (if any), description preview.
+Example: \`#42: Fix login bug\\n  Status: open\\n  Tags: bug, urgent\`
+
+**Related:** Use card number with \`fizzy_get_card\` for full details.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		board_id: z.string().optional().describe("Filter by board ID."),
-		column_id: z.string().optional().describe("Filter by column ID."),
-		tag_ids: z.array(z.string()).optional().describe("Filter by tag IDs."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		board_id: z
+			.string()
+			.optional()
+			.describe("Filter to cards on this board ID."),
+		column_id: z
+			.string()
+			.optional()
+			.describe("Filter to cards in this column ID."),
+		tag_ids: z
+			.array(z.string())
+			.optional()
+			.describe("Filter to cards with ALL these tag IDs."),
 		assignee_ids: z
 			.array(z.string())
 			.optional()
-			.describe("Filter by assignee IDs."),
+			.describe("Filter to cards assigned to ANY of these user IDs."),
 		status: z
 			.enum(["open", "closed", "deferred"])
 			.optional()
-			.describe("Filter by status."),
+			.describe("Filter by card status: open | closed | deferred."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -109,14 +136,33 @@ export const listCardsTool = {
 
 export const getCardTool = {
 	name: "fizzy_get_card",
-	description:
-		"Get full details of a card by number. Description returned as markdown. Uses default account if set.",
+	description: `Get full details of a card by its number.
+Retrieve complete card data including description, steps count, and metadata.
+
+**When to use:**
+- Need full description or metadata for a specific card
+- Check step completion status or see all tags/assignees
+
+**Don't use when:** Scanning multiple cards - use \`fizzy_list_cards\` first.
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required) - the \`#\` number from URLs/lists.
+
+**Returns:**
+JSON with id, number, title, description (markdown), status, board_id, column_id, tags array, assignees array, steps_count, completed_steps_count, comments_count, url, created_at, updated_at, closed_at (null if open).
+Example: \`{"id": "card_abc", "number": 42, "title": "Fix bug", "status": "open", "steps_count": 3, ...}\`
+
+**Related:** Use \`fizzy_list_comments\` or \`fizzy_create_step\` for deeper interaction.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to retrieve."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
 	}),
 	execute: async (args: { account_slug?: string; card_number: number }) => {
 		const slug = resolveAccount(args.account_slug);

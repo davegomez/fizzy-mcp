@@ -31,29 +31,58 @@ interface CreateCardFullResult {
 
 export const createCardFullTool = {
 	name: "fizzy_create_card_full",
-	description:
-		"Create a card with steps, tags, assignees, and column in one call. Card creation must succeed; other operations are best-effort. Uses default account if set.",
+	description: `Create a card with steps, tags, assignees, and column in one call.
+Full card setup in a single operation — card creation must succeed, other operations are best-effort.
+
+**When to use:**
+- Creating a well-defined task with all metadata (checklist, tags, assignees)
+- Batch card creation with consistent structure
+
+**Don't use when:** You only need a simple card — use \`fizzy_create_card\` for faster single operation.
+
+**Arguments:**
+- \`account_slug\` (optional) — uses default if not provided
+- \`board_id\` (required) — board to create card on
+- \`title\` (required, 1-500 chars) — card title
+- \`description\` (optional) — markdown body
+- \`steps\` (optional array of strings) — checklist items
+- \`tags\` (optional array of strings) — tag titles to add (creates if missing)
+- \`assignees\` (optional array of strings) — user IDs to assign
+- \`column_id\` (optional) — triage to this column instead of inbox
+
+**Returns:** JSON with \`card\` (id, number, title, url), \`steps_created\` count, \`tags_added\` array, \`assignees_added\` array, \`triaged_to\` (column ID or null), \`failures\` array for any failed secondary operations.
+Example: \`{"card": {"id": "abc", "number": 42, "title": "...", "url": "..."}, "steps_created": 2, "tags_added": ["bug"], "assignees_added": [], "triaged_to": null, "failures": [{"operation": "toggle_tag:urgent", "error": "Tag not found"}]}\`
+
+**Related:** Card creation is atomic — if it fails, nothing is created. Use \`card.number\` with other tools. Secondary operations report failures separately in the \`failures\` array.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		board_id: z.string().describe("Board ID to create the card on."),
-		title: z.string().describe("Card title."),
+			.describe("Account slug (uses default if omitted)."),
+		board_id: z.string().describe("Board ID to create card on (required)."),
+		title: z.string().describe("Card title, 1-500 characters (required)."),
 		description: z
 			.string()
 			.optional()
-			.describe("Card description (markdown supported)."),
+			.describe("Card body in markdown (optional)."),
 		steps: z
 			.array(z.string())
 			.optional()
-			.describe("Checklist items to add to the card."),
-		tags: z.array(z.string()).optional().describe("Tag titles to add."),
-		assignees: z.array(z.string()).optional().describe("User IDs to assign."),
+			.describe("Checklist items as strings (optional)."),
+		tags: z
+			.array(z.string())
+			.optional()
+			.describe(
+				"Tag titles to add — creates tags if they don't exist (optional).",
+			),
+		assignees: z
+			.array(z.string())
+			.optional()
+			.describe("User IDs to assign to the card (optional)."),
 		column_id: z
 			.string()
 			.optional()
-			.describe("Column ID to triage the card to."),
+			.describe("Column ID to triage card to instead of inbox (optional)."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -194,27 +223,53 @@ function isCardOlderThan(card: Card, days: number): boolean {
 
 export const bulkCloseCardsTool = {
 	name: "fizzy_bulk_close_cards",
-	description:
-		"Close multiple cards at once. Provide explicit card_numbers OR use filters (column_id, tag_title, older_than_days). Filters AND together. Requires force: true to execute.",
+	description: `Close multiple cards at once.
+Batch close cards by explicit list or filters — requires confirmation.
+
+**When to use:**
+- Closing all cards in a completed column
+- Cleaning up old cards by age (e.g., stale items)
+
+**Don't use when:** Closing a single card — use \`fizzy_close_card\` for simpler operation.
+
+**Arguments:**
+- \`account_slug\` (optional) — uses default if not provided
+- \`card_numbers\` (optional array) — explicit list of card numbers to close
+- \`column_id\` (optional) — filter: close cards in this column
+- \`tag_title\` (optional) — filter: close cards with this tag
+- \`older_than_days\` (optional number) — filter: close cards not updated in N days
+- \`force\` (required, must be true) — confirmation flag to execute
+
+Provide either \`card_numbers\` OR at least one filter. Filters AND together (column + tag = cards matching both). Only closes open cards.
+
+**Returns:** JSON with \`closed\` array (card numbers), \`failed\` array ({card_number, error}), \`total\` count, \`success_count\`.
+Example: \`{"closed": [1, 2, 3], "failed": [], "total": 3, "success_count": 3}\`
+
+**Related:** Test filters with \`fizzy_list_cards\` first to preview what would be closed. Use \`fizzy_reopen_card\` to undo individual closes.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
+			.describe("Account slug (uses default if omitted)."),
 		card_numbers: z
 			.array(z.number())
 			.optional()
-			.describe("Explicit list of card numbers to close."),
-		column_id: z.string().optional().describe("Filter: close cards in column."),
+			.describe("Explicit card numbers to close (optional, or use filters)."),
+		column_id: z
+			.string()
+			.optional()
+			.describe("Filter: close open cards in this column (optional)."),
 		tag_title: z
 			.string()
 			.optional()
-			.describe("Filter: close cards with this tag."),
+			.describe("Filter: close open cards with this tag title (optional)."),
 		older_than_days: z
 			.number()
 			.optional()
-			.describe("Filter: close cards not updated in N days."),
-		force: z.boolean().describe("Required confirmation. Must be true."),
+			.describe("Filter: close cards not updated in N days (optional)."),
+		force: z
+			.boolean()
+			.describe("Confirmation flag — must be true to execute (required)."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
