@@ -4,12 +4,17 @@ import * as client from "../client/index.js";
 import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
 import { err, ok } from "../types/result.js";
 import {
+	closeCardTool,
 	createCardTool,
 	deleteCardTool,
 	getCardTool,
 	listCardsTool,
+	notNowCardTool,
+	reopenCardTool,
 	toggleAssigneeTool,
 	toggleTagTool,
+	triageCardTool,
+	unTriageCardTool,
 	updateCardTool,
 } from "./cards.js";
 
@@ -466,6 +471,388 @@ describe("deleteCardTool", () => {
 
 		setDefaultAccount("897362094");
 		await expect(deleteCardTool.execute({ card_number: 999 })).rejects.toThrow(
+			"Resource not found",
+		);
+	});
+});
+
+describe("toggleTagTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should resolve account from args", async () => {
+		const toggleTagFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			toggleTag: toggleTagFn,
+		} as unknown as client.FizzyClient);
+
+		await toggleTagTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+			tag_title: "Bug",
+		});
+		expect(toggleTagFn).toHaveBeenCalledWith("my-account", 42, "Bug");
+	});
+
+	test("should resolve account from default when not provided", async () => {
+		setDefaultAccount("default-account");
+		const toggleTagFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			toggleTag: toggleTagFn,
+		} as unknown as client.FizzyClient);
+
+		await toggleTagTool.execute({ card_number: 42, tag_title: "Bug" });
+		expect(toggleTagFn).toHaveBeenCalledWith("default-account", 42, "Bug");
+	});
+
+	test("should throw when no account and no default set", async () => {
+		await expect(
+			toggleTagTool.execute({ card_number: 42, tag_title: "Bug" }),
+		).rejects.toThrow("No account specified and no default set");
+	});
+
+	test("should return confirmation message", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			toggleTag: vi.fn().mockResolvedValue(ok(undefined)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await toggleTagTool.execute({
+			card_number: 42,
+			tag_title: "Bug",
+		});
+
+		expect(result).toBe('Toggled tag "Bug" on card #42.');
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			toggleTag: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			toggleTagTool.execute({ card_number: 999, tag_title: "Bug" }),
+		).rejects.toThrow("Resource not found");
+	});
+});
+
+describe("toggleAssigneeTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should resolve account from args", async () => {
+		const toggleAssigneeFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			toggleAssignee: toggleAssigneeFn,
+		} as unknown as client.FizzyClient);
+
+		await toggleAssigneeTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+			user_id: "user_1",
+		});
+		expect(toggleAssigneeFn).toHaveBeenCalledWith("my-account", 42, "user_1");
+	});
+
+	test("should resolve account from default when not provided", async () => {
+		setDefaultAccount("default-account");
+		const toggleAssigneeFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			toggleAssignee: toggleAssigneeFn,
+		} as unknown as client.FizzyClient);
+
+		await toggleAssigneeTool.execute({ card_number: 42, user_id: "user_1" });
+		expect(toggleAssigneeFn).toHaveBeenCalledWith(
+			"default-account",
+			42,
+			"user_1",
+		);
+	});
+
+	test("should throw when no account and no default set", async () => {
+		await expect(
+			toggleAssigneeTool.execute({ card_number: 42, user_id: "user_1" }),
+		).rejects.toThrow("No account specified and no default set");
+	});
+
+	test("should return confirmation message", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			toggleAssignee: vi.fn().mockResolvedValue(ok(undefined)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await toggleAssigneeTool.execute({
+			card_number: 42,
+			user_id: "user_1",
+		});
+
+		expect(result).toBe('Toggled assignee "user_1" on card #42.');
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			toggleAssignee: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			toggleAssigneeTool.execute({ card_number: 999, user_id: "user_1" }),
+		).rejects.toThrow("Resource not found");
+	});
+});
+
+describe("closeCardTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should call client.closeCard with correct args", async () => {
+		const closedCard = { ...mockCard, status: "closed" as const };
+		const closeCardFn = vi.fn().mockResolvedValue(ok(closedCard));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			closeCard: closeCardFn,
+		} as unknown as client.FizzyClient);
+
+		await closeCardTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+		});
+		expect(closeCardFn).toHaveBeenCalledWith("my-account", 42);
+	});
+
+	test("should return confirmation message with status", async () => {
+		const closedCard = { ...mockCard, status: "closed" as const };
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			closeCard: vi.fn().mockResolvedValue(ok(closedCard)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await closeCardTool.execute({ card_number: 42 });
+
+		expect(result).toBe("Card #42 closed. Status: closed");
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			closeCard: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(closeCardTool.execute({ card_number: 999 })).rejects.toThrow(
+			"Resource not found",
+		);
+	});
+});
+
+describe("reopenCardTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should call client.reopenCard with correct args", async () => {
+		const reopenedCard = { ...mockCard, status: "open" as const };
+		const reopenCardFn = vi.fn().mockResolvedValue(ok(reopenedCard));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			reopenCard: reopenCardFn,
+		} as unknown as client.FizzyClient);
+
+		await reopenCardTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+		});
+		expect(reopenCardFn).toHaveBeenCalledWith("my-account", 42);
+	});
+
+	test("should return confirmation message with status", async () => {
+		const reopenedCard = { ...mockCard, status: "open" as const };
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			reopenCard: vi.fn().mockResolvedValue(ok(reopenedCard)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await reopenCardTool.execute({ card_number: 42 });
+
+		expect(result).toBe("Card #42 reopened. Status: open");
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			reopenCard: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(reopenCardTool.execute({ card_number: 999 })).rejects.toThrow(
+			"Resource not found",
+		);
+	});
+});
+
+describe("triageCardTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should call client.triageCard with column_id", async () => {
+		const triagedCard = { ...mockCard, column_id: "col_2" };
+		const triageCardFn = vi.fn().mockResolvedValue(ok(triagedCard));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			triageCard: triageCardFn,
+		} as unknown as client.FizzyClient);
+
+		await triageCardTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+			column_id: "col_2",
+		});
+		expect(triageCardFn).toHaveBeenCalledWith(
+			"my-account",
+			42,
+			"col_2",
+			undefined,
+		);
+	});
+
+	test("should call client.triageCard with position", async () => {
+		const triagedCard = { ...mockCard, column_id: "col_2" };
+		const triageCardFn = vi.fn().mockResolvedValue(ok(triagedCard));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			triageCard: triageCardFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await triageCardTool.execute({
+			card_number: 42,
+			column_id: "col_2",
+			position: "top",
+		});
+		expect(triageCardFn).toHaveBeenCalledWith("897362094", 42, "col_2", "top");
+	});
+
+	test("should return confirmation message", async () => {
+		const triagedCard = { ...mockCard, column_id: "col_2" };
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			triageCard: vi.fn().mockResolvedValue(ok(triagedCard)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await triageCardTool.execute({
+			card_number: 42,
+			column_id: "col_2",
+		});
+
+		expect(result).toBe("Card #42 triaged to column col_2.");
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			triageCard: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			triageCardTool.execute({ card_number: 999, column_id: "col_1" }),
+		).rejects.toThrow("Resource not found");
+	});
+});
+
+describe("unTriageCardTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should call client.unTriageCard with correct args", async () => {
+		const untriagedCard = { ...mockCard, column_id: null };
+		const unTriageCardFn = vi.fn().mockResolvedValue(ok(untriagedCard));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			unTriageCard: unTriageCardFn,
+		} as unknown as client.FizzyClient);
+
+		await unTriageCardTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+		});
+		expect(unTriageCardFn).toHaveBeenCalledWith("my-account", 42);
+	});
+
+	test("should return confirmation message", async () => {
+		const untriagedCard = { ...mockCard, column_id: null };
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			unTriageCard: vi.fn().mockResolvedValue(ok(untriagedCard)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await unTriageCardTool.execute({ card_number: 42 });
+
+		expect(result).toBe("Card #42 moved back to inbox.");
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			unTriageCard: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			unTriageCardTool.execute({ card_number: 999 }),
+		).rejects.toThrow("Resource not found");
+	});
+});
+
+describe("notNowCardTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should call client.notNowCard with correct args", async () => {
+		const deferredCard = { ...mockCard, status: "deferred" as const };
+		const notNowCardFn = vi.fn().mockResolvedValue(ok(deferredCard));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			notNowCard: notNowCardFn,
+		} as unknown as client.FizzyClient);
+
+		await notNowCardTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+		});
+		expect(notNowCardFn).toHaveBeenCalledWith("my-account", 42);
+	});
+
+	test("should return confirmation message with status", async () => {
+		const deferredCard = { ...mockCard, status: "deferred" as const };
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			notNowCard: vi.fn().mockResolvedValue(ok(deferredCard)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await notNowCardTool.execute({ card_number: 42 });
+
+		expect(result).toBe("Card #42 deferred. Status: deferred");
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			notNowCard: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(notNowCardTool.execute({ card_number: 999 })).rejects.toThrow(
 			"Resource not found",
 		);
 	});
