@@ -177,19 +177,36 @@ Example: \`{"id": "card_abc", "number": 42, "title": "Fix bug", "status": "open"
 
 export const createCardTool = {
 	name: "fizzy_create_card",
-	description:
-		"Create a new card on a board. Description can be markdown (auto-converted to HTML). Card goes to inbox by default. Uses default account if set.",
+	description: `Create a new card on a board.
+Add a task or work item to track.
+
+**When to use:**
+- Create a single card with title and optional description
+- Quick card creation without tags/steps/assignees
+
+**Don't use when:** You need tags, steps, or assignees at creation - use \`fizzy_create_card_full\` instead.
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`board_id\` (required), \`title\` (required, 1-500 chars), \`description\` (optional, markdown auto-converted to HTML).
+
+**Returns:**
+JSON with id, number, title, url of created card.
+Example: \`{"id": "card_xyz", "number": 43, "title": "New task", "url": "https://..."}\`
+
+**Related:** Card lands in inbox. Use \`fizzy_triage_card\` to move to a column.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
 		board_id: z.string().describe("Board ID to create the card on."),
-		title: z.string().describe("Card title."),
+		title: z.string().describe("Card title (1-500 characters)."),
 		description: z
 			.string()
 			.optional()
-			.describe("Card description (markdown supported)."),
+			.describe("Card description in markdown (auto-converted to HTML)."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -222,19 +239,35 @@ export const createCardTool = {
 
 export const updateCardTool = {
 	name: "fizzy_update_card",
-	description:
-		"Update a card's title and/or description. Description can be markdown (auto-converted to HTML). Uses default account if set.",
+	description: `Update a card's title and/or description.
+Modify card content without changing status or location.
+
+**When to use:**
+- Fix typos or update the title
+- Expand or revise the description
+
+**Don't use when:** Changing status (use close/reopen), location (use triage), or tags (use toggle_tag).
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required), \`title\` (optional), \`description\` (optional, markdown auto-converted).
+
+**Returns:**
+JSON with full updated card details (same format as \`fizzy_get_card\`).`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to update."),
-		title: z.string().optional().describe("New title."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
+		title: z.string().optional().describe("New title (1-500 characters)."),
 		description: z
 			.string()
 			.optional()
-			.describe("New description (markdown supported)."),
+			.describe("New description in markdown (auto-converted to HTML)."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -257,13 +290,32 @@ export const updateCardTool = {
 
 export const deleteCardTool = {
 	name: "fizzy_delete_card",
-	description: "Delete a card by number. Uses default account if set.",
+	description: `Permanently delete a card by number.
+Remove a card and all its data (comments, steps).
+
+**When to use:**
+- Remove duplicate or spam cards
+- Clean up test data
+
+**Don't use when:** Card should be archived for history - use \`fizzy_close_card\` instead.
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required).
+
+**Returns:**
+Confirmation message: \`"Card #42 deleted."\`
+
+**Related:** This is permanent. Consider \`fizzy_close_card\` to preserve history.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to delete."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
 	}),
 	execute: async (args: { account_slug?: string; card_number: number }) => {
 		const slug = resolveAccount(args.account_slug);
@@ -278,15 +330,31 @@ export const deleteCardTool = {
 
 export const toggleTagTool = {
 	name: "fizzy_toggle_tag",
-	description:
-		"Add or remove a tag from a card. If the tag is present, removes it. If absent, adds it. Uses default account if set.",
+	description: `Add or remove a tag from a card.
+Toggle tag assignment - adds if absent, removes if present.
+
+**When to use:**
+- Categorize a card with a label
+- Remove an incorrect or outdated tag
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required) - the \`#\` number, \`tag_title\` (required) - the tag name, not ID.
+
+**Returns:**
+Confirmation message: \`"Toggled tag \\"bug\\" on card #42."\`
+
+**Related:** Use \`fizzy_list_tags\` to see available tags.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to toggle tag on."),
-		tag_title: z.string().describe("Tag title to add or remove."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
+		tag_title: z.string().describe("Tag name to add or remove (e.g., 'bug')."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -309,14 +377,30 @@ export const toggleTagTool = {
 
 export const toggleAssigneeTool = {
 	name: "fizzy_toggle_assignee",
-	description:
-		"Assign or unassign a user to a card. If assigned, removes assignment. If not assigned, adds it. Uses default account if set.",
+	description: `Assign or unassign a user to a card.
+Toggle user assignment - assigns if not assigned, unassigns if assigned.
+
+**When to use:**
+- Assign work to a team member
+- Remove an assignment when work is reassigned
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required) - the \`#\` number, \`user_id\` (required).
+
+**Returns:**
+Confirmation message: \`"Toggled assignee \\"user_abc\\" on card #42."\`
+
+**Related:** Get user IDs from \`fizzy_whoami\` (accounts contain members).`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to toggle assignee on."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
 		user_id: z.string().describe("User ID to assign or unassign."),
 	}),
 	execute: async (args: {
@@ -340,13 +424,32 @@ export const toggleAssigneeTool = {
 
 export const closeCardTool = {
 	name: "fizzy_close_card",
-	description: "Mark a card as done/closed. Uses default account if set.",
+	description: `Mark a card as done/closed.
+Complete a task and remove from active view.
+
+**When to use:**
+- Task is finished
+- Card is no longer relevant
+
+**Don't use when:** Temporarily pausing work - use \`fizzy_not_now_card\` to defer.
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required).
+
+**Returns:**
+Confirmation with new status: \`"Card #42 closed. Status: closed"\`
+
+**Related:** Use \`fizzy_reopen_card\` to undo.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to close."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
 	}),
 	execute: async (args: { account_slug?: string; card_number: number }) => {
 		const slug = resolveAccount(args.account_slug);
@@ -361,13 +464,30 @@ export const closeCardTool = {
 
 export const reopenCardTool = {
 	name: "fizzy_reopen_card",
-	description: "Reopen a closed card. Uses default account if set.",
+	description: `Reopen a closed or deferred card.
+Return a card to open status for continued work.
+
+**When to use:**
+- Card was closed prematurely
+- Work needs to resume on a deferred card
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required).
+
+**Returns:**
+Confirmation with new status: \`"Card #42 reopened. Status: open"\`
+
+**Related:** Card returns to previous column if triaged.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to reopen."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
 	}),
 	execute: async (args: { account_slug?: string; card_number: number }) => {
 		const slug = resolveAccount(args.account_slug);
@@ -382,19 +502,37 @@ export const reopenCardTool = {
 
 export const triageCardTool = {
 	name: "fizzy_triage_card",
-	description:
-		"Move a card from inbox to a column. Uses default account if set.",
+	description: `Move a card from inbox to a column.
+Prioritize and organize a card into workflow.
+
+**When to use:**
+- New card needs to be scheduled
+- Moving card between columns
+
+**Don't use when:** Card should go back to inbox - use \`fizzy_untriage_card\`.
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required), \`column_id\` (required), \`position\`: top | bottom (optional, default: bottom).
+
+**Returns:**
+Confirmation message: \`"Card #42 triaged to column col_xyz."\`
+
+**Related:** Get column IDs from \`fizzy_get_board\` or \`fizzy_list_columns\`.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to triage."),
-		column_id: z.string().describe("Target column ID."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
+		column_id: z.string().describe("Target column ID (e.g., 'col_xyz')."),
 		position: z
 			.enum(["top", "bottom"])
 			.optional()
-			.describe("Position in column (top or bottom)."),
+			.describe("Position in column: top | bottom (default: bottom)."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -419,13 +557,28 @@ export const triageCardTool = {
 
 export const unTriageCardTool = {
 	name: "fizzy_untriage_card",
-	description: "Move a card back to the inbox. Uses default account if set.",
+	description: `Move a card back to the inbox.
+Remove card from workflow for later triage.
+
+**When to use:**
+- Card needs re-prioritization
+- Deprioritizing previously scheduled work
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required).
+
+**Returns:**
+Confirmation message: \`"Card #42 moved back to inbox."\``,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to untriage."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
 	}),
 	execute: async (args: { account_slug?: string; card_number: number }) => {
 		const slug = resolveAccount(args.account_slug);
@@ -440,13 +593,32 @@ export const unTriageCardTool = {
 
 export const notNowCardTool = {
 	name: "fizzy_not_now_card",
-	description: "Defer a card (mark as not now). Uses default account if set.",
+	description: `Defer a card (mark as not now).
+Set aside a card without closing it.
+
+**When to use:**
+- Card is valid but not current priority
+- Waiting on external dependency
+
+**Don't use when:** Card is complete - use \`fizzy_close_card\`.
+
+**Arguments:**
+\`account_slug\` (optional, uses session default), \`card_number\` (required).
+
+**Returns:**
+Confirmation with deferred status: \`"Card #42 deferred. Status: deferred"\`
+
+**Related:** Use \`fizzy_reopen_card\` when ready to resume.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		card_number: z.number().describe("Card number to defer."),
+			.describe(
+				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+			),
+		card_number: z
+			.number()
+			.describe("Card number (the # from URLs/lists, e.g., 42)."),
 	}),
 	execute: async (args: { account_slug?: string; card_number: number }) => {
 		const slug = resolveAccount(args.account_slug);

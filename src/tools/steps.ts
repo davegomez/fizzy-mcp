@@ -45,18 +45,34 @@ function formatStep(step: Step): StepResult {
 
 export const createStepTool = {
 	name: "fizzy_create_step",
-	description:
-		"Create one or more checklist steps on a card. Batch creation supported - steps are created in order. Uses default account if set.",
+	description: `Create checklist steps on a card.
+
+Add one or more subtasks to break down work into actionable items.
+
+**When to use:**
+1. Break a task into smaller actionable items
+2. Create a checklist for process steps or requirements
+
+**Arguments:** \`account_slug\` (optional), \`card_number\` (required), \`steps\` (required — array of strings, min 1)
+
+**Returns:** JSON with \`created\` array (id, content, completed) and \`failed\` array (content, error) for partial success handling.
+Example: \`{"created": [{"id": "abc", "content": "Review PR", "completed": false}], "failed": []}\`
+
+**Note:** Steps are created sequentially. If some fail, others may still succeed.
+
+**Related:** Use \`fizzy_update_step\` to mark steps complete. See \`fizzy_get_card\` for step counts.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
+			.describe("Account slug. Uses default if omitted."),
 		card_number: z.number().describe("Card number to add steps to."),
 		steps: z
 			.array(z.string())
 			.min(1)
-			.describe("Step content strings to create."),
+			.describe(
+				"Array of step content strings to create, in order. Min 1 item.",
+			),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -97,20 +113,32 @@ export const createStepTool = {
 
 export const updateStepTool = {
 	name: "fizzy_update_step",
-	description:
-		"Update a step's content and/or completion status. Can toggle completion or change content. Uses default account if set.",
+	description: `Update a step's content or completion status.
+
+Mark a step done or modify its text.
+
+**When to use:**
+1. Mark a subtask as complete
+2. Fix step wording or uncheck an accidentally completed step
+
+**Arguments:** \`account_slug\` (optional), \`card_number\` (required), \`step_id\` (required), \`content\` (optional — new text), \`completed\` (optional — true/false)
+
+**Returns:** JSON with \`id\`, \`content\`, \`completed\` status.
+Example: \`{"id": "abc123", "content": "Review PR", "completed": true}\`
+
+**Related:** Get step IDs from \`fizzy_get_card\` (includes step details) or create with \`fizzy_create_step\`.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
+			.describe("Account slug. Uses default if omitted."),
 		card_number: z.number().describe("Card number the step belongs to."),
-		step_id: z.string().describe("Step ID to update."),
-		content: z.string().optional().describe("New step content."),
+		step_id: z.string().describe("Step ID to update. Get from fizzy_get_card."),
+		content: z.string().optional().describe("New step content text."),
 		completed: z
 			.boolean()
 			.optional()
-			.describe("Mark step as completed or not."),
+			.describe("Set true to mark complete, false to uncheck."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -139,14 +167,28 @@ export const updateStepTool = {
 
 export const deleteStepTool = {
 	name: "fizzy_delete_step",
-	description: "Delete a step from a card. Uses default account if set.",
+	description: `Delete a step from a card.
+
+Remove a checklist item permanently.
+
+**When to use:**
+1. Step is no longer relevant to the task
+2. Consolidating or reorganizing checklist items
+
+**Don't use when:** You want to preserve history — consider marking complete instead.
+
+**Arguments:** \`account_slug\` (optional), \`card_number\` (required), \`step_id\` (required)
+
+**Returns:** Confirmation message.
+
+**Related:** Get step IDs from \`fizzy_get_card\`. Consider \`fizzy_update_step\` with \`completed: true\` to preserve history.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
+			.describe("Account slug. Uses default if omitted."),
 		card_number: z.number().describe("Card number the step belongs to."),
-		step_id: z.string().describe("Step ID to delete."),
+		step_id: z.string().describe("Step ID to delete. Get from fizzy_get_card."),
 	}),
 	execute: async (args: {
 		account_slug?: string;

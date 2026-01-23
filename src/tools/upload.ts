@@ -21,17 +21,35 @@ function resolveAccount(accountSlug?: string): string {
 
 export const attachFileTool = {
 	name: "fizzy_attach_file",
-	description:
-		"Upload a file and return HTML to embed in a rich text field. Reads file from disk, uploads to Fizzy storage, returns action-text-attachment HTML. Max 50MB.",
+	description: `Upload a file and get HTML to embed in rich text fields.
+Attach images, PDFs, or other files to card descriptions or comments.
+
+**When to use:**
+- Adding a screenshot to a card description
+- Attaching a document to a comment
+
+**Don't use when:** You need to link to an external URL — just include the URL in markdown.
+
+**Arguments:**
+- \`account_slug\` (optional) — uses default if not provided
+- \`file_path\` (required) — absolute path to file on disk
+- \`content_type\` (required) — MIME type like \`image/png\`, \`application/pdf\`, \`image/jpeg\`
+
+**Returns:** JSON with \`signed_id\` (internal reference), \`html\` (action-text-attachment HTML to embed), \`usage\` (instructions).
+Example: \`{"signed_id": "abc123", "html": "<action-text-attachment sgid=\\"...\\" content-type=\\"image/png\\"></action-text-attachment>", "usage": "Include the html value..."}\`
+
+**Related:** Include the returned \`html\` verbatim in any rich text field (card description, comment body) to display the attachment. Max file size: 50MB.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		file_path: z.string().describe("Absolute path to file on disk."),
+			.describe("Account slug (uses default if omitted)."),
+		file_path: z.string().describe("Absolute path to file on disk (required)."),
 		content_type: z
 			.string()
-			.describe("MIME type (e.g., image/png, application/pdf)."),
+			.describe(
+				"MIME type — e.g., image/png, image/jpeg, application/pdf (required).",
+			),
 	}),
 	execute: async (args: {
 		account_slug?: string;
