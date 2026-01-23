@@ -1320,6 +1320,180 @@ describe("FizzyClient", () => {
 		});
 	});
 
+	describe("listComments", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should return all comments across pages", async () => {
+			const client = new FizzyClient();
+			const result = await client.listComments("897362094", 1);
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(3);
+			}
+		});
+
+		test("should return comments in newest-first order", async () => {
+			const client = new FizzyClient();
+			const result = await client.listComments("897362094", 1);
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				// Mock comments are in oldest-first order, should be reversed
+				expect(result.value[0]?.id).toBe("comment_3");
+				expect(result.value[2]?.id).toBe("comment_1");
+			}
+		});
+
+		test("should handle empty comment list", async () => {
+			const client = new FizzyClient();
+			const result = await client.listComments("897362094", 4); // Card 4 has no comments
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(0);
+			}
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.listComments("897362094", 999);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.listComments("897362094", 1);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("createComment", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should create comment with markdown body (converts to HTML)", async () => {
+			const client = new FizzyClient();
+			const result = await client.createComment(
+				"897362094",
+				1,
+				"## Comment heading\n\nSome **bold** text",
+			);
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.id).toBe("comment_new");
+				expect(result.value.body.html).toContain("<h2>");
+				expect(result.value.body.html).toContain("<strong>");
+			}
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.createComment(
+				"897362094",
+				999,
+				"Test comment",
+			);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.createComment("897362094", 1, "Test comment");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("updateComment", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should update comment body (converts markdown to HTML)", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateComment(
+				"897362094",
+				1,
+				"comment_1",
+				"## Updated content\n\n- item 1\n- item 2",
+			);
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.body.html).toContain("<h2>");
+				expect(result.value.body.html).toContain("<li>");
+			}
+		});
+
+		test("should return NotFoundError for missing comment", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateComment(
+				"897362094",
+				1,
+				"nonexistent",
+				"Test",
+			);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return ForbiddenError when not comment author", async () => {
+			const client = new FizzyClient();
+			const result = await client.updateComment(
+				"897362094",
+				1,
+				"comment_other_user",
+				"Test",
+			);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(ForbiddenError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.updateComment(
+				"897362094",
+				1,
+				"comment_1",
+				"Test",
+			);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
 	describe("deleteComment", () => {
 		beforeEach(() => {
 			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
@@ -1334,11 +1508,7 @@ describe("FizzyClient", () => {
 
 		test("should return NotFoundError for missing comment", async () => {
 			const client = new FizzyClient();
-			const result = await client.deleteComment(
-				"897362094",
-				1,
-				"nonexistent",
-			);
+			const result = await client.deleteComment("897362094", 1, "nonexistent");
 
 			expect(isErr(result)).toBe(true);
 			if (isErr(result)) {

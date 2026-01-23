@@ -837,4 +837,216 @@ export const handlers = [
 			});
 		},
 	),
+
+	// Comment handlers
+	http.get(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/comments`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			// Card 4 has no comments
+			if (cardNumber === 4) {
+				return HttpResponse.json([]);
+			}
+
+			const url = new URL(request.url);
+			const page = Number.parseInt(url.searchParams.get("page") || "1", 10);
+			const perPage = 2;
+
+			// Mock comments for card 1 (oldest first, as API returns)
+			const mockComments = [
+				{
+					id: "comment_1",
+					created_at: "2024-01-10T00:00:00Z",
+					updated_at: "2024-01-10T00:00:00Z",
+					body: { plain_text: "First comment", html: "<p>First comment</p>" },
+					creator: {
+						id: "user_1",
+						name: "Jane Doe",
+						email_address: "jane@example.com",
+						role: "owner",
+						active: true,
+					},
+					card: { id: card.id, url: card.url },
+					reactions_url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/comment_1/reactions`,
+					url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/comment_1`,
+				},
+				{
+					id: "comment_2",
+					created_at: "2024-01-11T00:00:00Z",
+					updated_at: "2024-01-11T00:00:00Z",
+					body: { plain_text: "Second comment", html: "<p>Second comment</p>" },
+					creator: {
+						id: "user_2",
+						name: "John Smith",
+						email_address: "john@example.com",
+						role: "member",
+						active: true,
+					},
+					card: { id: card.id, url: card.url },
+					reactions_url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/comment_2/reactions`,
+					url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/comment_2`,
+				},
+				{
+					id: "comment_3",
+					created_at: "2024-01-12T00:00:00Z",
+					updated_at: "2024-01-12T00:00:00Z",
+					body: { plain_text: "Third comment", html: "<p>Third comment</p>" },
+					creator: {
+						id: "user_1",
+						name: "Jane Doe",
+						email_address: "jane@example.com",
+						role: "owner",
+						active: true,
+					},
+					card: { id: card.id, url: card.url },
+					reactions_url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/comment_3/reactions`,
+					url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/comment_3`,
+				},
+			];
+
+			const start = (page - 1) * perPage;
+			const end = start + perPage;
+			const pageData = mockComments.slice(start, end);
+
+			const headers: Record<string, string> = {};
+			if (end < mockComments.length) {
+				const nextUrl = new URL(request.url);
+				nextUrl.searchParams.set("page", String(page + 1));
+				headers.Link = `<${nextUrl.toString()}>; rel="next"`;
+			}
+
+			return HttpResponse.json(pageData, { headers });
+		},
+	),
+
+	http.post(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/comments`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			const body = (await request.json()) as {
+				comment?: { body?: string };
+			};
+
+			return HttpResponse.json({
+				id: "comment_new",
+				created_at: "2024-03-15T00:00:00Z",
+				updated_at: "2024-03-15T00:00:00Z",
+				body: {
+					plain_text: "New comment",
+					html: body.comment?.body ?? "<p>New comment</p>",
+				},
+				creator: {
+					id: "user_1",
+					name: "Jane Doe",
+					email_address: "jane@example.com",
+					role: "owner",
+					active: true,
+				},
+				card: { id: card.id, url: card.url },
+				reactions_url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/comment_new/reactions`,
+				url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/comment_new`,
+			});
+		},
+	),
+
+	http.put(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/comments/:commentId`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			// Simulate 403 for non-author
+			if (params.commentId === "comment_other_user") {
+				return HttpResponse.json({}, { status: 403 });
+			}
+
+			// Simulate 404 for nonexistent comment
+			if (params.commentId === "nonexistent") {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			const body = (await request.json()) as {
+				comment?: { body?: string };
+			};
+
+			return HttpResponse.json({
+				id: params.commentId,
+				created_at: "2024-01-10T00:00:00Z",
+				updated_at: "2024-03-15T00:00:00Z",
+				body: {
+					plain_text: "Updated content",
+					html: body.comment?.body ?? "<p>Updated content</p>",
+				},
+				creator: {
+					id: "user_1",
+					name: "Jane Doe",
+					email_address: "jane@example.com",
+					role: "owner",
+					active: true,
+				},
+				card: {
+					id: card.id,
+					url: card.url,
+				},
+				reactions_url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/${params.commentId}/reactions`,
+				url: `${BASE_URL}/${params.accountSlug}/cards/${params.cardNumber}/comments/${params.commentId}`,
+			});
+		},
+	),
+
+	http.delete(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/comments/:commentId`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			// Simulate 403 for non-author
+			if (params.commentId === "comment_other_user") {
+				return HttpResponse.json({}, { status: 403 });
+			}
+
+			// Simulate 404 for nonexistent comment
+			if (params.commentId === "nonexistent") {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			return new HttpResponse(null, { status: 204 });
+		},
+	),
 ];

@@ -122,7 +122,8 @@ describe("CommentSchema", () => {
 			id: "card_123",
 			url: "https://app.fizzy.do/897362094/cards/1",
 		},
-		reactions_url: "https://app.fizzy.do/897362094/comments/comment_123/reactions",
+		reactions_url:
+			"https://app.fizzy.do/897362094/comments/comment_123/reactions",
 		url: "https://app.fizzy.do/897362094/comments/comment_123",
 	};
 

@@ -1,6 +1,7 @@
 import type { Board } from "../schemas/boards.js";
 import type { Card, CardFilters } from "../schemas/cards.js";
 import type { Column } from "../schemas/columns.js";
+import type { Comment } from "../schemas/comments.js";
 import type { Tag } from "../schemas/tags.js";
 import { err, ok, type Result } from "../types/result.js";
 import {
@@ -539,6 +540,80 @@ export class FizzyClient {
 			"POST",
 			`/${accountSlug}/cards/${cardNumber}/assignees`,
 			{ body: { user_id: userId } },
+		);
+		if (result.ok) {
+			return ok(undefined);
+		}
+		return result;
+	}
+
+	async listComments(
+		accountSlug: string,
+		cardNumber: number,
+	): Promise<Result<Comment[], FizzyApiError>> {
+		const generator = paginatedFetch<Comment>(
+			`${this.baseUrl}/${accountSlug}/cards/${cardNumber}/comments`,
+			async (url) => {
+				const path = url.replace(this.baseUrl, "");
+				const result = await this.request<Comment[]>("GET", path);
+				if (!result.ok) {
+					throw result.error;
+				}
+				return { data: result.value.data, linkHeader: result.value.linkHeader };
+			},
+		);
+		try {
+			const comments = await collectAll(generator);
+			// API returns oldest first; reverse for newest first per CONTEXT.md
+			return ok(comments.reverse());
+		} catch (error) {
+			return err(error as FizzyApiError);
+		}
+	}
+
+	async createComment(
+		accountSlug: string,
+		cardNumber: number,
+		body: string,
+	): Promise<Result<Comment, FizzyApiError>> {
+		const html = markdownToHtml(body);
+		const result = await this.request<Comment>(
+			"POST",
+			`/${accountSlug}/cards/${cardNumber}/comments`,
+			{ body: { comment: { body: html } } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async updateComment(
+		accountSlug: string,
+		cardNumber: number,
+		commentId: string,
+		body: string,
+	): Promise<Result<Comment, FizzyApiError>> {
+		const html = markdownToHtml(body);
+		const result = await this.request<Comment>(
+			"PUT",
+			`/${accountSlug}/cards/${cardNumber}/comments/${commentId}`,
+			{ body: { comment: { body: html } } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async deleteComment(
+		accountSlug: string,
+		cardNumber: number,
+		commentId: string,
+	): Promise<Result<void, FizzyApiError>> {
+		const result = await this.request<void>(
+			"DELETE",
+			`/${accountSlug}/cards/${cardNumber}/comments/${commentId}`,
 		);
 		if (result.ok) {
 			return ok(undefined);
