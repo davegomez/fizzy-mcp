@@ -1135,4 +1135,51 @@ export const handlers = [
 			return new HttpResponse(null, { status: 204 });
 		},
 	),
+
+	// Direct upload handler
+	http.post(
+		`${BASE_URL}/:accountSlug/rails/active_storage/direct_uploads`,
+		async ({ request }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const body = (await request.json()) as {
+				blob?: {
+					filename?: string;
+					byte_size?: number;
+					checksum?: string;
+					content_type?: string;
+				};
+			};
+
+			if (!body.blob?.filename || !body.blob?.checksum) {
+				return HttpResponse.json(
+					{ blob: ["is invalid"] },
+					{ status: 422 },
+				);
+			}
+
+			return HttpResponse.json({
+				signed_id: `signed_${body.blob.filename}_${Date.now()}`,
+				direct_upload: {
+					url: "https://storage.example.com/upload",
+					headers: {
+						"Content-Type": body.blob.content_type ?? "application/octet-stream",
+						"Content-MD5": body.blob.checksum,
+					},
+				},
+			});
+		},
+	),
+
+	// Mock storage upload endpoint
+	http.put("https://storage.example.com/upload", () => {
+		return new HttpResponse(null, { status: 200 });
+	}),
+
+	http.put("https://storage.example.com/upload-fail", () => {
+		return HttpResponse.json({ error: "Upload failed" }, { status: 500 });
+	}),
 ];
