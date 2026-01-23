@@ -655,4 +655,106 @@ export const handlers = [
 			return new HttpResponse(null, { status: 204 });
 		},
 	),
+
+	// Close card (POST)
+	http.post(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/close`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			return HttpResponse.json({
+				...card,
+				status: "closed",
+				closed_at: "2024-03-15T00:00:00Z",
+				updated_at: "2024-03-15T00:00:00Z",
+			});
+		},
+	),
+
+	// Reopen card (DELETE /close)
+	http.delete(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/close`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			return HttpResponse.json({
+				...card,
+				status: "open",
+				closed_at: null,
+				updated_at: "2024-03-15T00:00:00Z",
+			});
+		},
+	),
+
+	// Toggle tag handler
+	http.post(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/taggings`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			const body = (await request.json()) as { tag_title?: string };
+			if (!body.tag_title) {
+				return HttpResponse.json(
+					{ tag_title: ["can't be blank"] },
+					{ status: 422 },
+				);
+			}
+
+			return new HttpResponse(null, { status: 204 });
+		},
+	),
+
+	// Toggle assignee handler
+	http.post(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/assignees`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			const body = (await request.json()) as { user_id?: string };
+			if (!body.user_id) {
+				return HttpResponse.json(
+					{ user_id: ["can't be blank"] },
+					{ status: 422 },
+				);
+			}
+
+			return new HttpResponse(null, { status: 204 });
+		},
+	),
 ];

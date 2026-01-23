@@ -827,4 +827,80 @@ describe("FizzyClient", () => {
 			}
 		});
 	});
+
+	describe("closeCard", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should close card", async () => {
+			const client = new FizzyClient();
+			const result = await client.closeCard("897362094", 1);
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.status).toBe("closed");
+				expect(result.value.closed_at).toBe("2024-03-15T00:00:00Z");
+			}
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.closeCard("897362094", 999);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.closeCard("897362094", 1);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("reopenCard", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should reopen card", async () => {
+			const client = new FizzyClient();
+			const result = await client.reopenCard("897362094", 3);
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.status).toBe("open");
+				expect(result.value.closed_at).toBeNull();
+			}
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.reopenCard("897362094", 999);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.reopenCard("897362094", 3);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
 });

@@ -434,6 +434,34 @@ export class FizzyClient {
 		}
 		return result;
 	}
+
+	async closeCard(
+		accountSlug: string,
+		cardNumber: number,
+	): Promise<Result<Card, FizzyApiError>> {
+		const result = await this.request<Card>(
+			"POST",
+			`/${accountSlug}/cards/${cardNumber}/close`,
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async reopenCard(
+		accountSlug: string,
+		cardNumber: number,
+	): Promise<Result<Card, FizzyApiError>> {
+		const result = await this.request<Card>(
+			"DELETE",
+			`/${accountSlug}/cards/${cardNumber}/close`,
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
 }
 
 let clientInstance: FizzyClient | undefined;
