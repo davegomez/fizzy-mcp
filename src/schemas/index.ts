@@ -33,6 +33,16 @@ export {
 	UpdateColumnInputSchema,
 } from "./columns.js";
 export {
+	type Comment,
+	type CommentBody,
+	CommentBodySchema,
+	type CommentCardReference,
+	CommentCardReferenceSchema,
+	type CommentCreator,
+	CommentCreatorSchema,
+	CommentSchema,
+} from "./comments.js";
+export {
 	type Account,
 	AccountSchema,
 	type IdentityResponse,
@@ -40,4 +50,5 @@ export {
 	type User,
 	UserSchema,
 } from "./identity.js";
+export { type Step, StepSchema } from "./steps.js";
 export { type Tag, TagSchema } from "./tags.js";
