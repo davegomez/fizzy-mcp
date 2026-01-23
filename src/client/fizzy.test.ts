@@ -132,4 +132,82 @@ describe("FizzyClient", () => {
 			expect(client1).toBe(client2);
 		});
 	});
+
+	describe("listBoards", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should return all boards across pages", async () => {
+			const client = new FizzyClient();
+			const result = await client.listBoards("897362094");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(2);
+				expect(result.value[0]?.name).toBe("Project Alpha");
+				expect(result.value[1]?.name).toBe("Project Beta");
+			}
+		});
+
+		test("should handle empty board list", async () => {
+			const client = new FizzyClient();
+			const result = await client.listBoards("empty-account");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(0);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.listBoards("897362094");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("getBoard", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should return board details", async () => {
+			const client = new FizzyClient();
+			const result = await client.getBoard("897362094", "board_1");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.name).toBe("Project Alpha");
+				expect(result.value.columns).toHaveLength(3);
+				expect(result.value.columns[0]?.name).toBe("Backlog");
+			}
+		});
+
+		test("should return NotFoundError for missing board", async () => {
+			const client = new FizzyClient();
+			const result = await client.getBoard("897362094", "nonexistent");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.getBoard("897362094", "board_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
 });

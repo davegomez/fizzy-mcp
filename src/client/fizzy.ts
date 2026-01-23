@@ -1,3 +1,4 @@
+import type { Board } from "../schemas/boards.js";
 import { err, ok, type Result } from "../types/result.js";
 import {
 	AuthenticationError,
@@ -7,6 +8,7 @@ import {
 	RateLimitError,
 	ValidationError,
 } from "./errors.js";
+import { collectAll, paginatedFetch } from "./pagination.js";
 
 const DEFAULT_BASE_URL = "https://app.fizzy.do";
 
@@ -122,6 +124,42 @@ export class FizzyClient {
 
 	async whoami(): Promise<Result<IdentityResponse, FizzyApiError>> {
 		const result = await this.request<IdentityResponse>("GET", "/my/identity");
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async listBoards(
+		accountSlug: string,
+	): Promise<Result<Board[], FizzyApiError>> {
+		const generator = paginatedFetch<Board>(
+			`${this.baseUrl}/${accountSlug}/boards`,
+			async (url) => {
+				const path = url.replace(this.baseUrl, "");
+				const result = await this.request<Board[]>("GET", path);
+				if (!result.ok) {
+					throw result.error;
+				}
+				return { data: result.value.data, linkHeader: result.value.linkHeader };
+			},
+		);
+		try {
+			const boards = await collectAll(generator);
+			return ok(boards);
+		} catch (error) {
+			return err(error as FizzyApiError);
+		}
+	}
+
+	async getBoard(
+		accountSlug: string,
+		boardId: string,
+	): Promise<Result<Board, FizzyApiError>> {
+		const result = await this.request<Board>(
+			"GET",
+			`/${accountSlug}/boards/${boardId}`,
+		);
 		if (result.ok) {
 			return ok(result.value.data);
 		}

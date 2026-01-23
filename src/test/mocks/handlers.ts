@@ -2,6 +2,51 @@ import { HttpResponse, http } from "msw";
 
 const BASE_URL = "https://app.fizzy.do";
 
+const mockBoards = [
+	{
+		id: "board_1",
+		name: "Project Alpha",
+		slug: "project-alpha",
+		description: "Main project board",
+		columns: [
+			{
+				id: "col_1",
+				name: "Backlog",
+				color: "gray",
+				cards_count: 5,
+				position: 0,
+			},
+			{
+				id: "col_2",
+				name: "In Progress",
+				color: "blue",
+				cards_count: 3,
+				position: 1,
+			},
+			{
+				id: "col_3",
+				name: "Done",
+				color: "green",
+				cards_count: 10,
+				position: 2,
+			},
+		],
+		created_at: "2024-01-01T00:00:00Z",
+		updated_at: "2024-01-15T00:00:00Z",
+		url: "https://app.fizzy.do/897362094/boards/board_1",
+	},
+	{
+		id: "board_2",
+		name: "Project Beta",
+		slug: "project-beta",
+		description: null,
+		columns: [],
+		created_at: "2024-02-01T00:00:00Z",
+		updated_at: "2024-02-15T00:00:00Z",
+		url: "https://app.fizzy.do/897362094/boards/board_2",
+	},
+];
+
 export const handlers = [
 	http.get(`${BASE_URL}/my/identity`, ({ request }) => {
 		const auth = request.headers.get("Authorization");
@@ -50,5 +95,53 @@ export const handlers = [
 
 	http.delete(`${BASE_URL}/no-content`, () => {
 		return new HttpResponse(null, { status: 204 });
+	}),
+
+	// Board handlers (specific routes before generic ones)
+	http.get(`${BASE_URL}/empty-account/boards`, ({ request }) => {
+		const auth = request.headers.get("Authorization");
+		if (!auth || auth === "Bearer invalid") {
+			return HttpResponse.json({}, { status: 401 });
+		}
+		return HttpResponse.json([]);
+	}),
+
+	http.get(
+		`${BASE_URL}/:accountSlug/boards/:boardId`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const board = mockBoards.find((b) => b.id === params.boardId);
+			if (!board) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			return HttpResponse.json(board);
+		},
+	),
+
+	http.get(`${BASE_URL}/:accountSlug/boards`, ({ request, params }) => {
+		const auth = request.headers.get("Authorization");
+		if (!auth || auth === "Bearer invalid") {
+			return HttpResponse.json({}, { status: 401 });
+		}
+
+		const url = new URL(request.url);
+		const page = Number.parseInt(url.searchParams.get("page") || "1", 10);
+		const perPage = 1; // Small page size to test pagination
+
+		const start = (page - 1) * perPage;
+		const end = start + perPage;
+		const pageData = mockBoards.slice(start, end);
+
+		const headers: Record<string, string> = {};
+		if (end < mockBoards.length) {
+			headers.Link = `<${BASE_URL}/${params.accountSlug}/boards?page=${page + 1}>; rel="next"`;
+		}
+
+		return HttpResponse.json(pageData, { headers });
 	}),
 ];

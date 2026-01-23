@@ -1,13 +1,4 @@
 export {
-	type Account,
-	AccountSchema,
-	type IdentityResponse,
-	IdentityResponseSchema,
-	type User,
-	UserSchema,
-} from "./identity.js";
-
-export {
 	type Board,
 	BoardSchema,
 	type ColumnSummary,
@@ -17,3 +8,11 @@ export {
 	type UpdateBoardInput,
 	UpdateBoardInputSchema,
 } from "./boards.js";
+export {
+	type Account,
+	AccountSchema,
+	type IdentityResponse,
+	IdentityResponseSchema,
+	type User,
+	UserSchema,
+} from "./identity.js";
