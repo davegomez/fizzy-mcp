@@ -1,6 +1,7 @@
 import { FastMCP } from "fastmcp";
 import {
 	getDefaultAccountTool,
+	listTagsTool,
 	setDefaultAccountTool,
 	whoamiTool,
 } from "./tools/index.js";
@@ -14,6 +15,7 @@ export function createServer(): FastMCP {
 	server.addTool(whoamiTool);
 	server.addTool(setDefaultAccountTool);
 	server.addTool(getDefaultAccountTool);
+	server.addTool(listTagsTool);
 
 	return server;
 }

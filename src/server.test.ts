@@ -20,7 +20,13 @@ describe("createServer", () => {
 		expect(toolNames).toContain("fizzy_get_default_account");
 	});
 
-	test("should export exactly 3 tools in allTools", () => {
-		expect(allTools.length).toBe(3);
+	test("should have tag tools available", () => {
+		const toolNames = allTools.map((t) => t.name);
+
+		expect(toolNames).toContain("fizzy_list_tags");
+	});
+
+	test("should export exactly 4 tools in allTools", () => {
+		expect(allTools.length).toBe(4);
 	});
 });
