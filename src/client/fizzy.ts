@@ -1,8 +1,8 @@
 import type { Board } from "../schemas/boards.js";
+import type { Card, CardFilters } from "../schemas/cards.js";
 import type { Column } from "../schemas/columns.js";
 import type { Tag } from "../schemas/tags.js";
 import { err, ok, type Result } from "../types/result.js";
-import { markdownToHtml } from "./markdown.js";
 import {
 	AuthenticationError,
 	FizzyApiError,
@@ -11,6 +11,7 @@ import {
 	RateLimitError,
 	ValidationError,
 } from "./errors.js";
+import { markdownToHtml } from "./markdown.js";
 import { collectAll, paginatedFetch } from "./pagination.js";
 
 const DEFAULT_BASE_URL = "https://app.fizzy.do";
@@ -177,11 +178,9 @@ export class FizzyClient {
 		if (data.description) {
 			body.description = markdownToHtml(data.description);
 		}
-		const result = await this.request<Board>(
-			"POST",
-			`/${accountSlug}/boards`,
-			{ body: { board: body } },
-		);
+		const result = await this.request<Board>("POST", `/${accountSlug}/boards`, {
+			body: { board: body },
+		});
 		if (result.ok) {
 			return ok(result.value.data);
 		}
@@ -324,6 +323,53 @@ export class FizzyClient {
 		);
 		if (result.ok) {
 			return ok(undefined);
+		}
+		return result;
+	}
+
+	async listCards(
+		accountSlug: string,
+		filters?: CardFilters,
+	): Promise<Result<Card[], FizzyApiError>> {
+		const params = new URLSearchParams();
+		if (filters?.board_id) params.set("board_id", filters.board_id);
+		if (filters?.column_id) params.set("column_id", filters.column_id);
+		if (filters?.status) params.set("status", filters.status);
+		filters?.tag_ids?.forEach((id) => params.append("tag_ids[]", id));
+		filters?.assignee_ids?.forEach((id) => params.append("assignee_ids[]", id));
+
+		const queryString = params.toString();
+		const basePath = `/${accountSlug}/cards${queryString ? `?${queryString}` : ""}`;
+
+		const generator = paginatedFetch<Card>(
+			`${this.baseUrl}${basePath}`,
+			async (url) => {
+				const path = url.replace(this.baseUrl, "");
+				const result = await this.request<Card[]>("GET", path);
+				if (!result.ok) {
+					throw result.error;
+				}
+				return { data: result.value.data, linkHeader: result.value.linkHeader };
+			},
+		);
+		try {
+			const cards = await collectAll(generator);
+			return ok(cards);
+		} catch (error) {
+			return err(error as FizzyApiError);
+		}
+	}
+
+	async getCard(
+		accountSlug: string,
+		cardNumber: number,
+	): Promise<Result<Card, FizzyApiError>> {
+		const result = await this.request<Card>(
+			"GET",
+			`/${accountSlug}/cards/${cardNumber}`,
+		);
+		if (result.ok) {
+			return ok(result.value.data);
 		}
 		return result;
 	}

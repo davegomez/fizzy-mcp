@@ -475,9 +475,14 @@ describe("FizzyClient", () => {
 
 		test("should update column name", async () => {
 			const client = new FizzyClient();
-			const result = await client.updateColumn("897362094", "board_1", "col_1", {
-				name: "Updated Name",
-			});
+			const result = await client.updateColumn(
+				"897362094",
+				"board_1",
+				"col_1",
+				{
+					name: "Updated Name",
+				},
+			);
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
@@ -487,9 +492,14 @@ describe("FizzyClient", () => {
 
 		test("should update column color", async () => {
 			const client = new FizzyClient();
-			const result = await client.updateColumn("897362094", "board_1", "col_1", {
-				color: "#0000FF",
-			});
+			const result = await client.updateColumn(
+				"897362094",
+				"board_1",
+				"col_1",
+				{
+					color: "#0000FF",
+				},
+			);
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
@@ -543,6 +553,122 @@ describe("FizzyClient", () => {
 			process.env.FIZZY_ACCESS_TOKEN = "invalid";
 			const client = new FizzyClient();
 			const result = await client.deleteColumn("897362094", "board_1", "col_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("listCards", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should return all cards across pages", async () => {
+			const client = new FizzyClient();
+			const result = await client.listCards("897362094");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(4);
+				expect(result.value[0]?.title).toBe("Fix login bug");
+				expect(result.value[1]?.title).toBe("Add dark mode");
+			}
+		});
+
+		test("should handle empty card list", async () => {
+			const client = new FizzyClient();
+			const result = await client.listCards("empty-account");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(0);
+			}
+		});
+
+		test("should filter by board_id", async () => {
+			const client = new FizzyClient();
+			const result = await client.listCards("897362094", {
+				board_id: "board_1",
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(3);
+				expect(result.value.every((c) => c.board_id === "board_1")).toBe(true);
+			}
+		});
+
+		test("should filter by multiple tag_ids", async () => {
+			const client = new FizzyClient();
+			const result = await client.listCards("897362094", {
+				tag_ids: ["tag_1", "tag_2"],
+			});
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				// Should match cards with tag_1 OR tag_2
+				expect(result.value).toHaveLength(2);
+			}
+		});
+
+		test("should filter by status", async () => {
+			const client = new FizzyClient();
+			const result = await client.listCards("897362094", { status: "closed" });
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value).toHaveLength(1);
+				expect(result.value[0]?.status).toBe("closed");
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.listCards("897362094");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
+	describe("getCard", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should return card by number", async () => {
+			const client = new FizzyClient();
+			const result = await client.getCard("897362094", 1);
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.number).toBe(1);
+				expect(result.value.title).toBe("Fix login bug");
+				expect(result.value.tags).toHaveLength(1);
+				expect(result.value.assignees).toHaveLength(1);
+			}
+		});
+
+		test("should return NotFoundError for missing card", async () => {
+			const client = new FizzyClient();
+			const result = await client.getCard("897362094", 999);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.getCard("897362094", 1);
 
 			expect(isErr(result)).toBe(true);
 			if (isErr(result)) {

@@ -35,6 +35,85 @@ const mockColumns = [
 	},
 ];
 
+const mockCards = [
+	{
+		id: "card_1",
+		number: 1,
+		title: "Fix login bug",
+		description_html: "<p>Users cannot login with SSO</p>",
+		status: "open",
+		board_id: "board_1",
+		column_id: "col_1",
+		tags: [{ id: "tag_1", title: "Bug", color: "#ff0000" }],
+		assignees: [
+			{ id: "user_1", name: "Jane Doe", email_address: "jane@example.com" },
+		],
+		steps_count: 2,
+		completed_steps_count: 1,
+		comments_count: 3,
+		created_at: "2024-01-10T00:00:00Z",
+		updated_at: "2024-01-15T00:00:00Z",
+		closed_at: null,
+		url: "https://app.fizzy.do/897362094/cards/1",
+	},
+	{
+		id: "card_2",
+		number: 2,
+		title: "Add dark mode",
+		description_html: "<p>Implement dark mode theme</p>",
+		status: "open",
+		board_id: "board_1",
+		column_id: "col_2",
+		tags: [{ id: "tag_2", title: "Feature", color: "#00ff00" }],
+		assignees: [],
+		steps_count: 0,
+		completed_steps_count: 0,
+		comments_count: 1,
+		created_at: "2024-01-11T00:00:00Z",
+		updated_at: "2024-01-16T00:00:00Z",
+		closed_at: null,
+		url: "https://app.fizzy.do/897362094/cards/2",
+	},
+	{
+		id: "card_3",
+		number: 3,
+		title: "Write API docs",
+		description_html: null,
+		status: "closed",
+		board_id: "board_1",
+		column_id: "col_3",
+		tags: [{ id: "tag_3", title: "Documentation", color: "#0000ff" }],
+		assignees: [
+			{ id: "user_2", name: "John Smith", email_address: "john@example.com" },
+		],
+		steps_count: 5,
+		completed_steps_count: 5,
+		comments_count: 0,
+		created_at: "2024-01-05T00:00:00Z",
+		updated_at: "2024-01-20T00:00:00Z",
+		closed_at: "2024-01-20T00:00:00Z",
+		url: "https://app.fizzy.do/897362094/cards/3",
+	},
+	{
+		id: "card_4",
+		number: 4,
+		title: "Inbox card",
+		description_html: "<p>Card in inbox</p>",
+		status: "open",
+		board_id: "board_2",
+		column_id: null,
+		tags: [],
+		assignees: [],
+		steps_count: 0,
+		completed_steps_count: 0,
+		comments_count: 0,
+		created_at: "2024-01-12T00:00:00Z",
+		updated_at: "2024-01-12T00:00:00Z",
+		closed_at: null,
+		url: "https://app.fizzy.do/897362094/cards/4",
+	},
+];
+
 const mockTags = [
 	{
 		id: "tag_1",
@@ -208,7 +287,9 @@ export const handlers = [
 			return HttpResponse.json({}, { status: 401 });
 		}
 
-		const body = (await request.json()) as { board?: { name?: string; description?: string } };
+		const body = (await request.json()) as {
+			board?: { name?: string; description?: string };
+		};
 		if (!body.board?.name) {
 			return HttpResponse.json({ name: ["can't be blank"] }, { status: 422 });
 		}
@@ -238,7 +319,9 @@ export const handlers = [
 				return HttpResponse.json({}, { status: 404 });
 			}
 
-			const body = (await request.json()) as { board?: { name?: string; description?: string } };
+			const body = (await request.json()) as {
+				board?: { name?: string; description?: string };
+			};
 
 			return HttpResponse.json({
 				...board,
@@ -281,13 +364,16 @@ export const handlers = [
 	}),
 
 	// Column handlers
-	http.get(`${BASE_URL}/empty-account/boards/:boardId/columns`, ({ request }) => {
-		const auth = request.headers.get("Authorization");
-		if (!auth || auth === "Bearer invalid") {
-			return HttpResponse.json({}, { status: 401 });
-		}
-		return HttpResponse.json([]);
-	}),
+	http.get(
+		`${BASE_URL}/empty-account/boards/:boardId/columns`,
+		({ request }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+			return HttpResponse.json([]);
+		},
+	),
 
 	http.get(
 		`${BASE_URL}/:accountSlug/boards/:boardId/columns/:columnId`,
@@ -401,4 +487,160 @@ export const handlers = [
 			return new HttpResponse(null, { status: 204 });
 		},
 	),
+
+	// Card handlers
+	http.get(`${BASE_URL}/empty-account/cards`, ({ request }) => {
+		const auth = request.headers.get("Authorization");
+		if (!auth || auth === "Bearer invalid") {
+			return HttpResponse.json({}, { status: 401 });
+		}
+		return HttpResponse.json([]);
+	}),
+
+	http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, ({ request, params }) => {
+		const auth = request.headers.get("Authorization");
+		if (!auth || auth === "Bearer invalid") {
+			return HttpResponse.json({}, { status: 401 });
+		}
+
+		const cardNumber = Number(params.cardNumber);
+		const card = mockCards.find((c) => c.number === cardNumber);
+		if (!card) {
+			return HttpResponse.json({}, { status: 404 });
+		}
+
+		return HttpResponse.json(card);
+	}),
+
+	http.get(`${BASE_URL}/:accountSlug/cards`, ({ request, params }) => {
+		const auth = request.headers.get("Authorization");
+		if (!auth || auth === "Bearer invalid") {
+			return HttpResponse.json({}, { status: 401 });
+		}
+
+		const url = new URL(request.url);
+		const page = Number.parseInt(url.searchParams.get("page") || "1", 10);
+		const perPage = 2; // Small page size to test pagination
+
+		// Apply filters
+		let filteredCards = [...mockCards];
+
+		const boardId = url.searchParams.get("board_id");
+		if (boardId) {
+			filteredCards = filteredCards.filter((c) => c.board_id === boardId);
+		}
+
+		const columnId = url.searchParams.get("column_id");
+		if (columnId) {
+			filteredCards = filteredCards.filter((c) => c.column_id === columnId);
+		}
+
+		const status = url.searchParams.get("status");
+		if (status) {
+			filteredCards = filteredCards.filter((c) => c.status === status);
+		}
+
+		const tagIds = url.searchParams.getAll("tag_ids[]");
+		if (tagIds.length > 0) {
+			filteredCards = filteredCards.filter((c) =>
+				c.tags.some((t) => tagIds.includes(t.id)),
+			);
+		}
+
+		const assigneeIds = url.searchParams.getAll("assignee_ids[]");
+		if (assigneeIds.length > 0) {
+			filteredCards = filteredCards.filter((c) =>
+				c.assignees.some((a) => assigneeIds.includes(a.id)),
+			);
+		}
+
+		const start = (page - 1) * perPage;
+		const end = start + perPage;
+		const pageData = filteredCards.slice(start, end);
+
+		const headers: Record<string, string> = {};
+		if (end < filteredCards.length) {
+			// Preserve existing query params in pagination link
+			const nextUrl = new URL(request.url);
+			nextUrl.searchParams.set("page", String(page + 1));
+			headers.Link = `<${nextUrl.toString()}>; rel="next"`;
+		}
+
+		return HttpResponse.json(pageData, { headers });
+	}),
+
+	http.post(
+		`${BASE_URL}/:accountSlug/boards/:boardId/cards`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const body = (await request.json()) as {
+				card?: { title?: string; description?: string };
+			};
+			if (!body.card?.title) {
+				return HttpResponse.json({ title: ["can't be blank"] }, { status: 422 });
+			}
+
+			return HttpResponse.json({
+				id: "card_new",
+				number: 100,
+				title: body.card.title,
+				description_html: body.card.description ?? null,
+				status: "open",
+				board_id: params.boardId,
+				column_id: null,
+				tags: [],
+				assignees: [],
+				steps_count: 0,
+				completed_steps_count: 0,
+				comments_count: 0,
+				created_at: "2024-03-01T00:00:00Z",
+				updated_at: "2024-03-01T00:00:00Z",
+				closed_at: null,
+				url: "https://app.fizzy.do/897362094/cards/100",
+			});
+		},
+	),
+
+	http.put(`${BASE_URL}/:accountSlug/cards/:cardNumber`, async ({ request, params }) => {
+		const auth = request.headers.get("Authorization");
+		if (!auth || auth === "Bearer invalid") {
+			return HttpResponse.json({}, { status: 401 });
+		}
+
+		const cardNumber = Number(params.cardNumber);
+		const card = mockCards.find((c) => c.number === cardNumber);
+		if (!card) {
+			return HttpResponse.json({}, { status: 404 });
+		}
+
+		const body = (await request.json()) as {
+			card?: { title?: string; description?: string };
+		};
+
+		return HttpResponse.json({
+			...card,
+			title: body.card?.title ?? card.title,
+			description_html: body.card?.description ?? card.description_html,
+			updated_at: "2024-03-15T00:00:00Z",
+		});
+	}),
+
+	http.delete(`${BASE_URL}/:accountSlug/cards/:cardNumber`, ({ request, params }) => {
+		const auth = request.headers.get("Authorization");
+		if (!auth || auth === "Bearer invalid") {
+			return HttpResponse.json({}, { status: 401 });
+		}
+
+		const cardNumber = Number(params.cardNumber);
+		const card = mockCards.find((c) => c.number === cardNumber);
+		if (!card) {
+			return HttpResponse.json({}, { status: 404 });
+		}
+
+		return new HttpResponse(null, { status: 204 });
+	}),
 ];
