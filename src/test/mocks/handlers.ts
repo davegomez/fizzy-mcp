@@ -1049,4 +1049,90 @@ export const handlers = [
 			return new HttpResponse(null, { status: 204 });
 		},
 	),
+
+	// Step handlers
+	http.post(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/steps`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			const body = (await request.json()) as {
+				step?: { content?: string; completed?: boolean };
+			};
+
+			if (!body.step?.content) {
+				return HttpResponse.json(
+					{ content: ["can't be blank"] },
+					{ status: 422 },
+				);
+			}
+
+			return HttpResponse.json({
+				id: "step_new",
+				content: body.step.content,
+				completed: body.step.completed ?? false,
+			});
+		},
+	),
+
+	http.put(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/steps/:stepId`,
+		async ({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			if (params.stepId === "nonexistent") {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			const body = (await request.json()) as {
+				step?: { content?: string; completed?: boolean };
+			};
+
+			return HttpResponse.json({
+				id: params.stepId,
+				content: body.step?.content ?? "Original content",
+				completed: body.step?.completed ?? false,
+			});
+		},
+	),
+
+	http.delete(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/steps/:stepId`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			if (params.stepId === "nonexistent") {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			return new HttpResponse(null, { status: 204 });
+		},
+	),
 ];

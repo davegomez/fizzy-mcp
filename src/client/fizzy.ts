@@ -2,6 +2,7 @@ import type { Board } from "../schemas/boards.js";
 import type { Card, CardFilters } from "../schemas/cards.js";
 import type { Column } from "../schemas/columns.js";
 import type { Comment } from "../schemas/comments.js";
+import type { Step } from "../schemas/steps.js";
 import type { Tag } from "../schemas/tags.js";
 import { err, ok, type Result } from "../types/result.js";
 import {
@@ -614,6 +615,67 @@ export class FizzyClient {
 		const result = await this.request<void>(
 			"DELETE",
 			`/${accountSlug}/cards/${cardNumber}/comments/${commentId}`,
+		);
+		if (result.ok) {
+			return ok(undefined);
+		}
+		return result;
+	}
+
+	async createStep(
+		accountSlug: string,
+		cardNumber: number,
+		data: { content: string; completed?: boolean },
+	): Promise<Result<Step, FizzyApiError>> {
+		const body: { content: string; completed?: boolean } = {
+			content: data.content,
+		};
+		if (data.completed !== undefined) {
+			body.completed = data.completed;
+		}
+		const result = await this.request<Step>(
+			"POST",
+			`/${accountSlug}/cards/${cardNumber}/steps`,
+			{ body: { step: body } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async updateStep(
+		accountSlug: string,
+		cardNumber: number,
+		stepId: string,
+		data: { content?: string; completed?: boolean },
+	): Promise<Result<Step, FizzyApiError>> {
+		const body: { content?: string; completed?: boolean } = {};
+		if (data.content !== undefined) {
+			body.content = data.content;
+		}
+		if (data.completed !== undefined) {
+			body.completed = data.completed;
+		}
+		const result = await this.request<Step>(
+			"PUT",
+			`/${accountSlug}/cards/${cardNumber}/steps/${stepId}`,
+			{ body: { step: body } },
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
+	async deleteStep(
+		accountSlug: string,
+		cardNumber: number,
+		stepId: string,
+	): Promise<Result<void, FizzyApiError>> {
+		const result = await this.request<void>(
+			"DELETE",
+			`/${accountSlug}/cards/${cardNumber}/steps/${stepId}`,
 		);
 		if (result.ok) {
 			return ok(undefined);
