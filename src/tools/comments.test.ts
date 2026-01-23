@@ -1,0 +1,386 @@
+import { beforeEach, describe, expect, test, vi } from "vitest";
+import {
+	AuthenticationError,
+	ForbiddenError,
+	NotFoundError,
+} from "../client/errors.js";
+import * as client from "../client/index.js";
+import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
+import { err, ok } from "../types/result.js";
+import {
+	createCommentTool,
+	deleteCommentTool,
+	listCommentsTool,
+	updateCommentTool,
+} from "./comments.js";
+
+const mockComment = {
+	id: "comment_1",
+	created_at: "2024-01-15T10:30:00Z",
+	updated_at: "2024-01-15T10:30:00Z",
+	body: {
+		plain_text: "This looks good to me!",
+		html: "<p>This looks good to me!</p>",
+	},
+	creator: {
+		id: "user_1",
+		name: "Alice",
+		email_address: "alice@example.com",
+		role: "owner",
+		active: true,
+	},
+	card: {
+		id: "card_1",
+		url: "https://app.fizzy.do/897362094/cards/42",
+	},
+	reactions_url:
+		"https://app.fizzy.do/897362094/cards/42/comments/comment_1/reactions",
+	url: "https://app.fizzy.do/897362094/cards/42/comments/comment_1",
+};
+
+const mockCommentLongBody = {
+	...mockComment,
+	id: "comment_2",
+	body: {
+		plain_text:
+			"This is a very long comment that should be truncated when displayed in the list view because it exceeds the maximum length of 150 characters which is our limit for comment bodies in the listing.",
+		html: "<p>This is a very long comment that should be truncated when displayed in the list view because it exceeds the maximum length of 150 characters which is our limit for comment bodies in the listing.</p>",
+	},
+};
+
+describe("listCommentsTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should resolve account from args", async () => {
+		const listCommentsFn = vi.fn().mockResolvedValue(ok([mockComment]));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listComments: listCommentsFn,
+		} as unknown as client.FizzyClient);
+
+		await listCommentsTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+		});
+		expect(listCommentsFn).toHaveBeenCalledWith("my-account", 42);
+	});
+
+	test("should resolve account from default when not provided", async () => {
+		setDefaultAccount("default-account");
+		const listCommentsFn = vi.fn().mockResolvedValue(ok([]));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listComments: listCommentsFn,
+		} as unknown as client.FizzyClient);
+
+		await listCommentsTool.execute({ card_number: 42 });
+		expect(listCommentsFn).toHaveBeenCalledWith("default-account", 42);
+	});
+
+	test("should throw when no account and no default set", async () => {
+		await expect(listCommentsTool.execute({ card_number: 42 })).rejects.toThrow(
+			"No account specified and no default set",
+		);
+	});
+
+	test("should strip leading slash from account slug", async () => {
+		const listCommentsFn = vi.fn().mockResolvedValue(ok([]));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listComments: listCommentsFn,
+		} as unknown as client.FizzyClient);
+
+		await listCommentsTool.execute({
+			account_slug: "/897362094",
+			card_number: 42,
+		});
+		expect(listCommentsFn).toHaveBeenCalledWith("897362094", 42);
+	});
+
+	test("should format comment list with author and timestamp", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listComments: vi.fn().mockResolvedValue(ok([mockComment])),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await listCommentsTool.execute({ card_number: 42 });
+
+		expect(result).toContain("[comment_1]");
+		expect(result).toContain("Alice");
+		expect(result).toContain("This looks good to me!");
+	});
+
+	test("should truncate long comment bodies to 150 chars", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listComments: vi.fn().mockResolvedValue(ok([mockCommentLongBody])),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await listCommentsTool.execute({ card_number: 42 });
+
+		expect(result).toContain("...");
+		// Body should be truncated to ~150 chars + "..."
+		const bodyLine = result
+			.split("\n")
+			.find((l) => l.includes("This is a very"));
+		expect(bodyLine).toBeDefined();
+		expect(bodyLine?.length).toBeLessThan(170);
+	});
+
+	test("should return message when no comments found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listComments: vi.fn().mockResolvedValue(ok([])),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await listCommentsTool.execute({ card_number: 42 });
+
+		expect(result).toBe("No comments found.");
+	});
+
+	test("should throw UserError on API error", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listComments: vi.fn().mockResolvedValue(err(new AuthenticationError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(listCommentsTool.execute({ card_number: 42 })).rejects.toThrow(
+			"Authentication failed",
+		);
+	});
+});
+
+describe("createCommentTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should resolve account from args", async () => {
+		const createCommentFn = vi.fn().mockResolvedValue(ok(mockComment));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			createComment: createCommentFn,
+		} as unknown as client.FizzyClient);
+
+		await createCommentTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+			body: "New comment",
+		});
+		expect(createCommentFn).toHaveBeenCalledWith(
+			"my-account",
+			42,
+			"New comment",
+		);
+	});
+
+	test("should throw when no account and no default set", async () => {
+		await expect(
+			createCommentTool.execute({ card_number: 42, body: "Test" }),
+		).rejects.toThrow("No account specified and no default set");
+	});
+
+	test("should return created comment as JSON", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			createComment: vi.fn().mockResolvedValue(ok(mockComment)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await createCommentTool.execute({
+			card_number: 42,
+			body: "New comment",
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.id).toBe("comment_1");
+		expect(parsed.body).toBe("This looks good to me!");
+		expect(parsed.creator.name).toBe("Alice");
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			createComment: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			createCommentTool.execute({ card_number: 999, body: "Test" }),
+		).rejects.toThrow("Resource not found");
+	});
+});
+
+describe("updateCommentTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should resolve account from args", async () => {
+		const updateCommentFn = vi.fn().mockResolvedValue(ok(mockComment));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			updateComment: updateCommentFn,
+		} as unknown as client.FizzyClient);
+
+		await updateCommentTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+			comment_id: "comment_1",
+			body: "Updated comment",
+		});
+		expect(updateCommentFn).toHaveBeenCalledWith(
+			"my-account",
+			42,
+			"comment_1",
+			"Updated comment",
+		);
+	});
+
+	test("should throw when no account and no default set", async () => {
+		await expect(
+			updateCommentTool.execute({
+				card_number: 42,
+				comment_id: "comment_1",
+				body: "Test",
+			}),
+		).rejects.toThrow("No account specified and no default set");
+	});
+
+	test("should return updated comment as JSON", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			updateComment: vi.fn().mockResolvedValue(ok(mockComment)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await updateCommentTool.execute({
+			card_number: 42,
+			comment_id: "comment_1",
+			body: "Updated",
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.id).toBe("comment_1");
+		expect(parsed.body).toBe("This looks good to me!");
+	});
+
+	test("should throw UserError on forbidden (non-author)", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			updateComment: vi.fn().mockResolvedValue(err(new ForbiddenError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			updateCommentTool.execute({
+				card_number: 42,
+				comment_id: "comment_1",
+				body: "Test",
+			}),
+		).rejects.toThrow("don't have permission");
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			updateComment: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			updateCommentTool.execute({
+				card_number: 42,
+				comment_id: "nonexistent",
+				body: "Test",
+			}),
+		).rejects.toThrow("Resource not found");
+	});
+});
+
+describe("deleteCommentTool", () => {
+	beforeEach(() => {
+		vi.restoreAllMocks();
+		clearDefaultAccount();
+		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	});
+
+	test("should throw when force is false", async () => {
+		setDefaultAccount("897362094");
+		await expect(
+			deleteCommentTool.execute({
+				card_number: 42,
+				comment_id: "comment_1",
+				force: false,
+			}),
+		).rejects.toThrow("Deletion requires force=true");
+	});
+
+	test("should resolve account from args when force is true", async () => {
+		const deleteCommentFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			deleteComment: deleteCommentFn,
+		} as unknown as client.FizzyClient);
+
+		await deleteCommentTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+			comment_id: "comment_1",
+			force: true,
+		});
+		expect(deleteCommentFn).toHaveBeenCalledWith("my-account", 42, "comment_1");
+	});
+
+	test("should throw when no account and no default set", async () => {
+		await expect(
+			deleteCommentTool.execute({
+				card_number: 42,
+				comment_id: "comment_1",
+				force: true,
+			}),
+		).rejects.toThrow("No account specified and no default set");
+	});
+
+	test("should return success message", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			deleteComment: vi.fn().mockResolvedValue(ok(undefined)),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await deleteCommentTool.execute({
+			card_number: 42,
+			comment_id: "comment_1",
+			force: true,
+		});
+
+		expect(result).toBe("Comment comment_1 deleted from card #42.");
+	});
+
+	test("should throw UserError on forbidden (non-author)", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			deleteComment: vi.fn().mockResolvedValue(err(new ForbiddenError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			deleteCommentTool.execute({
+				card_number: 42,
+				comment_id: "comment_1",
+				force: true,
+			}),
+		).rejects.toThrow("don't have permission");
+	});
+
+	test("should throw UserError on not found", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			deleteComment: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			deleteCommentTool.execute({
+				card_number: 999,
+				comment_id: "nonexistent",
+				force: true,
+			}),
+		).rejects.toThrow("Resource not found");
+	});
+});
