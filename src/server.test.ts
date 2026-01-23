@@ -20,13 +20,32 @@ describe("createServer", () => {
 		expect(toolNames).toContain("fizzy_get_default_account");
 	});
 
+	test("should have board tools available", () => {
+		const toolNames = allTools.map((t) => t.name);
+
+		expect(toolNames).toContain("fizzy_list_boards");
+		expect(toolNames).toContain("fizzy_get_board");
+		expect(toolNames).toContain("fizzy_create_board");
+		expect(toolNames).toContain("fizzy_update_board");
+	});
+
 	test("should have tag tools available", () => {
 		const toolNames = allTools.map((t) => t.name);
 
 		expect(toolNames).toContain("fizzy_list_tags");
 	});
 
-	test("should export exactly 4 tools in allTools", () => {
-		expect(allTools.length).toBe(4);
+	test("should have column tools available", () => {
+		const toolNames = allTools.map((t) => t.name);
+
+		expect(toolNames).toContain("fizzy_list_columns");
+		expect(toolNames).toContain("fizzy_get_column");
+		expect(toolNames).toContain("fizzy_create_column");
+		expect(toolNames).toContain("fizzy_update_column");
+		expect(toolNames).toContain("fizzy_delete_column");
+	});
+
+	test("should export exactly 13 tools in allTools", () => {
+		expect(allTools.length).toBe(13);
 	});
 });
