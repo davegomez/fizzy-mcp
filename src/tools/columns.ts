@@ -26,13 +26,29 @@ function formatColumnList(columns: Column[]): string {
 
 export const listColumnsTool = {
 	name: "fizzy_list_columns",
-	description: "List all columns on a board. Uses default account if set.",
+	description: `List all columns on a board.
+Get column IDs, names, and card counts for a specific board.
+
+**When to use:**
+1. Need column IDs for triaging cards with \`fizzy_triage_card\`
+2. See how cards are distributed across workflow stages
+
+**Don't use when:** You need column details from all boards — use \`fizzy_list_boards\` which includes column summaries.
+
+**Arguments:**
+- \`account_slug\` (optional) — defaults to session account
+- \`board_id\` (required) — the board containing the columns
+
+**Returns:** Formatted list with column name, color, and card count.
+Example: "To Do (blue) - 5 cards\\nIn Progress (yellow) - 3 cards"
+
+**Related:** Use column ID with \`fizzy_triage_card\` to move cards between columns.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		board_id: z.string().describe("Board ID to list columns for."),
+			.describe("Account slug. Defaults to session account if not provided."),
+		board_id: z.string().describe("Board ID containing the columns to list."),
 	}),
 	execute: async (args: { account_slug?: string; board_id: string }) => {
 		const slug = resolveAccount(args.account_slug);
@@ -47,14 +63,28 @@ export const listColumnsTool = {
 
 export const getColumnTool = {
 	name: "fizzy_get_column",
-	description:
-		"Get details for a specific column. Uses default account if set.",
+	description: `Get details for a specific column.
+Retrieve full column metadata including position and settings.
+
+**When to use:**
+1. Verify column exists before bulk operations
+2. Get exact column configuration (position, color, card count)
+
+**Don't use when:** You just need column IDs — use \`fizzy_list_columns\` for the overview.
+
+**Arguments:**
+- \`account_slug\` (optional) — defaults to session account
+- \`board_id\` (required) — the board containing the column
+- \`column_id\` (required) — the column to retrieve
+
+**Returns:** JSON with column details.
+Example: {"id": "col_abc", "name": "To Do", "color": "blue", "position": 0, "cards_count": 5, "board_id": "brd_xyz"}`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		board_id: z.string().describe("Board ID the column belongs to."),
+			.describe("Account slug. Defaults to session account if not provided."),
+		board_id: z.string().describe("Board ID containing this column."),
 		column_id: z.string().describe("Column ID to retrieve."),
 	}),
 	execute: async (args: {
@@ -74,18 +104,34 @@ export const getColumnTool = {
 
 export const createColumnTool = {
 	name: "fizzy_create_column",
-	description: "Create a new column on a board. Uses default account if set.",
+	description: `Create a new column on a board.
+Add a workflow stage to organize cards.
+
+**When to use:**
+1. Setting up board structure for a new project
+2. Adding a new workflow stage (e.g., "Code Review", "QA")
+
+**Arguments:**
+- \`account_slug\` (optional) — defaults to session account
+- \`board_id\` (required) — the board to add the column to
+- \`name\` (required) — column name (1-255 chars)
+- \`color\` (optional) — hex color like '#FF5733' or named color
+
+**Returns:** JSON with new column details including id.
+Example: {"id": "col_new", "name": "Code Review", "color": "purple", "position": 3, "cards_count": 0}
+
+**Related:** Column is added at the end. Use \`fizzy_triage_card\` to move cards into it.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
+			.describe("Account slug. Defaults to session account if not provided."),
 		board_id: z.string().describe("Board ID to create the column on."),
-		name: z.string().describe("Name of the new column."),
+		name: z.string().describe("Name for the new column (1-255 chars)."),
 		color: z
 			.string()
 			.optional()
-			.describe("Hex color for the column (e.g., '#FF5733')."),
+			.describe("Hex color (e.g., '#FF5733') or named color (e.g., 'blue')."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -108,16 +154,31 @@ export const createColumnTool = {
 
 export const updateColumnTool = {
 	name: "fizzy_update_column",
-	description: "Update a column's name or color. Uses default account if set.",
+	description: `Update a column's name or color.
+Rename a workflow stage or change its visual styling.
+
+**When to use:**
+1. Rename column to reflect changed workflow
+2. Update column color for better visibility or categorization
+
+**Arguments:**
+- \`account_slug\` (optional) — defaults to session account
+- \`board_id\` (required) — the board containing the column
+- \`column_id\` (required) — the column to update
+- \`name\` (optional) — new column name
+- \`color\` (optional) — new hex color or named color
+
+**Returns:** JSON with updated column details.
+Example: {"id": "col_abc", "name": "Ready for Review", "color": "orange", "position": 2, "cards_count": 3}`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		board_id: z.string().describe("Board ID the column belongs to."),
+			.describe("Account slug. Defaults to session account if not provided."),
+		board_id: z.string().describe("Board ID containing this column."),
 		column_id: z.string().describe("Column ID to update."),
 		name: z.string().optional().describe("New name for the column."),
-		color: z.string().optional().describe("New hex color for the column."),
+		color: z.string().optional().describe("New hex color or named color."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -146,13 +207,30 @@ export const updateColumnTool = {
 
 export const deleteColumnTool = {
 	name: "fizzy_delete_column",
-	description: "Delete a column from a board. Uses default account if set.",
+	description: `Delete a column from a board.
+Remove an unused workflow stage.
+
+**When to use:**
+1. Consolidating workflow stages
+2. Removing test or obsolete columns
+
+**Don't use when:** Column has cards — move or close them first.
+
+**Arguments:**
+- \`account_slug\` (optional) — defaults to session account
+- \`board_id\` (required) — the board containing the column
+- \`column_id\` (required) — the column to delete
+
+**Returns:** Confirmation message.
+Example: "Column col_abc deleted successfully."
+
+**Related:** Cards in the column will be moved to inbox. Consider moving them first with \`fizzy_triage_card\`.`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
-			.describe("Account slug. Uses default if not provided."),
-		board_id: z.string().describe("Board ID the column belongs to."),
+			.describe("Account slug. Defaults to session account if not provided."),
+		board_id: z.string().describe("Board ID containing this column."),
 		column_id: z.string().describe("Column ID to delete."),
 	}),
 	execute: async (args: {
