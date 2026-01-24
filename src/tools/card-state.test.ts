@@ -119,13 +119,14 @@ describe("changeCardStateTool", () => {
 				card_number: 42,
 				action: "triage",
 				column_id: "col_2",
+				position: "bottom",
 			});
 
 			expect(triageCardFn).toHaveBeenCalledWith(
 				"897362094",
 				42,
 				"col_2",
-				undefined,
+				"bottom",
 			);
 			const parsed = JSON.parse(result);
 			expect(parsed.action).toBe("triage");
@@ -151,6 +152,27 @@ describe("changeCardStateTool", () => {
 				42,
 				"col_2",
 				"top",
+			);
+		});
+
+		test("triage defaults position to bottom when not specified", async () => {
+			const triagedCard = { ...mockCard, column_id: "col_2" };
+			const triageCardFn = vi.fn().mockResolvedValue(ok(triagedCard));
+			vi.spyOn(client, "getFizzyClient").mockReturnValue({
+				triageCard: triageCardFn,
+			} as unknown as client.FizzyClient);
+
+			setDefaultAccount("897362094");
+			// Parse args through schema to apply default
+			const rawArgs = { card_number: 42, action: "triage", column_id: "col_2" };
+			const parsedArgs = changeCardStateTool.parameters.parse(rawArgs);
+			await changeCardStateTool.execute(parsedArgs);
+
+			expect(triageCardFn).toHaveBeenCalledWith(
+				"897362094",
+				42,
+				"col_2",
+				"bottom",
 			);
 		});
 
