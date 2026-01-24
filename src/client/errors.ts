@@ -71,9 +71,51 @@ function formatValidationErrors(details: Record<string, string[]>): string {
 		.join("; ");
 }
 
+function formatInstructiveMessage(
+	error: FizzyApiError,
+	context?: ErrorContext,
+): string {
+	const resource = context?.resourceType ?? "Resource";
+	const id = context?.resourceId ? ` ${context.resourceId}` : "";
+	const container = context?.container ? ` in ${context.container}` : "";
+	const listTool = RESOURCE_LIST_TOOLS[resource] ?? "fizzy_list_boards";
+
+	if (error instanceof AuthenticationError) {
+		return "[UNAUTHORIZED] Authentication failed. Set FIZZY_ACCESS_TOKEN environment variable with valid API token.";
+	}
+
+	if (error instanceof ForbiddenError) {
+		return `[FORBIDDEN] ${resource}${id}: Access denied. Use ${listTool} to verify accessible resources.`;
+	}
+
+	if (error instanceof NotFoundError) {
+		return `[NOT_FOUND] ${resource}${id}: Not found${container}. Try ${listTool} to see available items.`;
+	}
+
+	if (error instanceof ValidationError) {
+		const fieldErrors = error.details
+			? Object.entries(error.details)
+					.map(([field, msgs]) => `${field}: ${msgs.join(", ")}`)
+					.join("; ")
+			: "Invalid input";
+		return `[VALIDATION] ${fieldErrors}.`;
+	}
+
+	if (error instanceof RateLimitError) {
+		return "[RATE_LIMITED] Too many requests. Wait before retrying.";
+	}
+
+	return `[ERROR] ${error.message}`;
+}
+
 /**
- * Convert FizzyApiError to fastmcp UserError for tool responses
+ * Convert FizzyApiError to fastmcp UserError for tool responses.
+ * Pass context to generate instructive messages with recovery suggestions.
  */
-export function toUserError(error: FizzyApiError): UserError {
-	return new UserError(error.message);
+export function toUserError(
+	error: FizzyApiError,
+	context?: ErrorContext,
+): UserError {
+	const message = formatInstructiveMessage(error, context);
+	return new UserError(message);
 }
