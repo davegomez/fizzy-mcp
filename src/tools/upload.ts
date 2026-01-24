@@ -48,7 +48,7 @@ Example: \`{"signed_id": "abc123", "html": "<action-text-attachment sgid=\\"...\
 		content_type: z
 			.string()
 			.describe(
-				"MIME type — e.g., image/png, image/jpeg, application/pdf (required).",
+				"MIME type (required). Common: image/png, image/jpeg, image/gif, application/pdf, text/plain.",
 			),
 	}),
 	execute: async (args: {
