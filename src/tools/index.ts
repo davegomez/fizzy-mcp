@@ -32,11 +32,7 @@ export {
 	updateCommentTool,
 } from "./comments.js";
 export { bulkCloseCardsTool, createCardFullTool } from "./composite.js";
-export {
-	getDefaultAccountTool,
-	setDefaultAccountTool,
-	whoamiTool,
-} from "./identity.js";
+export { defaultAccountTool, whoamiTool } from "./identity.js";
 export { createStepTool, deleteStepTool, updateStepTool } from "./steps.js";
 export { listTagsTool } from "./tags.js";
 export { attachFileTool } from "./upload.js";
@@ -75,19 +71,14 @@ import {
 	updateCommentTool,
 } from "./comments.js";
 import { bulkCloseCardsTool, createCardFullTool } from "./composite.js";
-import {
-	getDefaultAccountTool,
-	setDefaultAccountTool,
-	whoamiTool,
-} from "./identity.js";
+import { defaultAccountTool, whoamiTool } from "./identity.js";
 import { createStepTool, deleteStepTool, updateStepTool } from "./steps.js";
 import { listTagsTool } from "./tags.js";
 import { attachFileTool } from "./upload.js";
 
 export const allTools = [
 	whoamiTool,
-	setDefaultAccountTool,
-	getDefaultAccountTool,
+	defaultAccountTool,
 	listBoardsTool,
 	getBoardTool,
 	createBoardTool,

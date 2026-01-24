@@ -1,3 +1,4 @@
+import { UserError } from "fastmcp";
 import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import { getDefaultAccount, setDefaultAccount } from "../state/session.js";
@@ -21,7 +22,7 @@ Returns authenticated user info and account slugs needed for API calls.
 \`\`\`
 Key fields: \`user.id\`, \`user.name\`, \`accounts[].slug\`, \`accounts[].name\`.
 
-**Related:** Use account slug with \`fizzy_set_default_account\` to avoid passing it on every call.`,
+**Related:** Use account slug with \`fizzy_default_account\` to avoid passing it on every call.`,
 	parameters: z.object({}),
 	execute: async () => {
 		const client = getFizzyClient();
@@ -33,59 +34,56 @@ Key fields: \`user.id\`, \`user.name\`, \`accounts[].slug\`, \`accounts[].name\`
 	},
 };
 
-export const setDefaultAccountTool = {
-	name: "fizzy_set_default_account",
-	description: `Set the default account for subsequent API calls.
+const accountActions = ["get", "set"] as const;
 
-Eliminates need to pass \`account_slug\` on every tool call.
+export const defaultAccountTool = {
+	name: "fizzy_default_account",
+	description: `Get or set the default account for API calls.
+
+Manages the session default so you don't need to pass \`account_slug\` on every tool call.
 
 **When to use:**
-- After \`fizzy_whoami\` to set working account for the session
-- Switching between accounts mid-session
+- Check current default before bulk operations
+- Set working account after \`fizzy_whoami\` discovery
 
-**Don't use when:** You need to operate on multiple accounts simultaneously — pass \`account_slug\` explicitly instead.
+**Don't use when:** Operating across multiple accounts simultaneously — pass \`account_slug\` explicitly instead.
 
 **Arguments:**
-- \`account_slug\` (required): Account slug from \`fizzy_whoami\` (e.g., "897362094")
+- \`action\` (required): "get" to check current default, "set" to change it
+- \`account_slug\` (required for set): Account slug from \`fizzy_whoami\` (e.g., "897362094")
 
-**Returns:** Confirmation message: "Default account set to: {slug}"
+**Returns:** JSON with action and current/new account_slug.
+\`\`\`json
+{ "action": "get", "account_slug": "897362094" }
+{ "action": "set", "account_slug": "897362094" }
+{ "action": "get", "account_slug": null }
+\`\`\`
 
-**Related:** Use \`fizzy_get_default_account\` to check current setting.`,
+**Related:** \`fizzy_whoami\` to discover available account slugs.`,
 	parameters: z.object({
+		action: z
+			.enum(accountActions)
+			.describe('Action to perform: "get" to check current, "set" to change'),
 		account_slug: z
 			.string()
+			.optional()
 			.describe(
-				"Account slug to set as default (e.g., '897362094'). Get available slugs from fizzy_whoami.",
+				"Account slug (required for set action). Get available slugs from fizzy_whoami.",
 			),
 	}),
-	execute: async (args: { account_slug: string }) => {
-		const slug = args.account_slug.replace(/^\//, "");
-		setDefaultAccount(slug);
-		return `Default account set to: ${slug}`;
-	},
-};
-
-export const getDefaultAccountTool = {
-	name: "fizzy_get_default_account",
-	description: `Get the current default account slug.
-
-Check which account will be used when \`account_slug\` is omitted from tool calls.
-
-**When to use:**
-- Verify default before bulk operations
-- Debug unexpected account context
-
-**Arguments:** None required.
-
-**Returns:** Current default slug or message that none is set.
-- If set: "Default account: {slug}"
-- If not set: "No default account set. Use fizzy_set_default_account to set one."`,
-	parameters: z.object({}),
-	execute: async () => {
-		const account = getDefaultAccount();
-		if (account) {
-			return `Default account: ${account}`;
+	execute: async (args: { action: "get" | "set"; account_slug?: string }) => {
+		if (args.action === "set") {
+			if (!args.account_slug) {
+				throw new UserError(
+					"Action 'set' requires account_slug. Use fizzy_whoami to find available accounts.",
+				);
+			}
+			const slug = args.account_slug.replace(/^\//, "");
+			setDefaultAccount(slug);
+			return JSON.stringify({ action: "set", account_slug: slug });
 		}
-		return "No default account set. Use fizzy_set_default_account to set one.";
+
+		const current = getDefaultAccount();
+		return JSON.stringify({ action: "get", account_slug: current ?? null });
 	},
 };

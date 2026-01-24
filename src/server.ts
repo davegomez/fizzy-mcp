@@ -9,6 +9,7 @@ import {
 	createColumnTool,
 	createCommentTool,
 	createStepTool,
+	defaultAccountTool,
 	deleteCardTool,
 	deleteColumnTool,
 	deleteCommentTool,
@@ -16,7 +17,6 @@ import {
 	getBoardTool,
 	getCardTool,
 	getColumnTool,
-	getDefaultAccountTool,
 	listBoardsTool,
 	listCardsTool,
 	listColumnsTool,
@@ -24,7 +24,6 @@ import {
 	listTagsTool,
 	notNowCardTool,
 	reopenCardTool,
-	setDefaultAccountTool,
 	toggleAssigneeTool,
 	toggleTagTool,
 	triageCardTool,
@@ -44,8 +43,7 @@ export function createServer(): FastMCP {
 	});
 
 	server.addTool(whoamiTool);
-	server.addTool(setDefaultAccountTool);
-	server.addTool(getDefaultAccountTool);
+	server.addTool(defaultAccountTool);
 	server.addTool(listBoardsTool);
 	server.addTool(getBoardTool);
 	server.addTool(createBoardTool);
