@@ -89,11 +89,15 @@ Example: \`{"action": "add", "attribute": "tag", "card": {...}}\`
 		tag_title: z
 			.string()
 			.optional()
-			.describe("Tag name (required when attribute='tag'). Use fizzy_list_tags to find names."),
+			.describe(
+				"Tag name (required when attribute='tag'). Use fizzy_list_tags to find names.",
+			),
 		user_id: z
 			.string()
 			.optional()
-			.describe("User ID (required when attribute='assignee'). Use fizzy_whoami to find IDs."),
+			.describe(
+				"User ID (required when attribute='assignee'). Use fizzy_whoami to find IDs.",
+			),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -143,14 +147,19 @@ Example: \`{"action": "add", "attribute": "tag", "card": {...}}\`
 			}
 
 			// Perform toggle (API toggle matches our intent after pre-check)
-			const toggleResult = await client.toggleTag(slug, args.card_number, tagTitle);
+			const toggleResult = await client.toggleTag(
+				slug,
+				args.card_number,
+				tagTitle,
+			);
 			if (isErr(toggleResult)) {
 				throw toUserError(toggleResult.error);
 			}
 		} else {
 			const userId = args.user_id as string;
 			const hasAssignee = card.assignees.some((a) => a.id === userId);
-			const currentAssignees = card.assignees.map((a) => `${a.name} (${a.id})`).join(", ") || "none";
+			const currentAssignees =
+				card.assignees.map((a) => `${a.name} (${a.id})`).join(", ") || "none";
 
 			if (args.operation === "add" && hasAssignee) {
 				throw new UserError(
@@ -164,7 +173,11 @@ Example: \`{"action": "add", "attribute": "tag", "card": {...}}\`
 			}
 
 			// Perform toggle (API toggle matches our intent after pre-check)
-			const toggleResult = await client.toggleAssignee(slug, args.card_number, userId);
+			const toggleResult = await client.toggleAssignee(
+				slug,
+				args.card_number,
+				userId,
+			);
 			if (isErr(toggleResult)) {
 				throw toUserError(toggleResult.error);
 			}

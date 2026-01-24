@@ -4,8 +4,8 @@ export {
 	listBoardsTool,
 	updateBoardTool,
 } from "./boards.js";
-export { changeCardStateTool } from "./card-state.js";
 export { toggleCardAttributeTool } from "./card-attribute.js";
+export { changeCardStateTool } from "./card-state.js";
 export {
 	createCardTool,
 	deleteCardTool,
@@ -38,8 +38,8 @@ import {
 	listBoardsTool,
 	updateBoardTool,
 } from "./boards.js";
-import { changeCardStateTool } from "./card-state.js";
 import { toggleCardAttributeTool } from "./card-attribute.js";
+import { changeCardStateTool } from "./card-state.js";
 import {
 	createCardTool,
 	deleteCardTool,
