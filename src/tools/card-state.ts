@@ -199,7 +199,11 @@ JSON with \`action\` performed and full \`card\` details:
 		const result = await dispatchAction();
 
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Card",
+				resourceId: `#${args.card_number}`,
+				container: `account "${slug}"`,
+			});
 		}
 
 		return JSON.stringify(
