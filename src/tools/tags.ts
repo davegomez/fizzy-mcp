@@ -55,7 +55,10 @@ Example: "bug (red)\\nfeature (blue)\\nurgent (orange)"
 		const client = getFizzyClient();
 		const result = await client.listTags(slug);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Tag",
+				container: `account "${slug}"`,
+			});
 		}
 		return formatTagList(result.value);
 	},

@@ -104,7 +104,10 @@ Example: \`{"created": [{"id": "abc", "content": "Review PR", "completed": false
 
 		// If all failed, throw an error
 		if (result.created.length === 0 && firstError) {
-			throw toUserError(firstError);
+			throw toUserError(firstError, {
+				resourceType: "Step",
+				container: `card #${args.card_number}`,
+			});
 		}
 
 		return JSON.stringify(result, null, 2);
@@ -159,7 +162,11 @@ Example: \`{"id": "abc123", "content": "Review PR", "completed": true}\`
 			},
 		);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Step",
+				resourceId: args.step_id,
+				container: `card #${args.card_number}`,
+			});
 		}
 		return JSON.stringify(formatStep(result.value), null, 2);
 	},
@@ -203,7 +210,11 @@ Remove a checklist item permanently.
 			args.step_id,
 		);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Step",
+				resourceId: args.step_id,
+				container: `card #${args.card_number}`,
+			});
 		}
 		return `Step ${args.step_id} deleted from card #${args.card_number}.`;
 	},

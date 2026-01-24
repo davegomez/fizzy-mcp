@@ -80,7 +80,10 @@ Example: \`[abc123] Dave (1/23/2026, 3:45 PM):\\n  This looks good, but...\`
 		const client = getFizzyClient();
 		const result = await client.listComments(slug, args.card_number);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Comment",
+				container: `card #${args.card_number}`,
+			});
 		}
 		return formatCommentList(result.value);
 	},
@@ -126,7 +129,10 @@ Post a message or note on a task for discussion or documentation.
 			args.body,
 		);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Comment",
+				container: `card #${args.card_number}`,
+			});
 		}
 		return formatComment(result.value);
 	},
@@ -177,7 +183,11 @@ Modify an existing comment's content. Only the original author can edit.
 			args.body,
 		);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Comment",
+				resourceId: args.comment_id,
+				container: `card #${args.card_number}`,
+			});
 		}
 		return formatComment(result.value);
 	},
@@ -234,7 +244,11 @@ Remove an unwanted comment — this cannot be undone.
 			args.comment_id,
 		);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Comment",
+				resourceId: args.comment_id,
+				container: `card #${args.card_number}`,
+			});
 		}
 		return `Comment ${args.comment_id} deleted from card #${args.card_number}.`;
 	},
