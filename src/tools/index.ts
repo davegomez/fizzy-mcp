@@ -4,18 +4,13 @@ export {
 	listBoardsTool,
 	updateBoardTool,
 } from "./boards.js";
+export { changeCardStateTool } from "./card-state.js";
+export { toggleCardAttributeTool } from "./card-attribute.js";
 export {
-	closeCardTool,
 	createCardTool,
 	deleteCardTool,
 	getCardTool,
 	listCardsTool,
-	notNowCardTool,
-	reopenCardTool,
-	toggleAssigneeTool,
-	toggleTagTool,
-	triageCardTool,
-	unTriageCardTool,
 	updateCardTool,
 } from "./cards.js";
 export {
@@ -43,18 +38,13 @@ import {
 	listBoardsTool,
 	updateBoardTool,
 } from "./boards.js";
+import { changeCardStateTool } from "./card-state.js";
+import { toggleCardAttributeTool } from "./card-attribute.js";
 import {
-	closeCardTool,
 	createCardTool,
 	deleteCardTool,
 	getCardTool,
 	listCardsTool,
-	notNowCardTool,
-	reopenCardTool,
-	toggleAssigneeTool,
-	toggleTagTool,
-	triageCardTool,
-	unTriageCardTool,
 	updateCardTool,
 } from "./cards.js";
 import {
@@ -88,13 +78,8 @@ export const allTools = [
 	createCardTool,
 	updateCardTool,
 	deleteCardTool,
-	closeCardTool,
-	reopenCardTool,
-	triageCardTool,
-	unTriageCardTool,
-	notNowCardTool,
-	toggleTagTool,
-	toggleAssigneeTool,
+	changeCardStateTool,
+	toggleCardAttributeTool,
 	listTagsTool,
 	listColumnsTool,
 	getColumnTool,

@@ -2,7 +2,7 @@ import { FastMCP } from "fastmcp";
 import {
 	attachFileTool,
 	bulkCloseCardsTool,
-	closeCardTool,
+	changeCardStateTool,
 	createBoardTool,
 	createCardFullTool,
 	createCardTool,
@@ -22,12 +22,7 @@ import {
 	listColumnsTool,
 	listCommentsTool,
 	listTagsTool,
-	notNowCardTool,
-	reopenCardTool,
-	toggleAssigneeTool,
-	toggleTagTool,
-	triageCardTool,
-	unTriageCardTool,
+	toggleCardAttributeTool,
 	updateBoardTool,
 	updateCardTool,
 	updateColumnTool,
@@ -53,13 +48,8 @@ export function createServer(): FastMCP {
 	server.addTool(createCardTool);
 	server.addTool(updateCardTool);
 	server.addTool(deleteCardTool);
-	server.addTool(closeCardTool);
-	server.addTool(reopenCardTool);
-	server.addTool(triageCardTool);
-	server.addTool(unTriageCardTool);
-	server.addTool(notNowCardTool);
-	server.addTool(toggleTagTool);
-	server.addTool(toggleAssigneeTool);
+	server.addTool(changeCardStateTool);
+	server.addTool(toggleCardAttributeTool);
 	server.addTool(listTagsTool);
 	server.addTool(listColumnsTool);
 	server.addTool(getColumnTool);
