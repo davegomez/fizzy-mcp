@@ -112,4 +112,43 @@ describe("toUserError", () => {
 			expect(userError.message).toContain("fizzy_list_boards");
 		});
 	});
+
+	describe("NotFoundError (404)", () => {
+		test("should format with NOT_FOUND prefix and full context", () => {
+			const error = new NotFoundError();
+			const userError = toUserError(error, {
+				resourceType: "Card",
+				resourceId: "#42",
+				container: 'account "acme-corp"',
+			});
+			expect(userError.message).toBe(
+				'[NOT_FOUND] Card #42: Not found in account "acme-corp". Try fizzy_list_cards to see available items.',
+			);
+		});
+
+		test("should work with partial context", () => {
+			const error = new NotFoundError();
+			const userError = toUserError(error, { resourceType: "Board" });
+			expect(userError.message).toBe(
+				"[NOT_FOUND] Board: Not found. Try fizzy_list_boards to see available items.",
+			);
+		});
+
+		test("should use Step-specific list tool", () => {
+			const error = new NotFoundError();
+			const userError = toUserError(error, {
+				resourceType: "Step",
+				resourceId: "step_123",
+			});
+			expect(userError.message).toContain("fizzy_get_card");
+		});
+
+		test("should fall back to fizzy_list_boards without context", () => {
+			const error = new NotFoundError();
+			const userError = toUserError(error);
+			expect(userError.message).toBe(
+				"[NOT_FOUND] Resource: Not found. Try fizzy_list_boards to see available items.",
+			);
+		});
+	});
 });
