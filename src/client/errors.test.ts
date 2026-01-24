@@ -151,4 +151,41 @@ describe("toUserError", () => {
 			);
 		});
 	});
+
+	describe("ValidationError (422)", () => {
+		test("should format with VALIDATION prefix and field details", () => {
+			const error = new ValidationError({
+				title: ["is required", "must be at least 1 character"],
+				description: ["is too long"],
+			});
+			const userError = toUserError(error);
+			expect(userError.message).toBe(
+				"[VALIDATION] title: is required, must be at least 1 character; description: is too long.",
+			);
+		});
+
+		test("should handle validation without details", () => {
+			const error = new ValidationError();
+			const userError = toUserError(error);
+			expect(userError.message).toBe("[VALIDATION] Invalid input.");
+		});
+	});
+
+	describe("RateLimitError (429)", () => {
+		test("should format with RATE_LIMITED prefix", () => {
+			const error = new RateLimitError();
+			const userError = toUserError(error);
+			expect(userError.message).toBe(
+				"[RATE_LIMITED] Too many requests. Wait before retrying.",
+			);
+		});
+	});
+
+	describe("Generic FizzyApiError", () => {
+		test("should format with ERROR prefix and original message", () => {
+			const error = new FizzyApiError(500, "Internal server error");
+			const userError = toUserError(error);
+			expect(userError.message).toBe("[ERROR] Internal server error");
+		});
+	});
 });
