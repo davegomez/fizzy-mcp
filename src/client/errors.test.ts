@@ -5,8 +5,8 @@ import {
 	ForbiddenError,
 	NotFoundError,
 	RateLimitError,
-	ValidationError,
 	toUserError,
+	ValidationError,
 } from "./errors.js";
 
 describe("FizzyApiError", () => {
