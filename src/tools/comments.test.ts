@@ -38,16 +38,6 @@ const mockComment = {
 	url: "https://app.fizzy.do/897362094/cards/42/comments/comment_1",
 };
 
-const mockCommentLongBody = {
-	...mockComment,
-	id: "comment_2",
-	body: {
-		plain_text:
-			"This is a very long comment that should be truncated when displayed in the list view because it exceeds the maximum length of 150 characters which is our limit for comment bodies in the listing.",
-		html: "<p>This is a very long comment that should be truncated when displayed in the list view because it exceeds the maximum length of 150 characters which is our limit for comment bodies in the listing.</p>",
-	},
-};
-
 describe("listCommentsTool", () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();

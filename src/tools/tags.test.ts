@@ -30,14 +30,12 @@ describe("listTagsTool", () => {
 	];
 
 	test("should resolve account from args", async () => {
-		const listTagsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({
-					items: mockTags.slice(0, 1),
-					pagination: { returned: 1, has_more: false },
-				}),
-			);
+		const listTagsFn = vi.fn().mockResolvedValue(
+			ok({
+				items: mockTags.slice(0, 1),
+				pagination: { returned: 1, has_more: false },
+			}),
+		);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listTags: listTagsFn,
 		} as unknown as client.FizzyClient);

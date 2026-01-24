@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import { htmlToMarkdown } from "../client/markdown.js";
 import type { Comment } from "../schemas/comments.js";
+import { DEFAULT_LIMIT } from "../schemas/pagination.js";
 import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
@@ -14,24 +15,6 @@ function resolveAccount(accountSlug?: string): string {
 		);
 	}
 	return slug;
-}
-
-function truncateBody(html: string, maxLen = 150): string {
-	const md = htmlToMarkdown(html);
-	return md.length > maxLen ? `${md.slice(0, maxLen)}...` : md;
-}
-
-function formatCommentList(comments: Comment[]): string {
-	if (comments.length === 0) {
-		return "No comments found.";
-	}
-	return comments
-		.map((c) => {
-			const timestamp = new Date(c.created_at).toLocaleString();
-			const body = truncateBody(c.body.html);
-			return `[${c.id}] ${c.creator.name} (${timestamp}):\n  ${body}`;
-		})
-		.join("\n\n");
 }
 
 function formatComment(comment: Comment): string {
@@ -56,16 +39,23 @@ export const listCommentsTool = {
 	name: "fizzy_list_comments",
 	description: `List comments on a card.
 
-Get discussion history for a card, returned newest-first.
+Get discussion history for a card, newest-first on first page.
 
 **When to use:**
 1. Review discussion thread on a task
 2. Find a comment ID for editing or deleting
 
-**Arguments:** \`account_slug\` (optional), \`card_number\` (required)
+**Arguments:**
+- \`account_slug\` (optional): Uses session default if omitted
+- \`card_number\` (required): Card number to list comments for
+- \`limit\` (optional): Max items to return, 1-100 (default: 25)
+- \`cursor\` (optional): Continuation cursor from previous response
 
-**Returns:** Formatted list showing comment ID, author name, timestamp, and body preview (truncated to 150 chars).
-Example: \`[abc123] Dave (1/23/2026, 3:45 PM):\\n  This looks good, but...\`
+**Returns:** JSON with items and pagination metadata.
+\`\`\`json
+{"items": [{"id": "abc123", "body": "...", "creator": {...}}], "pagination": {"returned": 5, "has_more": true, "next_cursor": "..."}}
+\`\`\`
+First page is newest-first. Subsequent pages via cursor maintain order.
 
 **Related:** Use comment ID with \`fizzy_update_comment\` or \`fizzy_delete_comment\`.`,
 	parameters: z.object({
@@ -74,18 +64,39 @@ Example: \`[abc123] Dave (1/23/2026, 3:45 PM):\\n  This looks good, but...\`
 			.optional()
 			.describe("Account slug. Uses default if omitted."),
 		card_number: z.number().describe("Card number to list comments for."),
+		limit: z
+			.number()
+			.int()
+			.min(1)
+			.max(100)
+			.default(DEFAULT_LIMIT)
+			.describe("Max items to return (1-100, default: 25)."),
+		cursor: z
+			.string()
+			.optional()
+			.describe(
+				"Continuation cursor from previous response. Omit to start fresh.",
+			),
 	}),
-	execute: async (args: { account_slug?: string; card_number: number }) => {
+	execute: async (args: {
+		account_slug?: string;
+		card_number: number;
+		limit: number;
+		cursor?: string;
+	}) => {
 		const slug = resolveAccount(args.account_slug);
 		const client = getFizzyClient();
-		const result = await client.listComments(slug, args.card_number);
+		const result = await client.listComments(slug, args.card_number, {
+			limit: args.limit,
+			cursor: args.cursor,
+		});
 		if (isErr(result)) {
 			throw toUserError(result.error, {
 				resourceType: "Comment",
 				container: `card #${args.card_number}`,
 			});
 		}
-		return formatCommentList(result.value);
+		return JSON.stringify(result.value, null, 2);
 	},
 };
 

@@ -32,14 +32,6 @@ const mockCard = {
 	url: "https://app.fizzy.do/897362094/cards/42",
 };
 
-const mockCardLongDescription = {
-	...mockCard,
-	id: "card_2",
-	number: 43,
-	description_html:
-		"<p>This is a very long description that should be truncated when displayed in the list view because it exceeds the maximum length of 100 characters which is our limit.</p>",
-};
-
 describe("listCardsTool", () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();

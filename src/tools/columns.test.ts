@@ -102,14 +102,12 @@ describe("listColumnsTool", () => {
 			{ ...mockColumn, id: "col_2", name: "In Progress", cards_count: 3 },
 		];
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listColumns: vi
-				.fn()
-				.mockResolvedValue(
-					ok({
-						items: mockColumns,
-						pagination: { returned: 2, has_more: false },
-					}),
-				),
+			listColumns: vi.fn().mockResolvedValue(
+				ok({
+					items: mockColumns,
+					pagination: { returned: 2, has_more: false },
+				}),
+			),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");

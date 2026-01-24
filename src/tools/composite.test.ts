@@ -106,14 +106,12 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should filter by column_id", async () => {
-		const listCardsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({
-					items: [mockCard, mockCard2],
-					pagination: { returned: 2, has_more: false },
-				}),
-			);
+		const listCardsFn = vi.fn().mockResolvedValue(
+			ok({
+				items: [mockCard, mockCard2],
+				pagination: { returned: 2, has_more: false },
+			}),
+		);
 		const closeCardFn = vi
 			.fn()
 			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
@@ -204,14 +202,12 @@ describe("bulkCloseCardsTool", () => {
 			updated_at: recentDate.toISOString(),
 		};
 
-		const listCardsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({
-					items: [oldCard, recentCard],
-					pagination: { returned: 2, has_more: false },
-				}),
-			);
+		const listCardsFn = vi.fn().mockResolvedValue(
+			ok({
+				items: [oldCard, recentCard],
+				pagination: { returned: 2, has_more: false },
+			}),
+		);
 		const closeCardFn = vi
 			.fn()
 			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
@@ -255,14 +251,12 @@ describe("bulkCloseCardsTool", () => {
 			.mockResolvedValue(
 				ok({ items: mockTags, pagination: { returned: 2, has_more: false } }),
 			);
-		const listCardsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({
-					items: [cardMatchingAll, cardMismatchAge],
-					pagination: { returned: 2, has_more: false },
-				}),
-			);
+		const listCardsFn = vi.fn().mockResolvedValue(
+			ok({
+				items: [cardMatchingAll, cardMismatchAge],
+				pagination: { returned: 2, has_more: false },
+			}),
+		);
 		const closeCardFn = vi
 			.fn()
 			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
