@@ -16,8 +16,7 @@ describe("createServer", () => {
 		const toolNames = allTools.map((t) => t.name);
 
 		expect(toolNames).toContain("fizzy_whoami");
-		expect(toolNames).toContain("fizzy_set_default_account");
-		expect(toolNames).toContain("fizzy_get_default_account");
+		expect(toolNames).toContain("fizzy_default_account");
 	});
 
 	test("should have board tools available", () => {
@@ -53,13 +52,8 @@ describe("createServer", () => {
 		expect(toolNames).toContain("fizzy_create_card");
 		expect(toolNames).toContain("fizzy_update_card");
 		expect(toolNames).toContain("fizzy_delete_card");
-		expect(toolNames).toContain("fizzy_close_card");
-		expect(toolNames).toContain("fizzy_reopen_card");
-		expect(toolNames).toContain("fizzy_triage_card");
-		expect(toolNames).toContain("fizzy_untriage_card");
-		expect(toolNames).toContain("fizzy_not_now_card");
-		expect(toolNames).toContain("fizzy_toggle_tag");
-		expect(toolNames).toContain("fizzy_toggle_assignee");
+		expect(toolNames).toContain("fizzy_change_card_state");
+		expect(toolNames).toContain("fizzy_toggle_card_attribute");
 	});
 
 	test("should have step tools available", () => {
@@ -92,7 +86,7 @@ describe("createServer", () => {
 		expect(toolNames).toContain("fizzy_attach_file");
 	});
 
-	test("should export exactly 35 tools in allTools", () => {
-		expect(allTools.length).toBe(35);
+	test("should export exactly 29 tools in allTools", () => {
+		expect(allTools.length).toBe(29);
 	});
 });
