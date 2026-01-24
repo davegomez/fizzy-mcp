@@ -48,36 +48,53 @@ describe("listCardsTool", () => {
 	});
 
 	test("should resolve account from args", async () => {
-		const listCardsFn = vi.fn().mockResolvedValue(ok([mockCard]));
+		const listCardsFn = vi.fn().mockResolvedValue(
+			ok({
+				items: [mockCard],
+				pagination: { returned: 1, has_more: false },
+			}),
+		);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listCards: listCardsFn,
 		} as unknown as client.FizzyClient);
 
-		await listCardsTool.execute({ account_slug: "my-account" });
-		expect(listCardsFn).toHaveBeenCalledWith("my-account", {
-			board_id: undefined,
-			column_id: undefined,
-			tag_ids: undefined,
-			assignee_ids: undefined,
-			status: undefined,
-		});
+		await listCardsTool.execute({ account_slug: "my-account", limit: 25 });
+		expect(listCardsFn).toHaveBeenCalledWith(
+			"my-account",
+			{
+				board_id: undefined,
+				column_id: undefined,
+				tag_ids: undefined,
+				assignee_ids: undefined,
+				status: undefined,
+			},
+			{ limit: 25, cursor: undefined },
+		);
 	});
 
 	test("should resolve account from default when not provided", async () => {
 		setDefaultAccount("default-account");
-		const listCardsFn = vi.fn().mockResolvedValue(ok([]));
+		const listCardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listCards: listCardsFn,
 		} as unknown as client.FizzyClient);
 
-		await listCardsTool.execute({});
-		expect(listCardsFn).toHaveBeenCalledWith("default-account", {
-			board_id: undefined,
-			column_id: undefined,
-			tag_ids: undefined,
-			assignee_ids: undefined,
-			status: undefined,
-		});
+		await listCardsTool.execute({ limit: 25 });
+		expect(listCardsFn).toHaveBeenCalledWith(
+			"default-account",
+			{
+				board_id: undefined,
+				column_id: undefined,
+				tag_ids: undefined,
+				assignee_ids: undefined,
+				status: undefined,
+			},
+			{ limit: 25, cursor: undefined },
+		);
 	});
 
 	test("should throw when no account and no default set", async () => {
@@ -87,17 +104,29 @@ describe("listCardsTool", () => {
 	});
 
 	test("should strip leading slash from account slug", async () => {
-		const listCardsFn = vi.fn().mockResolvedValue(ok([]));
+		const listCardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listCards: listCardsFn,
 		} as unknown as client.FizzyClient);
 
-		await listCardsTool.execute({ account_slug: "/897362094" });
-		expect(listCardsFn).toHaveBeenCalledWith("897362094", expect.any(Object));
+		await listCardsTool.execute({ account_slug: "/897362094", limit: 25 });
+		expect(listCardsFn).toHaveBeenCalledWith(
+			"897362094",
+			expect.any(Object),
+			expect.any(Object),
+		);
 	});
 
 	test("should pass filters to client", async () => {
-		const listCardsFn = vi.fn().mockResolvedValue(ok([]));
+		const listCardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listCards: listCardsFn,
 		} as unknown as client.FizzyClient);
@@ -109,58 +138,58 @@ describe("listCardsTool", () => {
 			tag_ids: ["tag_1", "tag_2"],
 			assignee_ids: ["user_1"],
 			status: "open",
+			limit: 25,
 		});
 
-		expect(listCardsFn).toHaveBeenCalledWith("897362094", {
-			board_id: "board_1",
-			column_id: "col_1",
-			tag_ids: ["tag_1", "tag_2"],
-			assignee_ids: ["user_1"],
-			status: "open",
-		});
+		expect(listCardsFn).toHaveBeenCalledWith(
+			"897362094",
+			{
+				board_id: "board_1",
+				column_id: "col_1",
+				tag_ids: ["tag_1", "tag_2"],
+				assignee_ids: ["user_1"],
+				status: "open",
+			},
+			{ limit: 25, cursor: undefined },
+		);
 	});
 
-	test("should format card list with truncated descriptions", async () => {
+	test("should return JSON with items and pagination", async () => {
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listCards: vi.fn().mockResolvedValue(ok([mockCard])),
+			listCards: vi.fn().mockResolvedValue(
+				ok({
+					items: [mockCard],
+					pagination: { returned: 1, has_more: true, next_cursor: "abc123" },
+				}),
+			),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		const result = await listCardsTool.execute({});
+		const result = await listCardsTool.execute({ limit: 25 });
+		const parsed = JSON.parse(result);
 
-		expect(result).toContain("#42: Fix authentication bug");
-		expect(result).toContain("Status: open");
-		expect(result).toContain("Tags: bug");
-		expect(result).toContain("Users are getting logged out unexpectedly");
+		expect(parsed.items).toHaveLength(1);
+		expect(parsed.items[0].number).toBe(42);
+		expect(parsed.pagination.returned).toBe(1);
+		expect(parsed.pagination.has_more).toBe(true);
+		expect(parsed.pagination.next_cursor).toBe("abc123");
 	});
 
-	test("should truncate long descriptions to 100 chars", async () => {
+	test("should return empty items array when no cards found", async () => {
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listCards: vi.fn().mockResolvedValue(ok([mockCardLongDescription])),
+			listCards: vi
+				.fn()
+				.mockResolvedValue(
+					ok({ items: [], pagination: { returned: 0, has_more: false } }),
+				),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		const result = await listCardsTool.execute({});
+		const result = await listCardsTool.execute({ limit: 25 });
+		const parsed = JSON.parse(result);
 
-		expect(result).toContain("...");
-		// Original description was >100 chars, should be truncated
-		const descriptionLine = result
-			.split("\n")
-			.find((l) => l.includes("This is a very"));
-		expect(descriptionLine).toBeDefined();
-		// 100 chars + "..." + possible prefix whitespace
-		expect(descriptionLine?.length).toBeLessThan(120);
-	});
-
-	test("should return message when no cards found", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listCards: vi.fn().mockResolvedValue(ok([])),
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("897362094");
-		const result = await listCardsTool.execute({});
-
-		expect(result).toBe("No cards found.");
+		expect(parsed.items).toHaveLength(0);
+		expect(parsed.pagination.has_more).toBe(false);
 	});
 
 	test("should throw UserError on API error", async () => {
@@ -169,7 +198,7 @@ describe("listCardsTool", () => {
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		await expect(listCardsTool.execute({})).rejects.toThrow(
+		await expect(listCardsTool.execute({ limit: 25 })).rejects.toThrow(
 			"Authentication failed",
 		);
 	});

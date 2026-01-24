@@ -37,65 +37,95 @@ describe("listBoardsTool", () => {
 		process.env.FIZZY_ACCESS_TOKEN = "test-token";
 	});
 
+	const mockPaginatedResult = {
+		items: [mockBoard],
+		pagination: { returned: 1, has_more: false },
+	};
+
 	test("should resolve account from args", async () => {
-		const listBoardsFn = vi.fn().mockResolvedValue(ok([mockBoard]));
+		const listBoardsFn = vi.fn().mockResolvedValue(ok(mockPaginatedResult));
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listBoards: listBoardsFn,
 		} as unknown as client.FizzyClient);
 
-		await listBoardsTool.execute({ account_slug: "my-account" });
-		expect(listBoardsFn).toHaveBeenCalledWith("my-account");
+		await listBoardsTool.execute({ account_slug: "my-account", limit: 25 });
+		expect(listBoardsFn).toHaveBeenCalledWith("my-account", {
+			limit: 25,
+			cursor: undefined,
+		});
 	});
 
 	test("should resolve account from default when not provided", async () => {
 		setDefaultAccount("default-account");
-		const listBoardsFn = vi.fn().mockResolvedValue(ok([]));
+		const listBoardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listBoards: listBoardsFn,
 		} as unknown as client.FizzyClient);
 
-		await listBoardsTool.execute({});
-		expect(listBoardsFn).toHaveBeenCalledWith("default-account");
+		await listBoardsTool.execute({ limit: 25 });
+		expect(listBoardsFn).toHaveBeenCalledWith("default-account", {
+			limit: 25,
+			cursor: undefined,
+		});
 	});
 
 	test("should throw when no account and no default set", async () => {
-		await expect(listBoardsTool.execute({})).rejects.toThrow(
+		await expect(listBoardsTool.execute({ limit: 25 })).rejects.toThrow(
 			"No account specified and no default set",
 		);
 	});
 
 	test("should strip leading slash from account slug", async () => {
-		const listBoardsFn = vi.fn().mockResolvedValue(ok([]));
+		const listBoardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listBoards: listBoardsFn,
 		} as unknown as client.FizzyClient);
 
-		await listBoardsTool.execute({ account_slug: "/897362094" });
-		expect(listBoardsFn).toHaveBeenCalledWith("897362094");
+		await listBoardsTool.execute({ account_slug: "/897362094", limit: 25 });
+		expect(listBoardsFn).toHaveBeenCalledWith("897362094", {
+			limit: 25,
+			cursor: undefined,
+		});
 	});
 
-	test("should return formatted board list with column breakdown", async () => {
+	test("should return JSON with paginated board list", async () => {
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: vi.fn().mockResolvedValue(ok([mockBoard])),
+			listBoards: vi.fn().mockResolvedValue(ok(mockPaginatedResult)),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		const result = await listBoardsTool.execute({});
+		const result = await listBoardsTool.execute({ limit: 25 });
 
-		expect(result).toContain("Project Alpha");
-		expect(result).toContain("Backlog: 5 cards");
-		expect(result).toContain("Done: 10 cards");
+		const parsed = JSON.parse(result);
+		expect(parsed.items).toHaveLength(1);
+		expect(parsed.items[0].name).toBe("Project Alpha");
+		expect(parsed.pagination.returned).toBe(1);
+		expect(parsed.pagination.has_more).toBe(false);
 	});
 
-	test("should return message when no boards found", async () => {
+	test("should return empty items array when no boards found", async () => {
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: vi.fn().mockResolvedValue(ok([])),
+			listBoards: vi
+				.fn()
+				.mockResolvedValue(
+					ok({ items: [], pagination: { returned: 0, has_more: false } }),
+				),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		const result = await listBoardsTool.execute({});
+		const result = await listBoardsTool.execute({ limit: 25 });
 
-		expect(result).toBe("No boards found.");
+		const parsed = JSON.parse(result);
+		expect(parsed.items).toHaveLength(0);
+		expect(parsed.pagination.returned).toBe(0);
 	});
 
 	test("should throw UserError on API error", async () => {
@@ -104,7 +134,7 @@ describe("listBoardsTool", () => {
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		await expect(listBoardsTool.execute({})).rejects.toThrow(
+		await expect(listBoardsTool.execute({ limit: 25 })).rejects.toThrow(
 			"Authentication failed",
 		);
 	});

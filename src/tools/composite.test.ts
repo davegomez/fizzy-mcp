@@ -106,7 +106,14 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should filter by column_id", async () => {
-		const listCardsFn = vi.fn().mockResolvedValue(ok([mockCard, mockCard2]));
+		const listCardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({
+					items: [mockCard, mockCard2],
+					pagination: { returned: 2, has_more: false },
+				}),
+			);
 		const closeCardFn = vi
 			.fn()
 			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
@@ -131,8 +138,16 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should filter by tag_title", async () => {
-		const listTagsFn = vi.fn().mockResolvedValue(ok(mockTags));
-		const listCardsFn = vi.fn().mockResolvedValue(ok([mockCard]));
+		const listTagsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: mockTags, pagination: { returned: 2, has_more: false } }),
+			);
+		const listCardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [mockCard], pagination: { returned: 1, has_more: false } }),
+			);
 		const closeCardFn = vi
 			.fn()
 			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
@@ -158,7 +173,11 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should throw when tag not found", async () => {
-		const listTagsFn = vi.fn().mockResolvedValue(ok(mockTags));
+		const listTagsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: mockTags, pagination: { returned: 2, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listTags: listTagsFn,
 		} as unknown as client.FizzyClient);
@@ -185,7 +204,14 @@ describe("bulkCloseCardsTool", () => {
 			updated_at: recentDate.toISOString(),
 		};
 
-		const listCardsFn = vi.fn().mockResolvedValue(ok([oldCard, recentCard]));
+		const listCardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({
+					items: [oldCard, recentCard],
+					pagination: { returned: 2, has_more: false },
+				}),
+			);
 		const closeCardFn = vi
 			.fn()
 			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
@@ -224,10 +250,19 @@ describe("bulkCloseCardsTool", () => {
 			tags: [{ id: "tag_1", title: "Bug", color: "red" }],
 		};
 
-		const listTagsFn = vi.fn().mockResolvedValue(ok(mockTags));
+		const listTagsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: mockTags, pagination: { returned: 2, has_more: false } }),
+			);
 		const listCardsFn = vi
 			.fn()
-			.mockResolvedValue(ok([cardMatchingAll, cardMismatchAge]));
+			.mockResolvedValue(
+				ok({
+					items: [cardMatchingAll, cardMismatchAge],
+					pagination: { returned: 2, has_more: false },
+				}),
+			);
 		const closeCardFn = vi
 			.fn()
 			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
@@ -257,7 +292,11 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should return empty result when no cards match filters", async () => {
-		const listCardsFn = vi.fn().mockResolvedValue(ok([]));
+		const listCardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listCards: listCardsFn,
 		} as unknown as client.FizzyClient);
@@ -299,8 +338,16 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should match tag title case-insensitively", async () => {
-		const listTagsFn = vi.fn().mockResolvedValue(ok(mockTags));
-		const listCardsFn = vi.fn().mockResolvedValue(ok([mockCard]));
+		const listTagsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: mockTags, pagination: { returned: 2, has_more: false } }),
+			);
+		const listCardsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [mockCard], pagination: { returned: 1, has_more: false } }),
+			);
 		const closeCardFn = vi
 			.fn()
 			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
@@ -318,8 +365,8 @@ describe("bulkCloseCardsTool", () => {
 
 		expect(listCardsFn).toHaveBeenCalledWith("test-account", {
 			status: "open",
-			tag_ids: ["tag_1"], // Should find "Bug" tag
-		});
+			tag_ids: ["tag_1"],
+		}); // Should find "Bug" tag
 	});
 });
 

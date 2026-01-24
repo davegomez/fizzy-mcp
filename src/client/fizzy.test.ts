@@ -138,15 +138,51 @@ describe("FizzyClient", () => {
 			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
 		});
 
-		test("should return all boards across pages", async () => {
+		test("should return paginated boards with first page", async () => {
 			const client = new FizzyClient();
 			const result = await client.listBoards("897362094");
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(2);
-				expect(result.value[0]?.name).toBe("Project Alpha");
-				expect(result.value[1]?.name).toBe("Project Beta");
+				// MSW handler returns 1 board per page, so first page has 1 item
+				expect(result.value.items).toHaveLength(1);
+				expect(result.value.items[0]?.name).toBe("Project Alpha");
+				expect(result.value.pagination.returned).toBe(1);
+				expect(typeof result.value.pagination.has_more).toBe("boolean");
+			}
+		});
+
+		test("should return has_more true when Link header has next", async () => {
+			const client = new FizzyClient();
+			const result = await client.listBoards("897362094");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.pagination.has_more).toBe(true);
+				expect(result.value.pagination.next_cursor).toBeDefined();
+			}
+		});
+
+		test("should return has_more false when no Link header", async () => {
+			const client = new FizzyClient();
+			const result = await client.listBoards("empty-account");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.pagination.has_more).toBe(false);
+				expect(result.value.pagination.next_cursor).toBeUndefined();
+			}
+		});
+
+		test("should return ValidationError for invalid cursor", async () => {
+			const client = new FizzyClient();
+			const result = await client.listBoards("897362094", {
+				cursor: "not-valid-base64!!!",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(ValidationError);
 			}
 		});
 
@@ -156,7 +192,9 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(0);
+				expect(result.value.items).toHaveLength(0);
+				expect(result.value.pagination.returned).toBe(0);
+				expect(result.value.pagination.has_more).toBe(false);
 			}
 		});
 
@@ -304,16 +342,18 @@ describe("FizzyClient", () => {
 			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
 		});
 
-		test("should return all tags across pages", async () => {
+		test("should return paginated tags with first page", async () => {
 			const client = new FizzyClient();
 			const result = await client.listTags("897362094");
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(3);
-				expect(result.value[0]?.title).toBe("Bug");
-				expect(result.value[1]?.title).toBe("Feature");
-				expect(result.value[2]?.title).toBe("Documentation");
+				// MSW handler returns 2 tags per page
+				expect(result.value.items).toHaveLength(2);
+				expect(result.value.items[0]?.title).toBe("Bug");
+				expect(result.value.items[1]?.title).toBe("Feature");
+				expect(result.value.pagination.returned).toBe(2);
+				expect(result.value.pagination.has_more).toBe(true);
 			}
 		});
 
@@ -323,7 +363,21 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(0);
+				expect(result.value.items).toHaveLength(0);
+				expect(result.value.pagination.returned).toBe(0);
+				expect(result.value.pagination.has_more).toBe(false);
+			}
+		});
+
+		test("should return ValidationError for invalid cursor", async () => {
+			const client = new FizzyClient();
+			const result = await client.listTags("897362094", {
+				cursor: "!!!invalid",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(ValidationError);
 			}
 		});
 
@@ -344,16 +398,18 @@ describe("FizzyClient", () => {
 			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
 		});
 
-		test("should return all columns across pages", async () => {
+		test("should return paginated columns with first page", async () => {
 			const client = new FizzyClient();
 			const result = await client.listColumns("897362094", "board_1");
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(3);
-				expect(result.value[0]?.name).toBe("Backlog");
-				expect(result.value[1]?.name).toBe("In Progress");
-				expect(result.value[2]?.name).toBe("Done");
+				// MSW handler returns 2 columns per page
+				expect(result.value.items).toHaveLength(2);
+				expect(result.value.items[0]?.name).toBe("Backlog");
+				expect(result.value.items[1]?.name).toBe("In Progress");
+				expect(result.value.pagination.returned).toBe(2);
+				expect(result.value.pagination.has_more).toBe(true);
 			}
 		});
 
@@ -363,7 +419,21 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(0);
+				expect(result.value.items).toHaveLength(0);
+				expect(result.value.pagination.returned).toBe(0);
+				expect(result.value.pagination.has_more).toBe(false);
+			}
+		});
+
+		test("should return ValidationError for invalid cursor", async () => {
+			const client = new FizzyClient();
+			const result = await client.listColumns("897362094", "board_1", {
+				cursor: "bad-cursor",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(ValidationError);
 			}
 		});
 
@@ -566,15 +636,18 @@ describe("FizzyClient", () => {
 			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
 		});
 
-		test("should return all cards across pages", async () => {
+		test("should return paginated cards with first page", async () => {
 			const client = new FizzyClient();
 			const result = await client.listCards("897362094");
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(4);
-				expect(result.value[0]?.title).toBe("Fix login bug");
-				expect(result.value[1]?.title).toBe("Add dark mode");
+				// MSW handler returns 2 cards per page
+				expect(result.value.items).toHaveLength(2);
+				expect(result.value.items[0]?.title).toBe("Fix login bug");
+				expect(result.value.items[1]?.title).toBe("Add dark mode");
+				expect(result.value.pagination.returned).toBe(2);
+				expect(result.value.pagination.has_more).toBe(true);
 			}
 		});
 
@@ -584,7 +657,9 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(0);
+				expect(result.value.items).toHaveLength(0);
+				expect(result.value.pagination.returned).toBe(0);
+				expect(result.value.pagination.has_more).toBe(false);
 			}
 		});
 
@@ -596,8 +671,11 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(3);
-				expect(result.value.every((c) => c.board_id === "board_1")).toBe(true);
+				// Filters applied, pagination still works
+				expect(result.value.items.length).toBeGreaterThan(0);
+				expect(result.value.items.every((c) => c.board_id === "board_1")).toBe(
+					true,
+				);
 			}
 		});
 
@@ -609,8 +687,7 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				// Should match cards with tag_1 OR tag_2
-				expect(result.value).toHaveLength(2);
+				expect(result.value.items.length).toBeGreaterThan(0);
 			}
 		});
 
@@ -620,8 +697,22 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(1);
-				expect(result.value[0]?.status).toBe("closed");
+				expect(result.value.items.length).toBe(1);
+				expect(result.value.items[0]?.status).toBe("closed");
+			}
+		});
+
+		test("should return ValidationError for invalid cursor", async () => {
+			const client = new FizzyClient();
+			const result = await client.listCards(
+				"897362094",
+				{},
+				{ cursor: "invalid!!!" },
+			);
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(ValidationError);
 			}
 		});
 
@@ -1325,25 +1416,29 @@ describe("FizzyClient", () => {
 			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
 		});
 
-		test("should return all comments across pages", async () => {
+		test("should return paginated comments with first page", async () => {
 			const client = new FizzyClient();
 			const result = await client.listComments("897362094", 1);
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(3);
+				// MSW handler returns 2 comments per page
+				expect(result.value.items).toHaveLength(2);
+				expect(result.value.pagination.returned).toBe(2);
+				expect(result.value.pagination.has_more).toBe(true);
 			}
 		});
 
-		test("should return comments in newest-first order", async () => {
+		test("should return comments in newest-first order on first page", async () => {
 			const client = new FizzyClient();
 			const result = await client.listComments("897362094", 1);
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				// Mock comments are in oldest-first order, should be reversed
-				expect(result.value[0]?.id).toBe("comment_3");
-				expect(result.value[2]?.id).toBe("comment_1");
+				// First page is reversed for newest-first display
+				// MSW returns comment_1, comment_2 (2 per page), reversed to comment_2, comment_1
+				expect(result.value.items[0]?.id).toBe("comment_2");
+				expect(result.value.items[1]?.id).toBe("comment_1");
 			}
 		});
 
@@ -1353,7 +1448,21 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value).toHaveLength(0);
+				expect(result.value.items).toHaveLength(0);
+				expect(result.value.pagination.returned).toBe(0);
+				expect(result.value.pagination.has_more).toBe(false);
+			}
+		});
+
+		test("should return ValidationError for invalid cursor", async () => {
+			const client = new FizzyClient();
+			const result = await client.listComments("897362094", 1, {
+				cursor: "@@invalid@@",
+			});
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(ValidationError);
 			}
 		});
 

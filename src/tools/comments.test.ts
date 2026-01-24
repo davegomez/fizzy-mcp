@@ -55,8 +55,13 @@ describe("listCommentsTool", () => {
 		process.env.FIZZY_ACCESS_TOKEN = "test-token";
 	});
 
+	const mockPaginatedResult = {
+		items: [mockComment],
+		pagination: { returned: 1, has_more: false },
+	};
+
 	test("should resolve account from args", async () => {
-		const listCommentsFn = vi.fn().mockResolvedValue(ok([mockComment]));
+		const listCommentsFn = vi.fn().mockResolvedValue(ok(mockPaginatedResult));
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listComments: listCommentsFn,
 		} as unknown as client.FizzyClient);
@@ -64,29 +69,44 @@ describe("listCommentsTool", () => {
 		await listCommentsTool.execute({
 			account_slug: "my-account",
 			card_number: 42,
+			limit: 25,
 		});
-		expect(listCommentsFn).toHaveBeenCalledWith("my-account", 42);
+		expect(listCommentsFn).toHaveBeenCalledWith("my-account", 42, {
+			limit: 25,
+			cursor: undefined,
+		});
 	});
 
 	test("should resolve account from default when not provided", async () => {
 		setDefaultAccount("default-account");
-		const listCommentsFn = vi.fn().mockResolvedValue(ok([]));
+		const listCommentsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listComments: listCommentsFn,
 		} as unknown as client.FizzyClient);
 
-		await listCommentsTool.execute({ card_number: 42 });
-		expect(listCommentsFn).toHaveBeenCalledWith("default-account", 42);
+		await listCommentsTool.execute({ card_number: 42, limit: 25 });
+		expect(listCommentsFn).toHaveBeenCalledWith("default-account", 42, {
+			limit: 25,
+			cursor: undefined,
+		});
 	});
 
 	test("should throw when no account and no default set", async () => {
-		await expect(listCommentsTool.execute({ card_number: 42 })).rejects.toThrow(
-			"No account specified and no default set",
-		);
+		await expect(
+			listCommentsTool.execute({ card_number: 42, limit: 25 }),
+		).rejects.toThrow("No account specified and no default set");
 	});
 
 	test("should strip leading slash from account slug", async () => {
-		const listCommentsFn = vi.fn().mockResolvedValue(ok([]));
+		const listCommentsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listComments: listCommentsFn,
 		} as unknown as client.FizzyClient);
@@ -94,49 +114,65 @@ describe("listCommentsTool", () => {
 		await listCommentsTool.execute({
 			account_slug: "/897362094",
 			card_number: 42,
+			limit: 25,
 		});
-		expect(listCommentsFn).toHaveBeenCalledWith("897362094", 42);
+		expect(listCommentsFn).toHaveBeenCalledWith("897362094", 42, {
+			limit: 25,
+			cursor: undefined,
+		});
 	});
 
-	test("should format comment list with author and timestamp", async () => {
+	test("should return JSON with paginated comment list", async () => {
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listComments: vi.fn().mockResolvedValue(ok([mockComment])),
+			listComments: vi.fn().mockResolvedValue(ok(mockPaginatedResult)),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		const result = await listCommentsTool.execute({ card_number: 42 });
+		const result = await listCommentsTool.execute({
+			card_number: 42,
+			limit: 25,
+		});
 
-		expect(result).toContain("[comment_1]");
-		expect(result).toContain("Alice");
-		expect(result).toContain("This looks good to me!");
+		const parsed = JSON.parse(result);
+		expect(parsed.items).toHaveLength(1);
+		expect(parsed.items[0].id).toBe("comment_1");
+		expect(parsed.pagination.returned).toBe(1);
 	});
 
-	test("should truncate long comment bodies to 150 chars", async () => {
+	test("should include raw body with html and plain_text", async () => {
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listComments: vi.fn().mockResolvedValue(ok([mockCommentLongBody])),
+			listComments: vi.fn().mockResolvedValue(ok(mockPaginatedResult)),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		const result = await listCommentsTool.execute({ card_number: 42 });
+		const result = await listCommentsTool.execute({
+			card_number: 42,
+			limit: 25,
+		});
 
-		expect(result).toContain("...");
-		// Body should be truncated to ~150 chars + "..."
-		const bodyLine = result
-			.split("\n")
-			.find((l) => l.includes("This is a very"));
-		expect(bodyLine).toBeDefined();
-		expect(bodyLine?.length).toBeLessThan(170);
+		const parsed = JSON.parse(result);
+		expect(parsed.items[0].body.plain_text).toBe("This looks good to me!");
+		expect(parsed.items[0].body.html).toBe("<p>This looks good to me!</p>");
 	});
 
-	test("should return message when no comments found", async () => {
+	test("should return empty items array when no comments found", async () => {
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listComments: vi.fn().mockResolvedValue(ok([])),
+			listComments: vi
+				.fn()
+				.mockResolvedValue(
+					ok({ items: [], pagination: { returned: 0, has_more: false } }),
+				),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		const result = await listCommentsTool.execute({ card_number: 42 });
+		const result = await listCommentsTool.execute({
+			card_number: 42,
+			limit: 25,
+		});
 
-		expect(result).toBe("No comments found.");
+		const parsed = JSON.parse(result);
+		expect(parsed.items).toHaveLength(0);
+		expect(parsed.pagination.returned).toBe(0);
 	});
 
 	test("should throw UserError on API error", async () => {
@@ -145,9 +181,9 @@ describe("listCommentsTool", () => {
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		await expect(listCommentsTool.execute({ card_number: 42 })).rejects.toThrow(
-			"Authentication failed",
-		);
+		await expect(
+			listCommentsTool.execute({ card_number: 42, limit: 25 }),
+		).rejects.toThrow("Authentication failed");
 	});
 });
 

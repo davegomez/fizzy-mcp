@@ -29,8 +29,13 @@ describe("listColumnsTool", () => {
 		process.env.FIZZY_ACCESS_TOKEN = "test-token";
 	});
 
+	const mockPaginatedResult = {
+		items: [mockColumn],
+		pagination: { returned: 1, has_more: false },
+	};
+
 	test("should resolve account from args", async () => {
-		const listColumnsFn = vi.fn().mockResolvedValue(ok([mockColumn]));
+		const listColumnsFn = vi.fn().mockResolvedValue(ok(mockPaginatedResult));
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listColumns: listColumnsFn,
 		} as unknown as client.FizzyClient);
@@ -38,29 +43,44 @@ describe("listColumnsTool", () => {
 		await listColumnsTool.execute({
 			account_slug: "my-account",
 			board_id: "board_1",
+			limit: 25,
 		});
-		expect(listColumnsFn).toHaveBeenCalledWith("my-account", "board_1");
+		expect(listColumnsFn).toHaveBeenCalledWith("my-account", "board_1", {
+			limit: 25,
+			cursor: undefined,
+		});
 	});
 
 	test("should resolve account from default when not provided", async () => {
 		setDefaultAccount("default-account");
-		const listColumnsFn = vi.fn().mockResolvedValue(ok([]));
+		const listColumnsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listColumns: listColumnsFn,
 		} as unknown as client.FizzyClient);
 
-		await listColumnsTool.execute({ board_id: "board_1" });
-		expect(listColumnsFn).toHaveBeenCalledWith("default-account", "board_1");
+		await listColumnsTool.execute({ board_id: "board_1", limit: 25 });
+		expect(listColumnsFn).toHaveBeenCalledWith("default-account", "board_1", {
+			limit: 25,
+			cursor: undefined,
+		});
 	});
 
 	test("should throw when no account and no default set", async () => {
 		await expect(
-			listColumnsTool.execute({ board_id: "board_1" }),
+			listColumnsTool.execute({ board_id: "board_1", limit: 25 }),
 		).rejects.toThrow("No account specified and no default set");
 	});
 
 	test("should strip leading slash from account slug", async () => {
-		const listColumnsFn = vi.fn().mockResolvedValue(ok([]));
+		const listColumnsFn = vi
+			.fn()
+			.mockResolvedValue(
+				ok({ items: [], pagination: { returned: 0, has_more: false } }),
+			);
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			listColumns: listColumnsFn,
 		} as unknown as client.FizzyClient);
@@ -68,35 +88,60 @@ describe("listColumnsTool", () => {
 		await listColumnsTool.execute({
 			account_slug: "/897362094",
 			board_id: "board_1",
+			limit: 25,
 		});
-		expect(listColumnsFn).toHaveBeenCalledWith("897362094", "board_1");
+		expect(listColumnsFn).toHaveBeenCalledWith("897362094", "board_1", {
+			limit: 25,
+			cursor: undefined,
+		});
 	});
 
-	test("should return formatted column list", async () => {
+	test("should return JSON with paginated column list", async () => {
 		const mockColumns = [
 			{ ...mockColumn, name: "Backlog", cards_count: 5 },
 			{ ...mockColumn, id: "col_2", name: "In Progress", cards_count: 3 },
 		];
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listColumns: vi.fn().mockResolvedValue(ok(mockColumns)),
+			listColumns: vi
+				.fn()
+				.mockResolvedValue(
+					ok({
+						items: mockColumns,
+						pagination: { returned: 2, has_more: false },
+					}),
+				),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		const result = await listColumnsTool.execute({ board_id: "board_1" });
+		const result = await listColumnsTool.execute({
+			board_id: "board_1",
+			limit: 25,
+		});
 
-		expect(result).toContain("Backlog (#808080) - 5 cards");
-		expect(result).toContain("In Progress (#808080) - 3 cards");
+		const parsed = JSON.parse(result);
+		expect(parsed.items).toHaveLength(2);
+		expect(parsed.items[0].name).toBe("Backlog");
+		expect(parsed.pagination.returned).toBe(2);
 	});
 
-	test("should return message when no columns found", async () => {
+	test("should return empty items array when no columns found", async () => {
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listColumns: vi.fn().mockResolvedValue(ok([])),
+			listColumns: vi
+				.fn()
+				.mockResolvedValue(
+					ok({ items: [], pagination: { returned: 0, has_more: false } }),
+				),
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		const result = await listColumnsTool.execute({ board_id: "board_1" });
+		const result = await listColumnsTool.execute({
+			board_id: "board_1",
+			limit: 25,
+		});
 
-		expect(result).toBe("No columns found.");
+		const parsed = JSON.parse(result);
+		expect(parsed.items).toHaveLength(0);
+		expect(parsed.pagination.returned).toBe(0);
 	});
 
 	test("should throw UserError on API error", async () => {
@@ -106,7 +151,7 @@ describe("listColumnsTool", () => {
 
 		setDefaultAccount("897362094");
 		await expect(
-			listColumnsTool.execute({ board_id: "board_1" }),
+			listColumnsTool.execute({ board_id: "board_1", limit: 25 }),
 		).rejects.toThrow("Authentication failed");
 	});
 });
