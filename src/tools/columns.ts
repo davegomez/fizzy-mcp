@@ -204,7 +204,10 @@ Example: {"id": "col_abc", "name": "Ready for Review", "color": "orange", "posit
 			.describe("Account slug. Defaults to session account if not provided."),
 		board_id: z.string().describe("Board ID containing this column."),
 		column_id: z.string().describe("Column ID to update."),
-		name: z.string().optional().describe("New name for the column."),
+		name: z
+			.string()
+			.optional()
+			.describe("New name for the column (1-255 chars)."),
 		color: z.string().optional().describe("New hex color or named color."),
 	}),
 	execute: async (args: {
