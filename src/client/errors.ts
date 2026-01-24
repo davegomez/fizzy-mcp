@@ -1,5 +1,21 @@
 import { UserError } from "fastmcp";
 
+export interface ErrorContext {
+	resourceType?: string;
+	resourceId?: string;
+	container?: string;
+}
+
+const RESOURCE_LIST_TOOLS: Record<string, string> = {
+	Board: "fizzy_list_boards",
+	Card: "fizzy_list_cards",
+	Column: "fizzy_list_columns",
+	Tag: "fizzy_list_tags",
+	Comment: "fizzy_list_comments",
+	Step: "fizzy_get_card",
+	Account: "fizzy_whoami",
+};
+
 export class FizzyApiError extends Error {
 	constructor(
 		public readonly status: number,
