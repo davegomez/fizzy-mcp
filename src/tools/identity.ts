@@ -65,7 +65,9 @@ Manages the session default so you don't need to pass \`account_slug\` on every 
 	parameters: z.object({
 		action: z
 			.enum(accountActions)
-			.describe('Action to perform: "get" to check current, "set" to change'),
+			.describe(
+				"Action: get | set. Use 'get' to check current, 'set' to change.",
+			),
 		account_slug: z
 			.string()
 			.optional()
