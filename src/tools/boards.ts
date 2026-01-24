@@ -181,7 +181,7 @@ Key fields: \`id\`, \`name\`, \`slug\`, \`url\`.
 		description: z
 			.string()
 			.optional()
-			.describe("Board description (markdown supported, converted to HTML)."),
+			.describe("Board description in markdown (optional, max 10000 chars)."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -238,9 +238,7 @@ Key fields: \`id\`, \`name\`, \`slug\`, \`description\` (markdown), \`url\`.
 		description: z
 			.string()
 			.optional()
-			.describe(
-				"New board description (markdown supported, converted to HTML).",
-			),
+			.describe("New board description in markdown (max 10000 chars)."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
