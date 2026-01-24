@@ -238,7 +238,7 @@ describe("getCardTool", () => {
 
 		setDefaultAccount("897362094");
 		await expect(getCardTool.execute({ card_number: 999 })).rejects.toThrow(
-			"Resource not found",
+			"[NOT_FOUND] Card #999",
 		);
 	});
 });
@@ -416,7 +416,7 @@ describe("updateCardTool", () => {
 		setDefaultAccount("897362094");
 		await expect(
 			updateCardTool.execute({ card_number: 999, title: "Test" }),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Card #999");
 	});
 });
 
@@ -464,7 +464,7 @@ describe("deleteCardTool", () => {
 
 		setDefaultAccount("897362094");
 		await expect(deleteCardTool.execute({ card_number: 999 })).rejects.toThrow(
-			"Resource not found",
+			"[NOT_FOUND] Card #999",
 		);
 	});
 });

@@ -471,7 +471,7 @@ describe("toggleCardAttributeTool", () => {
 					operation: "add",
 					tag_title: "bug",
 				}),
-			).rejects.toThrow("Resource not found");
+			).rejects.toThrow("[NOT_FOUND] Card #999");
 		});
 
 		test("throws UserError on toggle API error", async () => {
@@ -490,7 +490,7 @@ describe("toggleCardAttributeTool", () => {
 					operation: "add",
 					tag_title: "bug",
 				}),
-			).rejects.toThrow("Resource not found");
+			).rejects.toThrow("[NOT_FOUND] Tag bug");
 		});
 	});
 });

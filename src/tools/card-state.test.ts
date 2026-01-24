@@ -322,7 +322,7 @@ describe("changeCardStateTool", () => {
 					card_number: 999,
 					action: "close",
 				}),
-			).rejects.toThrow("Resource not found");
+			).rejects.toThrow("[NOT_FOUND] Card #999");
 		});
 	});
 });
