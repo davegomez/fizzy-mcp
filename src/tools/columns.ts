@@ -55,7 +55,10 @@ Example: "To Do (blue) - 5 cards\\nIn Progress (yellow) - 3 cards"
 		const client = getFizzyClient();
 		const result = await client.listColumns(slug, args.board_id);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Column",
+				container: `board "${args.board_id}"`,
+			});
 		}
 		return formatColumnList(result.value);
 	},
@@ -96,7 +99,11 @@ Example: {"id": "col_abc", "name": "To Do", "color": "blue", "position": 0, "car
 		const client = getFizzyClient();
 		const result = await client.getColumn(slug, args.board_id, args.column_id);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Column",
+				resourceId: args.column_id,
+				container: `board "${args.board_id}"`,
+			});
 		}
 		return JSON.stringify(result.value, null, 2);
 	},
@@ -146,7 +153,10 @@ Example: {"id": "col_new", "name": "Code Review", "color": "purple", "position":
 			color: args.color,
 		});
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Column",
+				container: `board "${args.board_id}"`,
+			});
 		}
 		return JSON.stringify(result.value, null, 2);
 	},
@@ -199,7 +209,11 @@ Example: {"id": "col_abc", "name": "Ready for Review", "color": "orange", "posit
 			},
 		);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Column",
+				resourceId: args.column_id,
+				container: `board "${args.board_id}"`,
+			});
 		}
 		return JSON.stringify(result.value, null, 2);
 	},
@@ -246,7 +260,11 @@ Example: "Column col_abc deleted successfully."
 			args.column_id,
 		);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Column",
+				resourceId: args.column_id,
+				container: `board "${args.board_id}"`,
+			});
 		}
 		return `Column ${args.column_id} deleted successfully.`;
 	},

@@ -85,7 +85,10 @@ Project Alpha
 		const client = getFizzyClient();
 		const result = await client.listBoards(slug);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Board",
+				container: `account "${slug}"`,
+			});
 		}
 		return formatBoardList(result.value);
 	},
@@ -128,7 +131,11 @@ Key fields: \`id\`, \`name\`, \`columns[].id\`, \`columns[].name\`, \`descriptio
 		const client = getFizzyClient();
 		const result = await client.getBoard(slug, args.board_id);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Board",
+				resourceId: args.board_id,
+				container: `account "${slug}"`,
+			});
 		}
 		return formatBoard(result.value);
 	},
@@ -181,7 +188,10 @@ Key fields: \`id\`, \`name\`, \`slug\`, \`url\`.
 			description: args.description,
 		});
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Board",
+				container: `account "${slug}"`,
+			});
 		}
 		return formatBoard(result.value);
 	},
@@ -238,7 +248,11 @@ Key fields: \`id\`, \`name\`, \`slug\`, \`description\` (markdown), \`url\`.
 			description: args.description,
 		});
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Board",
+				resourceId: args.board_id,
+				container: `account "${slug}"`,
+			});
 		}
 		return formatBoard(result.value);
 	},

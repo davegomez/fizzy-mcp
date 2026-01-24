@@ -1,5 +1,6 @@
 export {
 	AuthenticationError,
+	type ErrorContext,
 	FizzyApiError,
 	ForbiddenError,
 	NotFoundError,
