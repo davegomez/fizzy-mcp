@@ -1,11 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { z } from "zod";
 import {
+	createPaginatedResultSchema,
 	DEFAULT_LIMIT,
 	MAX_LIMIT,
 	MIN_LIMIT,
 	PaginationMetadataSchema,
-	createPaginatedResultSchema,
 } from "./pagination.js";
 
 describe("PaginationMetadataSchema", () => {
