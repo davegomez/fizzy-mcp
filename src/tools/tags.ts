@@ -1,7 +1,7 @@
 import { UserError } from "fastmcp";
 import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
-import type { Tag } from "../schemas/tags.js";
+import { DEFAULT_LIMIT } from "../schemas/pagination.js";
 import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
@@ -15,16 +15,9 @@ function resolveAccount(accountSlug?: string): string {
 	return slug;
 }
 
-function formatTagList(tags: Tag[]): string {
-	if (tags.length === 0) {
-		return "No tags found.";
-	}
-	return tags.map((t) => `${t.title} (${t.color})`).join("\n");
-}
-
 export const listTagsTool = {
 	name: "fizzy_list_tags",
-	description: `List all tags in the account.
+	description: `List tags in the account.
 Get available tag titles for filtering cards or toggling on cards.
 
 **Note:** Tags are account-level, not board-level. All boards in an account share the same tag set.
@@ -35,9 +28,14 @@ Get available tag titles for filtering cards or toggling on cards.
 
 **Arguments:**
 - \`account_slug\` (optional) — defaults to session account
+- \`limit\` (optional): Max items to return, 1-100 (default: 25)
+- \`cursor\` (optional): Continuation cursor from previous response
 
-**Returns:** Formatted list with tag title and color.
-Example: "bug (red)\\nfeature (blue)\\nurgent (orange)"
+**Returns:** JSON with items and pagination metadata.
+\`\`\`json
+{"items": [{"id": "...", "title": "bug", "color": "red"}, ...], "pagination": {"returned": 3, "has_more": false}}
+\`\`\`
+Pass \`next_cursor\` to get the next page.
 
 **Related:**
 - Use tag **title** (not ID) with \`fizzy_toggle_tag\` to add/remove from cards
@@ -49,17 +47,37 @@ Example: "bug (red)\\nfeature (blue)\\nurgent (orange)"
 			.describe(
 				"Account slug. Defaults to session account. Tags are account-level.",
 			),
+		limit: z
+			.number()
+			.int()
+			.min(1)
+			.max(100)
+			.default(DEFAULT_LIMIT)
+			.describe("Max items to return (1-100, default: 25)."),
+		cursor: z
+			.string()
+			.optional()
+			.describe(
+				"Continuation cursor from previous response. Omit to start fresh.",
+			),
 	}),
-	execute: async (args: { account_slug?: string }) => {
+	execute: async (args: {
+		account_slug?: string;
+		limit: number;
+		cursor?: string;
+	}) => {
 		const slug = resolveAccount(args.account_slug);
 		const client = getFizzyClient();
-		const result = await client.listTags(slug);
+		const result = await client.listTags(slug, {
+			limit: args.limit,
+			cursor: args.cursor,
+		});
 		if (isErr(result)) {
 			throw toUserError(result.error, {
 				resourceType: "Tag",
 				container: `account "${slug}"`,
 			});
 		}
-		return formatTagList(result.value);
+		return JSON.stringify(result.value, null, 2);
 	},
 };

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import { htmlToMarkdown } from "../client/markdown.js";
 import type { Board } from "../schemas/boards.js";
+import { DEFAULT_LIMIT } from "../schemas/pagination.js";
 import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
@@ -14,20 +15,6 @@ function resolveAccount(accountSlug?: string): string {
 		);
 	}
 	return slug;
-}
-
-function formatBoardList(boards: Board[]): string {
-	if (boards.length === 0) {
-		return "No boards found.";
-	}
-	return boards
-		.map((b) => {
-			const cols = b.columns
-				.map((c) => `  ${c.name}: ${c.cards_count} cards`)
-				.join("\n");
-			return `${b.name}\n${cols || "  (no columns)"}`;
-		})
-		.join("\n\n");
 }
 
 function formatBoard(board: Board): string {
@@ -52,7 +39,7 @@ function formatBoard(board: Board): string {
 
 export const listBoardsTool = {
 	name: "fizzy_list_boards",
-	description: `List all boards in the account with column summaries.
+	description: `List boards in the account with column summaries.
 
 Get an overview of boards and their column structure including card counts.
 
@@ -62,14 +49,14 @@ Get an overview of boards and their column structure including card counts.
 
 **Arguments:**
 - \`account_slug\` (optional): Uses session default if omitted
+- \`limit\` (optional): Max items to return, 1-100 (default: 25)
+- \`cursor\` (optional): Continuation cursor from previous response
 
-**Returns:** Formatted text listing each board with columns and card counts.
+**Returns:** JSON with items and pagination metadata.
+\`\`\`json
+{"items": [...], "pagination": {"returned": 5, "has_more": true, "next_cursor": "..."}}
 \`\`\`
-Project Alpha
-  Backlog: 12 cards
-  In Progress: 3 cards
-  Done: 8 cards
-\`\`\`
+Pass \`next_cursor\` to get the next page.
 
 **Related:** Use board ID with \`fizzy_get_board\` for full details or \`fizzy_list_cards\` to see cards.`,
 	parameters: z.object({
@@ -79,18 +66,38 @@ Project Alpha
 			.describe(
 				"Account slug (e.g., '897362094'). Uses session default if omitted.",
 			),
+		limit: z
+			.number()
+			.int()
+			.min(1)
+			.max(100)
+			.default(DEFAULT_LIMIT)
+			.describe("Max items to return (1-100, default: 25)."),
+		cursor: z
+			.string()
+			.optional()
+			.describe(
+				"Continuation cursor from previous response. Omit to start fresh.",
+			),
 	}),
-	execute: async (args: { account_slug?: string }) => {
+	execute: async (args: {
+		account_slug?: string;
+		limit: number;
+		cursor?: string;
+	}) => {
 		const slug = resolveAccount(args.account_slug);
 		const client = getFizzyClient();
-		const result = await client.listBoards(slug);
+		const result = await client.listBoards(slug, {
+			limit: args.limit,
+			cursor: args.cursor,
+		});
 		if (isErr(result)) {
 			throw toUserError(result.error, {
 				resourceType: "Board",
 				container: `account "${slug}"`,
 			});
 		}
-		return formatBoardList(result.value);
+		return JSON.stringify(result.value, null, 2);
 	},
 };
 
