@@ -6,6 +6,7 @@ import {
 	NotFoundError,
 	RateLimitError,
 	ValidationError,
+	toUserError,
 } from "./errors.js";
 
 describe("FizzyApiError", () => {
@@ -72,5 +73,43 @@ describe("RateLimitError", () => {
 		const error = new RateLimitError();
 		expect(error.status).toBe(429);
 		expect(error.message).toContain("Rate limit");
+	});
+});
+
+describe("toUserError", () => {
+	describe("AuthenticationError (401)", () => {
+		test("should format with UNAUTHORIZED prefix", () => {
+			const error = new AuthenticationError();
+			const userError = toUserError(error);
+			expect(userError.message).toBe(
+				"[UNAUTHORIZED] Authentication failed. Set FIZZY_ACCESS_TOKEN environment variable with valid API token.",
+			);
+		});
+
+		test("should ignore context for auth errors", () => {
+			const error = new AuthenticationError();
+			const userError = toUserError(error, { resourceType: "Card" });
+			expect(userError.message).toContain("[UNAUTHORIZED]");
+			expect(userError.message).not.toContain("Card");
+		});
+	});
+
+	describe("ForbiddenError (403)", () => {
+		test("should format with FORBIDDEN prefix and suggest list tool", () => {
+			const error = new ForbiddenError();
+			const userError = toUserError(error, {
+				resourceType: "Card",
+				resourceId: "#42",
+			});
+			expect(userError.message).toBe(
+				"[FORBIDDEN] Card #42: Access denied. Use fizzy_list_cards to verify accessible resources.",
+			);
+		});
+
+		test("should use default list tool when resource type unknown", () => {
+			const error = new ForbiddenError();
+			const userError = toUserError(error);
+			expect(userError.message).toContain("fizzy_list_boards");
+		});
 	});
 });
