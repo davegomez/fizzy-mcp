@@ -1,7 +1,9 @@
+import parseLinkHeader from "parse-link-header";
 import type { Board } from "../schemas/boards.js";
 import type { Card, CardFilters } from "../schemas/cards.js";
 import type { Column } from "../schemas/columns.js";
 import type { Comment } from "../schemas/comments.js";
+import type { PaginatedResult } from "../schemas/pagination.js";
 import type { Step } from "../schemas/steps.js";
 import type { Tag } from "../schemas/tags.js";
 import { err, ok, type Result } from "../types/result.js";
@@ -14,7 +16,12 @@ import {
 	ValidationError,
 } from "./errors.js";
 import { markdownToHtml } from "./markdown.js";
-import { collectAll, paginatedFetch } from "./pagination.js";
+import { decodeCursor, encodeCursor } from "./pagination.js";
+
+export interface PaginationOptions {
+	limit?: number;
+	cursor?: string;
+}
 
 const DEFAULT_BASE_URL = "https://app.fizzy.do";
 
@@ -146,24 +153,40 @@ export class FizzyClient {
 
 	async listBoards(
 		accountSlug: string,
-	): Promise<Result<Board[], FizzyApiError>> {
-		const generator = paginatedFetch<Board>(
-			`${this.baseUrl}/${accountSlug}/boards`,
-			async (url) => {
-				const path = url.replace(this.baseUrl, "");
-				const result = await this.request<Board[]>("GET", path);
-				if (!result.ok) {
-					throw result.error;
-				}
-				return { data: result.value.data, linkHeader: result.value.linkHeader };
-			},
-		);
-		try {
-			const boards = await collectAll(generator);
-			return ok(boards);
-		} catch (error) {
-			return err(error as FizzyApiError);
+		options?: PaginationOptions,
+	): Promise<Result<PaginatedResult<Board>, FizzyApiError>> {
+		let path: string;
+		if (options?.cursor) {
+			const decodedUrl = decodeCursor(options.cursor);
+			if (!decodedUrl) {
+				return err(
+					new ValidationError({ cursor: ["Invalid pagination cursor"] }),
+				);
+			}
+			path = decodedUrl.replace(this.baseUrl, "");
+		} else {
+			path = `/${accountSlug}/boards`;
 		}
+
+		const result = await this.request<Board[]>("GET", path);
+		if (!result.ok) {
+			return result;
+		}
+
+		const items = result.value.data;
+		const links = result.value.linkHeader
+			? parseLinkHeader(result.value.linkHeader)
+			: null;
+		const nextUrl = links?.next?.url;
+
+		return ok({
+			items,
+			pagination: {
+				returned: items.length,
+				has_more: !!nextUrl,
+				...(nextUrl && { next_cursor: encodeCursor(nextUrl) }),
+			},
+		});
 	}
 
 	async getBoard(
@@ -220,47 +243,81 @@ export class FizzyClient {
 		return result;
 	}
 
-	async listTags(accountSlug: string): Promise<Result<Tag[], FizzyApiError>> {
-		const generator = paginatedFetch<Tag>(
-			`${this.baseUrl}/${accountSlug}/tags`,
-			async (url) => {
-				const path = url.replace(this.baseUrl, "");
-				const result = await this.request<Tag[]>("GET", path);
-				if (!result.ok) {
-					throw result.error;
-				}
-				return { data: result.value.data, linkHeader: result.value.linkHeader };
-			},
-		);
-		try {
-			const tags = await collectAll(generator);
-			return ok(tags);
-		} catch (error) {
-			return err(error as FizzyApiError);
+	async listTags(
+		accountSlug: string,
+		options?: PaginationOptions,
+	): Promise<Result<PaginatedResult<Tag>, FizzyApiError>> {
+		let path: string;
+		if (options?.cursor) {
+			const decodedUrl = decodeCursor(options.cursor);
+			if (!decodedUrl) {
+				return err(
+					new ValidationError({ cursor: ["Invalid pagination cursor"] }),
+				);
+			}
+			path = decodedUrl.replace(this.baseUrl, "");
+		} else {
+			path = `/${accountSlug}/tags`;
 		}
+
+		const result = await this.request<Tag[]>("GET", path);
+		if (!result.ok) {
+			return result;
+		}
+
+		const items = result.value.data;
+		const links = result.value.linkHeader
+			? parseLinkHeader(result.value.linkHeader)
+			: null;
+		const nextUrl = links?.next?.url;
+
+		return ok({
+			items,
+			pagination: {
+				returned: items.length,
+				has_more: !!nextUrl,
+				...(nextUrl && { next_cursor: encodeCursor(nextUrl) }),
+			},
+		});
 	}
 
 	async listColumns(
 		accountSlug: string,
 		boardId: string,
-	): Promise<Result<Column[], FizzyApiError>> {
-		const generator = paginatedFetch<Column>(
-			`${this.baseUrl}/${accountSlug}/boards/${boardId}/columns`,
-			async (url) => {
-				const path = url.replace(this.baseUrl, "");
-				const result = await this.request<Column[]>("GET", path);
-				if (!result.ok) {
-					throw result.error;
-				}
-				return { data: result.value.data, linkHeader: result.value.linkHeader };
-			},
-		);
-		try {
-			const columns = await collectAll(generator);
-			return ok(columns);
-		} catch (error) {
-			return err(error as FizzyApiError);
+		options?: PaginationOptions,
+	): Promise<Result<PaginatedResult<Column>, FizzyApiError>> {
+		let path: string;
+		if (options?.cursor) {
+			const decodedUrl = decodeCursor(options.cursor);
+			if (!decodedUrl) {
+				return err(
+					new ValidationError({ cursor: ["Invalid pagination cursor"] }),
+				);
+			}
+			path = decodedUrl.replace(this.baseUrl, "");
+		} else {
+			path = `/${accountSlug}/boards/${boardId}/columns`;
 		}
+
+		const result = await this.request<Column[]>("GET", path);
+		if (!result.ok) {
+			return result;
+		}
+
+		const items = result.value.data;
+		const links = result.value.linkHeader
+			? parseLinkHeader(result.value.linkHeader)
+			: null;
+		const nextUrl = links?.next?.url;
+
+		return ok({
+			items,
+			pagination: {
+				returned: items.length,
+				has_more: !!nextUrl,
+				...(nextUrl && { next_cursor: encodeCursor(nextUrl) }),
+			},
+		});
 	}
 
 	async getColumn(
@@ -340,38 +397,52 @@ export class FizzyClient {
 	async listCards(
 		accountSlug: string,
 		filters?: CardFilters,
-	): Promise<Result<Card[], FizzyApiError>> {
-		const params = new URLSearchParams();
-		if (filters?.board_id) params.set("board_id", filters.board_id);
-		if (filters?.column_id) params.set("column_id", filters.column_id);
-		if (filters?.status) params.set("status", filters.status);
-		for (const id of filters?.tag_ids ?? []) {
-			params.append("tag_ids[]", id);
-		}
-		for (const id of filters?.assignee_ids ?? []) {
-			params.append("assignee_ids[]", id);
+		options?: PaginationOptions,
+	): Promise<Result<PaginatedResult<Card>, FizzyApiError>> {
+		let path: string;
+		if (options?.cursor) {
+			// Cursor encodes full URL including filters, so ignore filters param
+			const decodedUrl = decodeCursor(options.cursor);
+			if (!decodedUrl) {
+				return err(
+					new ValidationError({ cursor: ["Invalid pagination cursor"] }),
+				);
+			}
+			path = decodedUrl.replace(this.baseUrl, "");
+		} else {
+			const params = new URLSearchParams();
+			if (filters?.board_id) params.set("board_id", filters.board_id);
+			if (filters?.column_id) params.set("column_id", filters.column_id);
+			if (filters?.status) params.set("status", filters.status);
+			for (const id of filters?.tag_ids ?? []) {
+				params.append("tag_ids[]", id);
+			}
+			for (const id of filters?.assignee_ids ?? []) {
+				params.append("assignee_ids[]", id);
+			}
+			const queryString = params.toString();
+			path = `/${accountSlug}/cards${queryString ? `?${queryString}` : ""}`;
 		}
 
-		const queryString = params.toString();
-		const basePath = `/${accountSlug}/cards${queryString ? `?${queryString}` : ""}`;
+		const result = await this.request<Card[]>("GET", path);
+		if (!result.ok) {
+			return result;
+		}
 
-		const generator = paginatedFetch<Card>(
-			`${this.baseUrl}${basePath}`,
-			async (url) => {
-				const path = url.replace(this.baseUrl, "");
-				const result = await this.request<Card[]>("GET", path);
-				if (!result.ok) {
-					throw result.error;
-				}
-				return { data: result.value.data, linkHeader: result.value.linkHeader };
+		const items = result.value.data;
+		const links = result.value.linkHeader
+			? parseLinkHeader(result.value.linkHeader)
+			: null;
+		const nextUrl = links?.next?.url;
+
+		return ok({
+			items,
+			pagination: {
+				returned: items.length,
+				has_more: !!nextUrl,
+				...(nextUrl && { next_cursor: encodeCursor(nextUrl) }),
 			},
-		);
-		try {
-			const cards = await collectAll(generator);
-			return ok(cards);
-		} catch (error) {
-			return err(error as FizzyApiError);
-		}
+		});
 	}
 
 	async getCard(
@@ -559,25 +630,43 @@ export class FizzyClient {
 	async listComments(
 		accountSlug: string,
 		cardNumber: number,
-	): Promise<Result<Comment[], FizzyApiError>> {
-		const generator = paginatedFetch<Comment>(
-			`${this.baseUrl}/${accountSlug}/cards/${cardNumber}/comments`,
-			async (url) => {
-				const path = url.replace(this.baseUrl, "");
-				const result = await this.request<Comment[]>("GET", path);
-				if (!result.ok) {
-					throw result.error;
-				}
-				return { data: result.value.data, linkHeader: result.value.linkHeader };
-			},
-		);
-		try {
-			const comments = await collectAll(generator);
-			// API returns oldest first; reverse for newest first per CONTEXT.md
-			return ok(comments.reverse());
-		} catch (error) {
-			return err(error as FizzyApiError);
+		options?: PaginationOptions,
+	): Promise<Result<PaginatedResult<Comment>, FizzyApiError>> {
+		// First page reversed for newest-first display; subsequent pages maintain API order
+		const isFirstPage = !options?.cursor;
+
+		let path: string;
+		if (options?.cursor) {
+			const decodedUrl = decodeCursor(options.cursor);
+			if (!decodedUrl) {
+				return err(
+					new ValidationError({ cursor: ["Invalid pagination cursor"] }),
+				);
+			}
+			path = decodedUrl.replace(this.baseUrl, "");
+		} else {
+			path = `/${accountSlug}/cards/${cardNumber}/comments`;
 		}
+
+		const result = await this.request<Comment[]>("GET", path);
+		if (!result.ok) {
+			return result;
+		}
+
+		const items = isFirstPage ? result.value.data.reverse() : result.value.data;
+		const links = result.value.linkHeader
+			? parseLinkHeader(result.value.linkHeader)
+			: null;
+		const nextUrl = links?.next?.url;
+
+		return ok({
+			items,
+			pagination: {
+				returned: items.length,
+				has_more: !!nextUrl,
+				...(nextUrl && { next_cursor: encodeCursor(nextUrl) }),
+			},
+		});
 	}
 
 	async createComment(
