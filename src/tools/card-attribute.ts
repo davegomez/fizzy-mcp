@@ -125,7 +125,11 @@ Example: \`{"action": "add", "attribute": "tag", "card": {...}}\`
 		// Fetch current card state for pre-check
 		const cardResult = await client.getCard(slug, args.card_number);
 		if (isErr(cardResult)) {
-			throw toUserError(cardResult.error);
+			throw toUserError(cardResult.error, {
+				resourceType: "Card",
+				resourceId: `#${args.card_number}`,
+				container: `account "${slug}"`,
+			});
 		}
 		const card = cardResult.value;
 
@@ -153,7 +157,11 @@ Example: \`{"action": "add", "attribute": "tag", "card": {...}}\`
 				tagTitle,
 			);
 			if (isErr(toggleResult)) {
-				throw toUserError(toggleResult.error);
+				throw toUserError(toggleResult.error, {
+					resourceType: "Tag",
+					resourceId: tagTitle,
+					container: `card #${args.card_number}`,
+				});
 			}
 		} else {
 			const userId = args.user_id as string;
@@ -179,14 +187,22 @@ Example: \`{"action": "add", "attribute": "tag", "card": {...}}\`
 				userId,
 			);
 			if (isErr(toggleResult)) {
-				throw toUserError(toggleResult.error);
+				throw toUserError(toggleResult.error, {
+					resourceType: "Card",
+					resourceId: `#${args.card_number}`,
+					container: `account "${slug}"`,
+				});
 			}
 		}
 
 		// Re-fetch card to get updated state
 		const updatedCardResult = await client.getCard(slug, args.card_number);
 		if (isErr(updatedCardResult)) {
-			throw toUserError(updatedCardResult.error);
+			throw toUserError(updatedCardResult.error, {
+				resourceType: "Card",
+				resourceId: `#${args.card_number}`,
+				container: `account "${slug}"`,
+			});
 		}
 
 		return JSON.stringify(
