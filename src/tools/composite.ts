@@ -64,11 +64,11 @@ Example: \`{"card": {"id": "abc", "number": 42, "title": "...", "url": "..."}, "
 		description: z
 			.string()
 			.optional()
-			.describe("Card body in markdown (optional)."),
+			.describe("Card body in markdown (optional, max 10000 chars)."),
 		steps: z
 			.array(z.string())
 			.optional()
-			.describe("Checklist items as strings (optional)."),
+			.describe("Checklist items as strings (optional, each 1-500 chars)."),
 		tags: z
 			.array(z.string())
 			.optional()
