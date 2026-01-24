@@ -1,5 +1,21 @@
 import parseLinkHeader from "parse-link-header";
 
+export function encodeCursor(url: string): string {
+	return Buffer.from(url).toString("base64url");
+}
+
+export function decodeCursor(cursor: string): string | null {
+	try {
+		const decoded = Buffer.from(cursor, "base64url").toString("utf-8");
+		if (!decoded.startsWith("http")) {
+			return null;
+		}
+		return decoded;
+	} catch {
+		return null;
+	}
+}
+
 export async function* paginatedFetch<T>(
 	initialUrl: string,
 	fetchFn: (url: string) => Promise<{ data: T[]; linkHeader?: string }>,
