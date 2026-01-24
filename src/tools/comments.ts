@@ -124,7 +124,7 @@ Post a message or note on a task for discussion or documentation.
 		body: z
 			.string()
 			.describe(
-				"Comment body in markdown. Auto-converted to HTML for storage.",
+				"Comment body in markdown (1-10000 chars). Auto-converted to HTML.",
 			),
 	}),
 	execute: async (args: {
@@ -177,7 +177,9 @@ Modify an existing comment's content. Only the original author can edit.
 			.describe("Comment ID to update. Get from fizzy_list_comments."),
 		body: z
 			.string()
-			.describe("New comment body in markdown. Replaces existing content."),
+			.describe(
+				"New comment body in markdown (1-10000 chars). Replaces existing content.",
+			),
 	}),
 	execute: async (args: {
 		account_slug?: string;

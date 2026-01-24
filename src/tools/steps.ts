@@ -71,7 +71,7 @@ Example: \`{"created": [{"id": "abc", "content": "Review PR", "completed": false
 			.array(z.string())
 			.min(1)
 			.describe(
-				"Array of step content strings to create, in order. Min 1 item.",
+				"Array of step content strings (each 1-500 chars). Min 1 item.",
 			),
 	}),
 	execute: async (args: {
@@ -137,7 +137,7 @@ Example: \`{"id": "abc123", "content": "Review PR", "completed": true}\`
 			.describe("Account slug. Uses default if omitted."),
 		card_number: z.number().describe("Card number the step belongs to."),
 		step_id: z.string().describe("Step ID to update. Get from fizzy_get_card."),
-		content: z.string().optional().describe("New step content text."),
+		content: z.string().optional().describe("New step content (1-500 chars)."),
 		completed: z
 			.boolean()
 			.optional()
