@@ -211,7 +211,7 @@ async function getTagIdByTitle(
 	if (isErr(result)) {
 		return null;
 	}
-	const tag = result.value.find(
+	const tag = result.value.items.find(
 		(t) => t.title.toLowerCase() === tagTitle.toLowerCase(),
 	);
 	return tag?.id ?? null;
@@ -333,7 +333,7 @@ Example: \`{"closed": [1, 2, 3], "failed": [], "total": 3, "success_count": 3}\`
 				});
 			}
 
-			let cards = listResult.value;
+			let cards = listResult.value.items;
 
 			// Apply age filter client-side
 			if (args.older_than_days !== undefined) {

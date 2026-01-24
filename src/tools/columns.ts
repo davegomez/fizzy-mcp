@@ -1,7 +1,7 @@
 import { UserError } from "fastmcp";
 import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
-import type { Column } from "../schemas/columns.js";
+import { DEFAULT_LIMIT } from "../schemas/pagination.js";
 import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
@@ -15,18 +15,9 @@ function resolveAccount(accountSlug?: string): string {
 	return slug;
 }
 
-function formatColumnList(columns: Column[]): string {
-	if (columns.length === 0) {
-		return "No columns found.";
-	}
-	return columns
-		.map((c) => `${c.name} (${c.color}) - ${c.cards_count} cards`)
-		.join("\n");
-}
-
 export const listColumnsTool = {
 	name: "fizzy_list_columns",
-	description: `List all columns on a board.
+	description: `List columns on a board.
 Get column IDs, names, and card counts for a specific board.
 
 **When to use:**
@@ -38,9 +29,14 @@ Get column IDs, names, and card counts for a specific board.
 **Arguments:**
 - \`account_slug\` (optional) — defaults to session account
 - \`board_id\` (required) — the board containing the columns
+- \`limit\` (optional): Max items to return, 1-100 (default: 25)
+- \`cursor\` (optional): Continuation cursor from previous response
 
-**Returns:** Formatted list with column name, color, and card count.
-Example: "To Do (blue) - 5 cards\\nIn Progress (yellow) - 3 cards"
+**Returns:** JSON with items and pagination metadata.
+\`\`\`json
+{"items": [{"id": "...", "name": "To Do", "color": "blue", "cards_count": 5}], "pagination": {"returned": 3, "has_more": false}}
+\`\`\`
+Pass \`next_cursor\` to get the next page.
 
 **Related:** Use column ID with \`fizzy_triage_card\` to move cards between columns.`,
 	parameters: z.object({
@@ -49,18 +45,39 @@ Example: "To Do (blue) - 5 cards\\nIn Progress (yellow) - 3 cards"
 			.optional()
 			.describe("Account slug. Defaults to session account if not provided."),
 		board_id: z.string().describe("Board ID containing the columns to list."),
+		limit: z
+			.number()
+			.int()
+			.min(1)
+			.max(100)
+			.default(DEFAULT_LIMIT)
+			.describe("Max items to return (1-100, default: 25)."),
+		cursor: z
+			.string()
+			.optional()
+			.describe(
+				"Continuation cursor from previous response. Omit to start fresh.",
+			),
 	}),
-	execute: async (args: { account_slug?: string; board_id: string }) => {
+	execute: async (args: {
+		account_slug?: string;
+		board_id: string;
+		limit: number;
+		cursor?: string;
+	}) => {
 		const slug = resolveAccount(args.account_slug);
 		const client = getFizzyClient();
-		const result = await client.listColumns(slug, args.board_id);
+		const result = await client.listColumns(slug, args.board_id, {
+			limit: args.limit,
+			cursor: args.cursor,
+		});
 		if (isErr(result)) {
 			throw toUserError(result.error, {
 				resourceType: "Column",
 				container: `board "${args.board_id}"`,
 			});
 		}
-		return formatColumnList(result.value);
+		return JSON.stringify(result.value, null, 2);
 	},
 };
 

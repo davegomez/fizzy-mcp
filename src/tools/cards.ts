@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import { htmlToMarkdown } from "../client/markdown.js";
 import type { Card, CardStatus } from "../schemas/cards.js";
+import { DEFAULT_LIMIT } from "../schemas/pagination.js";
 import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
@@ -14,25 +15,6 @@ function resolveAccount(accountSlug?: string): string {
 		);
 	}
 	return slug;
-}
-
-function truncateDescription(html: string | null, maxLen = 100): string {
-	if (!html) return "";
-	const md = htmlToMarkdown(html);
-	return md.length > maxLen ? `${md.slice(0, maxLen)}...` : md;
-}
-
-function formatCardList(cards: Card[]): string {
-	if (cards.length === 0) {
-		return "No cards found.";
-	}
-	return cards
-		.map((c) => {
-			const tags = c.tags.map((t) => t.title).join(", ");
-			const desc = truncateDescription(c.description_html);
-			return `#${c.number}: ${c.title}\n  Status: ${c.status}${tags ? `\n  Tags: ${tags}` : ""}${desc ? `\n  ${desc}` : ""}`;
-		})
-		.join("\n\n");
 }
 
 function formatCard(card: Card): string {
@@ -75,11 +57,14 @@ Find cards matching criteria or review board/column contents.
 **Don't use when:** You already know the card number - use \`fizzy_get_card\` for full details.
 
 **Arguments:**
-\`account_slug\` (optional, uses session default), \`board_id\` (optional), \`column_id\` (optional), \`tag_ids\` (optional array), \`assignee_ids\` (optional array), \`status\`: open | closed | deferred (optional). Filters AND together. Returns first 50 cards.
+\`account_slug\` (optional), \`board_id\` (optional), \`column_id\` (optional), \`tag_ids\` (optional array), \`assignee_ids\` (optional array), \`status\`: open | closed | deferred (optional). Filters AND together.
+\`limit\` (optional): Max items, 1-100 (default: 25). \`cursor\` (optional): Continuation cursor from previous response.
 
-**Returns:**
-Formatted list with truncated descriptions. Each entry: \`#number: title\`, status, tags (if any), description preview.
-Example: \`#42: Fix login bug\\n  Status: open\\n  Tags: bug, urgent\`
+**Returns:** JSON with items and pagination metadata.
+\`\`\`json
+{"items": [{"number": 42, "title": "...", ...}], "pagination": {"returned": 25, "has_more": true, "next_cursor": "..."}}
+\`\`\`
+Pass \`next_cursor\` to get the next page. Cursor encodes filter state, so keep filters consistent.
 
 **Related:** Use card number with \`fizzy_get_card\` for full details.`,
 	parameters: z.object({
@@ -109,6 +94,19 @@ Example: \`#42: Fix login bug\\n  Status: open\\n  Tags: bug, urgent\`
 			.enum(["open", "closed", "deferred"])
 			.optional()
 			.describe("Filter by card status: open | closed | deferred."),
+		limit: z
+			.number()
+			.int()
+			.min(1)
+			.max(100)
+			.default(DEFAULT_LIMIT)
+			.describe("Max items to return (1-100, default: 25)."),
+		cursor: z
+			.string()
+			.optional()
+			.describe(
+				"Continuation cursor from previous response. Omit to start fresh.",
+			),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -117,23 +115,29 @@ Example: \`#42: Fix login bug\\n  Status: open\\n  Tags: bug, urgent\`
 		tag_ids?: string[];
 		assignee_ids?: string[];
 		status?: CardStatus;
+		limit: number;
+		cursor?: string;
 	}) => {
 		const slug = resolveAccount(args.account_slug);
 		const client = getFizzyClient();
-		const result = await client.listCards(slug, {
-			board_id: args.board_id,
-			column_id: args.column_id,
-			tag_ids: args.tag_ids,
-			assignee_ids: args.assignee_ids,
-			status: args.status,
-		});
+		const result = await client.listCards(
+			slug,
+			{
+				board_id: args.board_id,
+				column_id: args.column_id,
+				tag_ids: args.tag_ids,
+				assignee_ids: args.assignee_ids,
+				status: args.status,
+			},
+			{ limit: args.limit, cursor: args.cursor },
+		);
 		if (isErr(result)) {
 			throw toUserError(result.error, {
 				resourceType: "Card",
 				container: `account "${slug}"`,
 			});
 		}
-		return formatCardList(result.value);
+		return JSON.stringify(result.value, null, 2);
 	},
 };
 
