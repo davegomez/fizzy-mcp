@@ -128,7 +128,10 @@ Example: \`#42: Fix login bug\\n  Status: open\\n  Tags: bug, urgent\`
 			status: args.status,
 		});
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Card",
+				container: `account "${slug}"`,
+			});
 		}
 		return formatCardList(result.value);
 	},
@@ -169,7 +172,11 @@ Example: \`{"id": "card_abc", "number": 42, "title": "Fix bug", "status": "open"
 		const client = getFizzyClient();
 		const result = await client.getCard(slug, args.card_number);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Card",
+				resourceId: `#${args.card_number}`,
+				container: `account "${slug}"`,
+			});
 		}
 		return formatCard(result.value);
 	},
@@ -221,7 +228,10 @@ Example: \`{"id": "card_xyz", "number": 43, "title": "New task", "url": "https:/
 			description: args.description,
 		});
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Card",
+				container: `board "${args.board_id}"`,
+			});
 		}
 		const card = result.value;
 		return JSON.stringify(
@@ -282,7 +292,11 @@ JSON with full updated card details (same format as \`fizzy_get_card\`).`,
 			description: args.description,
 		});
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Card",
+				resourceId: `#${args.card_number}`,
+				container: `account "${slug}"`,
+			});
 		}
 		return formatCard(result.value);
 	},
@@ -322,7 +336,11 @@ Confirmation message: \`"Card #42 deleted."\`
 		const client = getFizzyClient();
 		const result = await client.deleteCard(slug, args.card_number);
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Card",
+				resourceId: `#${args.card_number}`,
+				container: `account "${slug}"`,
+			});
 		}
 		return `Card #${args.card_number} deleted.`;
 	},
