@@ -4,6 +4,7 @@ import { getFizzyClient, toUserError } from "../client/index.js";
 import { htmlToMarkdown } from "../client/markdown.js";
 import type { Card } from "../schemas/cards.js";
 import { getDefaultAccount } from "../state/session.js";
+import type { Result } from "../types/result.js";
 import { isErr } from "../types/result.js";
 
 function levenshteinDistance(a: string, b: string): number {
@@ -21,11 +22,7 @@ function levenshteinDistance(a: string, b: string): number {
 					a[i - 1] === b[j - 1]
 						? (prevRow[j - 1] ?? 0)
 						: 1 +
-							Math.min(
-								prevRow[j] ?? 0,
-								row[j - 1] ?? 0,
-								prevRow[j - 1] ?? 0,
-							);
+							Math.min(prevRow[j] ?? 0, row[j - 1] ?? 0, prevRow[j - 1] ?? 0);
 			}
 		}
 	}
@@ -144,7 +141,9 @@ JSON with \`action\` performed and full \`card\` details:
 		position: z
 			.enum(["top", "bottom"])
 			.optional()
-			.describe("Position in column for triage: top | bottom (default: bottom)."),
+			.describe(
+				"Position in column for triage: top | bottom (default: bottom).",
+			),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -164,34 +163,40 @@ JSON with \`action\` performed and full \`card\` details:
 			);
 		}
 
-		let result;
-		switch (action) {
-			case "close":
-			case "archive":
-				result = await client.closeCard(slug, card_number);
-				break;
-			case "reopen":
-			case "activate":
-				result = await client.reopenCard(slug, card_number);
-				break;
-			case "triage":
-				result = await client.triageCard(slug, card_number, column_id!, position);
-				break;
-			case "untriage":
-				result = await client.unTriageCard(slug, card_number);
-				break;
-			case "defer":
-				result = await client.notNowCard(slug, card_number);
-				break;
-			default: {
-				// TypeScript exhaustiveness check
-				const _exhaustive: never = action;
-				const suggestion = findClosest(action as string, stateActions);
-				throw new UserError(
-					`Unknown action "${action}". Did you mean "${suggestion}"?`,
-				);
+		const dispatchAction = async (): Promise<
+			Result<Card, import("../client/errors.js").FizzyApiError>
+		> => {
+			switch (action) {
+				case "close":
+				case "archive":
+					return client.closeCard(slug, card_number);
+				case "reopen":
+				case "activate":
+					return client.reopenCard(slug, card_number);
+				case "triage":
+					// column_id validated above
+					return client.triageCard(
+						slug,
+						card_number,
+						column_id as string,
+						position,
+					);
+				case "untriage":
+					return client.unTriageCard(slug, card_number);
+				case "defer":
+					return client.notNowCard(slug, card_number);
+				default: {
+					// TypeScript exhaustiveness check
+					const _exhaustive: never = action;
+					const suggestion = findClosest(action as string, stateActions);
+					throw new UserError(
+						`Unknown action "${action}". Did you mean "${suggestion}"?`,
+					);
+				}
 			}
-		}
+		};
+
+		const result = await dispatchAction();
 
 		if (isErr(result)) {
 			throw toUserError(result.error);

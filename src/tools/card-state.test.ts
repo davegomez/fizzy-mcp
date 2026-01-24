@@ -146,7 +146,12 @@ describe("changeCardStateTool", () => {
 				position: "top",
 			});
 
-			expect(triageCardFn).toHaveBeenCalledWith("897362094", 42, "col_2", "top");
+			expect(triageCardFn).toHaveBeenCalledWith(
+				"897362094",
+				42,
+				"col_2",
+				"top",
+			);
 		});
 
 		test("untriage action calls unTriageCard", async () => {
