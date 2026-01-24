@@ -104,7 +104,10 @@ Example: \`{"card": {"id": "abc", "number": 42, "title": "...", "url": "..."}, "
 			description: args.description,
 		});
 		if (isErr(cardResult)) {
-			throw toUserError(cardResult.error);
+			throw toUserError(cardResult.error, {
+				resourceType: "Card",
+				container: `board "${args.board_id}"`,
+			});
 		}
 		const card = cardResult.value;
 
@@ -324,7 +327,10 @@ Example: \`{"closed": [1, 2, 3], "failed": [], "total": 3, "success_count": 3}\`
 
 			const listResult = await client.listCards(slug, filters);
 			if (isErr(listResult)) {
-				throw toUserError(listResult.error);
+				throw toUserError(listResult.error, {
+					resourceType: "Card",
+					container: `account "${slug}"`,
+				});
 			}
 
 			let cards = listResult.value;

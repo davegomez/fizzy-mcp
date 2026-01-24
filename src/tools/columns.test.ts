@@ -171,7 +171,7 @@ describe("getColumnTool", () => {
 		setDefaultAccount("897362094");
 		await expect(
 			getColumnTool.execute({ board_id: "board_1", column_id: "col_1" }),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Column col_1");
 	});
 });
 
@@ -330,7 +330,7 @@ describe("updateColumnTool", () => {
 				column_id: "col_1",
 				name: "Test",
 			}),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Column col_1");
 	});
 });
 
@@ -388,7 +388,7 @@ describe("deleteColumnTool", () => {
 		setDefaultAccount("897362094");
 		await expect(
 			deleteColumnTool.execute({ board_id: "board_1", column_id: "col_1" }),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Column col_1");
 	});
 
 	test("should throw when no account and no default set", async () => {

@@ -207,7 +207,7 @@ describe("createCommentTool", () => {
 		setDefaultAccount("897362094");
 		await expect(
 			createCommentTool.execute({ card_number: 999, body: "Test" }),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Comment");
 	});
 });
 
@@ -277,7 +277,7 @@ describe("updateCommentTool", () => {
 				comment_id: "comment_1",
 				body: "Test",
 			}),
-		).rejects.toThrow("don't have permission");
+		).rejects.toThrow("[FORBIDDEN] Comment comment_1");
 	});
 
 	test("should throw UserError on not found", async () => {
@@ -292,7 +292,7 @@ describe("updateCommentTool", () => {
 				comment_id: "nonexistent",
 				body: "Test",
 			}),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Comment nonexistent");
 	});
 });
 
@@ -366,7 +366,7 @@ describe("deleteCommentTool", () => {
 				comment_id: "comment_1",
 				force: true,
 			}),
-		).rejects.toThrow("don't have permission");
+		).rejects.toThrow("[FORBIDDEN] Comment comment_1");
 	});
 
 	test("should throw UserError on not found", async () => {
@@ -381,6 +381,6 @@ describe("deleteCommentTool", () => {
 				comment_id: "nonexistent",
 				force: true,
 			}),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Comment nonexistent");
 	});
 });

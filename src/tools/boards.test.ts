@@ -158,7 +158,7 @@ describe("getBoardTool", () => {
 		setDefaultAccount("897362094");
 		await expect(
 			getBoardTool.execute({ board_id: "nonexistent" }),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Board nonexistent");
 	});
 });
 
@@ -293,6 +293,6 @@ describe("updateBoardTool", () => {
 		setDefaultAccount("897362094");
 		await expect(
 			updateBoardTool.execute({ board_id: "nonexistent", name: "Test" }),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Board nonexistent");
 	});
 });

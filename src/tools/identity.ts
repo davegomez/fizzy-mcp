@@ -28,7 +28,9 @@ Key fields: \`user.id\`, \`user.name\`, \`accounts[].slug\`, \`accounts[].name\`
 		const client = getFizzyClient();
 		const result = await client.whoami();
 		if (isErr(result)) {
-			throw toUserError(result.error);
+			throw toUserError(result.error, {
+				resourceType: "Account",
+			});
 		}
 		return JSON.stringify(result.value, null, 2);
 	},

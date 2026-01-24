@@ -161,7 +161,7 @@ describe("createStepTool", () => {
 				card_number: 999,
 				steps: ["Write tests"],
 			}),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Step");
 	});
 });
 
@@ -300,7 +300,7 @@ describe("updateStepTool", () => {
 				step_id: "nonexistent",
 				content: "Test",
 			}),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Step nonexistent");
 	});
 });
 
@@ -353,6 +353,6 @@ describe("deleteStepTool", () => {
 		setDefaultAccount("897362094");
 		await expect(
 			deleteStepTool.execute({ card_number: 42, step_id: "nonexistent" }),
-		).rejects.toThrow("Resource not found");
+		).rejects.toThrow("[NOT_FOUND] Step nonexistent");
 	});
 });
