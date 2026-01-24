@@ -50,5 +50,15 @@ export {
 	type User,
 	UserSchema,
 } from "./identity.js";
+export {
+	createPaginatedResultSchema,
+	DEFAULT_LIMIT,
+	LimitParamSchema,
+	MAX_LIMIT,
+	MIN_LIMIT,
+	type PaginatedResult,
+	type PaginationMetadata,
+	PaginationMetadataSchema,
+} from "./pagination.js";
 export { type Step, StepSchema } from "./steps.js";
 export { type Tag, TagSchema } from "./tags.js";
