@@ -217,7 +217,9 @@ Example: \`{"id": "card_xyz", "number": 43, "title": "New task", "url": "https:/
 		description: z
 			.string()
 			.optional()
-			.describe("Card description in markdown (auto-converted to HTML)."),
+			.describe(
+				"Card description in markdown (max 10000 chars, auto-converted to HTML).",
+			),
 	}),
 	execute: async (args: {
 		account_slug?: string;
@@ -281,7 +283,9 @@ JSON with full updated card details (same format as \`fizzy_get_card\`).`,
 		description: z
 			.string()
 			.optional()
-			.describe("New description in markdown (auto-converted to HTML)."),
+			.describe(
+				"New description in markdown (max 10000 chars, auto-converted to HTML).",
+			),
 	}),
 	execute: async (args: {
 		account_slug?: string;

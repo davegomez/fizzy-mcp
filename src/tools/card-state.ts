@@ -140,7 +140,7 @@ JSON with \`action\` performed and full \`card\` details:
 			.describe("Target column ID (required for triage action)."),
 		position: z
 			.enum(["top", "bottom"])
-			.optional()
+			.default("bottom")
 			.describe(
 				"Position in column for triage: top | bottom (default: bottom).",
 			),
@@ -150,7 +150,7 @@ JSON with \`action\` performed and full \`card\` details:
 		card_number: number;
 		action: StateAction;
 		column_id?: string;
-		position?: "top" | "bottom";
+		position: "top" | "bottom";
 	}) => {
 		const slug = resolveAccount(args.account_slug);
 		const client = getFizzyClient();
