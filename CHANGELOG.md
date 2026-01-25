@@ -1,5 +1,32 @@
 # Changelog
 
+## v2.0.0
+
+[compare changes](https://github.com/davegomez/fizzy-mcp/compare/v1.1.0...v2.0.0)
+
+### Features
+
+- **config:** Add centralized env var constants and token reader ([df12314](https://github.com/davegomez/fizzy-mcp/commit/df12314))
+- **client:** ⚠️  Rename FIZZY_ACCESS_TOKEN to FIZZY_TOKEN ([c365fc5](https://github.com/davegomez/fizzy-mcp/commit/c365fc5))
+
+### Documentation
+
+- Update documentation for FIZZY_TOKEN rename ([cdf0cb1](https://github.com/davegomez/fizzy-mcp/commit/cdf0cb1))
+- Add diataxis documentation guidance ([71ac454](https://github.com/davegomez/fizzy-mcp/commit/71ac454))
+
+### Tests
+
+- **client:** Update tests for FIZZY_TOKEN rename ([2ed5fbf](https://github.com/davegomez/fizzy-mcp/commit/2ed5fbf))
+- **tools:** Update tests for FIZZY_TOKEN rename ([44b1e28](https://github.com/davegomez/fizzy-mcp/commit/44b1e28))
+
+#### ⚠️ Breaking Changes
+
+- **client:** ⚠️  Rename FIZZY_ACCESS_TOKEN to FIZZY_TOKEN ([c365fc5](https://github.com/davegomez/fizzy-mcp/commit/c365fc5))
+
+### ❤️ Contributors
+
+- David Gomez <code@davidgomez.dev>
+
 ## v1.1.0
 
 
