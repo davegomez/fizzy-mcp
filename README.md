@@ -17,7 +17,7 @@ MCP server for [Fizzy](https://fizzy.do) task management. Exposes 8 tools for ma
          "command": "npx",
          "args": ["-y", "fizzy-mcp"],
          "env": {
-           "FIZZY_ACCESS_TOKEN": "your-token-here"
+           "FIZZY_TOKEN": "your-token-here"
          }
        }
      }
@@ -39,7 +39,7 @@ MCP server for [Fizzy](https://fizzy.do) task management. Exposes 8 tools for ma
        "command": "npx",
        "args": ["-y", "fizzy-mcp"],
        "env": {
-         "FIZZY_ACCESS_TOKEN": "your-token-here"
+         "FIZZY_TOKEN": "your-token-here"
        }
      }
    }
@@ -68,7 +68,7 @@ MCP server for [Fizzy](https://fizzy.do) task management. Exposes 8 tools for ma
        "command": "node",
        "args": ["/absolute/path/to/fizzy-mcp/dist/index.js"],
        "env": {
-         "FIZZY_ACCESS_TOKEN": "your-token-here"
+         "FIZZY_TOKEN": "your-token-here"
        }
      }
    }
@@ -82,8 +82,10 @@ MCP server for [Fizzy](https://fizzy.do) task management. Exposes 8 tools for ma
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `FIZZY_ACCESS_TOKEN` | Yes | — | API token from Fizzy settings |
+| `FIZZY_TOKEN` | Yes | — | API token from Fizzy settings |
 | `FIZZY_BASE_URL` | No | `https://app.fizzy.do` | API base URL |
+
+> **Note:** `FIZZY_ACCESS_TOKEN` is supported for backward compatibility but deprecated.
 
 ---
 
