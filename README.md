@@ -2,79 +2,188 @@
 
 MCP server for [Fizzy](https://fizzy.do) task management. Exposes 8 tools for managing boards, cards, comments, and checklists.
 
-## How to Install with Claude Desktop
+## Prerequisites
 
-1. Get your Fizzy access token:
-   - Log in to [Fizzy](https://app.fizzy.do)
-   - Go to Settings > API Access
-   - Generate a new token
+Get your Fizzy access token:
 
-2. Add to `~/Library/Application Support/Claude/claude_desktop_config.json`:
-   ```json
-   {
-     "mcpServers": {
-       "fizzy": {
-         "command": "npx",
-         "args": ["-y", "@silky/fizzy-mcp"],
-         "env": {
-           "FIZZY_TOKEN": "your-token-here"
-         }
-       }
-     }
-   }
-   ```
+1. Log in to [Fizzy](https://app.fizzy.do)
+2. Go to Settings > API Access
+3. Generate a new token
 
-3. Restart Claude Desktop.
+## How to Install
 
-4. Verify by asking Claude: "List my Fizzy boards."
+### Claude Desktop
 
-## How to Install with Claude Code
+Add to your config file:
 
-1. Get your Fizzy access token from Settings > API Access in Fizzy.
+- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux:** `~/.config/Claude/claude_desktop_config.json`
 
-2. Add to your MCP settings:
-   ```json
-   {
-     "fizzy": {
-       "command": "npx",
-       "args": ["-y", "@silky/fizzy-mcp"],
-       "env": {
-         "FIZZY_TOKEN": "your-token-here"
-       }
-     }
-   }
-   ```
+```json
+{
+  "mcpServers": {
+    "fizzy": {
+      "command": "npx",
+      "args": ["-y", "@silky/fizzy-mcp"],
+      "env": {
+        "FIZZY_TOKEN": "your-token-here"
+      }
+    }
+  }
+}
+```
 
-3. Restart Claude Code.
+**Windows only:** Add `"APPDATA": "C:\\Users\\YourUsername\\AppData\\Roaming"` to the `env` block.
 
-4. Verify by running: "List my Fizzy boards."
+Restart Claude Desktop completely, then verify: "List my Fizzy boards."
 
-## How to Install from Source
+### Claude Code
 
-**Requires [pnpm](https://pnpm.io/).** npm and yarn are blocked by the project configuration.
+Use the CLI:
 
-1. Clone and build:
-   ```bash
-   git clone https://github.com/davegomez/fizzy-mcp.git
-   cd fizzy-mcp
-   pnpm install
-   pnpm build
-   ```
+```bash
+claude mcp add --transport stdio fizzy --env FIZZY_TOKEN=your-token-here -- npx -y @silky/fizzy-mcp
+```
 
-2. Add to your MCP settings:
-   ```json
-   {
-     "fizzy": {
-       "command": "node",
-       "args": ["/absolute/path/to/fizzy-mcp/dist/index.js"],
-       "env": {
-         "FIZZY_TOKEN": "your-token-here"
-       }
-     }
-   }
-   ```
+Or add to `~/.claude.json`:
 
-3. Restart your MCP client and verify.
+```json
+{
+  "mcpServers": {
+    "fizzy": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@silky/fizzy-mcp"],
+      "env": {
+        "FIZZY_TOKEN": "your-token-here"
+      }
+    }
+  }
+}
+```
+
+Restart Claude Code, then verify: "List my Fizzy boards."
+
+### Cursor
+
+Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
+
+```json
+{
+  "mcpServers": {
+    "fizzy": {
+      "command": "npx",
+      "args": ["-y", "@silky/fizzy-mcp"],
+      "env": {
+        "FIZZY_TOKEN": "your-token-here"
+      }
+    }
+  }
+}
+```
+
+Restart Cursor completely, then verify in Agent mode (Ctrl+I).
+
+### VS Code
+
+Add to `.vscode/mcp.json` in your workspace:
+
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "fizzy-token",
+      "description": "Fizzy API Token",
+      "password": true
+    }
+  ],
+  "servers": {
+    "fizzy": {
+      "command": "npx",
+      "args": ["-y", "@silky/fizzy-mcp"],
+      "env": {
+        "FIZZY_TOKEN": "${input:fizzy-token}"
+      }
+    }
+  }
+}
+```
+
+Or use user settings via Command Palette → "MCP: Open User Configuration".
+
+### Windsurf
+
+Add to `~/.codeium/windsurf/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "fizzy": {
+      "command": "npx",
+      "args": ["-y", "@silky/fizzy-mcp"],
+      "env": {
+        "FIZZY_TOKEN": "${env:FIZZY_TOKEN}"
+      }
+    }
+  }
+}
+```
+
+Set `FIZZY_TOKEN` in your shell environment, or hardcode the value. Restart Windsurf.
+
+### Cline
+
+Add to the Cline MCP settings file:
+
+- **macOS:** `~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+- **Windows:** `%APPDATA%/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+- **Linux:** `~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+
+```json
+{
+  "mcpServers": {
+    "fizzy": {
+      "command": "npx",
+      "args": ["-y", "@silky/fizzy-mcp"],
+      "env": {
+        "FIZZY_TOKEN": "your-token-here"
+      },
+      "disabled": false,
+      "alwaysAllow": []
+    }
+  }
+}
+```
+
+### Continue
+
+Add to `.continue/config.yaml`:
+
+```yaml
+mcpServers:
+  - name: Fizzy
+    command: npx
+    args:
+      - "-y"
+      - "@silky/fizzy-mcp"
+    env:
+      FIZZY_TOKEN: ${{ secrets.FIZZY_TOKEN }}
+```
+
+### From Source
+
+**Requires [pnpm](https://pnpm.io/).**
+
+```bash
+git clone https://github.com/davegomez/fizzy-mcp.git
+cd fizzy-mcp
+pnpm install
+pnpm build
+```
+
+Replace `npx -y @silky/fizzy-mcp` with `node /absolute/path/to/fizzy-mcp/dist/index.js` in any config above.
 
 ---
 
