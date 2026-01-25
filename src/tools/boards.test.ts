@@ -1,10 +1,27 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
-import { AuthenticationError, NotFoundError } from "../client/errors.js";
-import * as client from "../client/index.js";
+import { HttpResponse, http } from "msw";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "vitest";
 import { ENV_TOKEN } from "../config.js";
-import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
-import { err, ok } from "../types/result.js";
+import { clearResolverCache } from "../state/account-resolver.js";
+import { clearSession, setSession } from "../state/session.js";
+import { server } from "../test/mocks/server.js";
 import { boardsTool } from "./boards.js";
+
+const BASE_URL = "https://app.fizzy.do";
+
+function setTestAccount(slug: string): void {
+	setSession({
+		account: { slug, name: "Test Account", id: "acc_test" },
+		user: { id: "user_test", name: "Test User", role: "member" },
+	});
+}
 
 const mockBoard = {
 	id: "board_1",
@@ -40,89 +57,96 @@ const mockColumns = [
 ];
 
 describe("boardsTool", () => {
+	beforeAll(() => {
+		server.listen({ onUnhandledRequest: "error" });
+	});
+
+	afterAll(() => {
+		server.close();
+	});
+
 	beforeEach(() => {
-		vi.restoreAllMocks();
-		clearDefaultAccount();
+		clearSession();
+		clearResolverCache();
 		process.env[ENV_TOKEN] = "test-token";
 	});
 
-	const mockPaginatedResult = {
-		items: [mockBoard],
-		pagination: { returned: 1, has_more: false },
-	};
-
-	const mockColumnsResult = {
-		items: mockColumns,
-		pagination: { returned: 2, has_more: false },
-	};
+	afterEach(() => {
+		server.resetHandlers();
+	});
 
 	test("should resolve account from args", async () => {
-		const listBoardsFn = vi.fn().mockResolvedValue(ok(mockPaginatedResult));
-		const listColumnsFn = vi.fn().mockResolvedValue(ok(mockColumnsResult));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: listBoardsFn,
-			listColumns: listColumnsFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/my-account/boards`, () => {
+				return HttpResponse.json([mockBoard]);
+			}),
+			http.get(`${BASE_URL}/my-account/boards/board_1/columns`, () => {
+				return HttpResponse.json(mockColumns);
+			}),
+		);
 
-		await boardsTool.execute({ account_slug: "my-account", limit: 25 });
-		expect(listBoardsFn).toHaveBeenCalledWith("my-account", {
+		const result = await boardsTool.execute({
+			account_slug: "my-account",
 			limit: 25,
-			cursor: undefined,
 		});
+		const parsed = JSON.parse(result);
+		expect(parsed.items).toHaveLength(1);
+		expect(parsed.items[0].name).toBe("Project Alpha");
 	});
 
 	test("should resolve account from default when not provided", async () => {
-		setDefaultAccount("default-account");
-		const listBoardsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ items: [], pagination: { returned: 0, has_more: false } }),
-			);
-		const listColumnsFn = vi.fn().mockResolvedValue(ok(mockColumnsResult));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: listBoardsFn,
-			listColumns: listColumnsFn,
-		} as unknown as client.FizzyClient);
+		setTestAccount("default-account");
 
-		await boardsTool.execute({ limit: 25 });
-		expect(listBoardsFn).toHaveBeenCalledWith("default-account", {
-			limit: 25,
-			cursor: undefined,
-		});
+		server.use(
+			http.get(`${BASE_URL}/default-account/boards`, () => {
+				return HttpResponse.json([]);
+			}),
+		);
+
+		const result = await boardsTool.execute({ limit: 25 });
+		const parsed = JSON.parse(result);
+		expect(parsed.items).toHaveLength(0);
 	});
 
 	test("should throw when no account and no default set", async () => {
+		server.use(
+			http.get(`${BASE_URL}/my/identity`, () => {
+				return HttpResponse.json({}, { status: 401 });
+			}),
+		);
+
 		await expect(boardsTool.execute({ limit: 25 })).rejects.toThrow(
-			"No account specified and no default set",
+			/No account specified/,
 		);
 	});
 
 	test("should strip leading slash from account slug", async () => {
-		const listBoardsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ items: [], pagination: { returned: 0, has_more: false } }),
-			);
-		const listColumnsFn = vi.fn().mockResolvedValue(ok(mockColumnsResult));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: listBoardsFn,
-			listColumns: listColumnsFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/897362094/boards`, () => {
+				return HttpResponse.json([]);
+			}),
+		);
 
-		await boardsTool.execute({ account_slug: "/897362094", limit: 25 });
-		expect(listBoardsFn).toHaveBeenCalledWith("897362094", {
+		const result = await boardsTool.execute({
+			account_slug: "/897362094",
 			limit: 25,
-			cursor: undefined,
 		});
+		const parsed = JSON.parse(result);
+		expect(parsed.items).toHaveLength(0);
 	});
 
 	test("should return JSON with paginated board list including columns", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: vi.fn().mockResolvedValue(ok(mockPaginatedResult)),
-			listColumns: vi.fn().mockResolvedValue(ok(mockColumnsResult)),
-		} as unknown as client.FizzyClient);
+		setTestAccount("897362094");
 
-		setDefaultAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/897362094/boards`, () => {
+				return HttpResponse.json([mockBoard]);
+			}),
+			http.get(`${BASE_URL}/897362094/boards/board_1/columns`, () => {
+				return HttpResponse.json(mockColumns);
+			}),
+		);
+
 		const result = await boardsTool.execute({ limit: 25 });
 
 		const parsed = JSON.parse(result);
@@ -135,19 +159,30 @@ describe("boardsTool", () => {
 	});
 
 	test("should hydrate columns from listColumns for each board", async () => {
-		const listColumnsFn = vi.fn().mockResolvedValue(ok(mockColumnsResult));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: vi.fn().mockResolvedValue(ok(mockPaginatedResult)),
-			listColumns: listColumnsFn,
-		} as unknown as client.FizzyClient);
+		setTestAccount("897362094");
 
-		setDefaultAccount("897362094");
+		let columnsRequestUrl: string | undefined;
+		server.use(
+			http.get(`${BASE_URL}/897362094/boards`, () => {
+				return HttpResponse.json([mockBoard]);
+			}),
+			http.get(
+				`${BASE_URL}/897362094/boards/board_1/columns`,
+				({ request }) => {
+					columnsRequestUrl = request.url;
+					return HttpResponse.json(mockColumns);
+				},
+			),
+		);
+
 		await boardsTool.execute({ limit: 25 });
 
-		expect(listColumnsFn).toHaveBeenCalledWith("897362094", "board_1");
+		expect(columnsRequestUrl).toContain("/897362094/boards/board_1/columns");
 	});
 
 	test("should hydrate columns correctly for multiple boards in parallel", async () => {
+		setTestAccount("897362094");
+
 		const board2 = { ...mockBoard, id: "board_2", name: "Project Beta" };
 		const board2Columns = [
 			{
@@ -162,31 +197,24 @@ describe("boardsTool", () => {
 			},
 		];
 
-		const listColumnsFn = vi.fn().mockImplementation((_account, boardId) => {
-			if (boardId === "board_1") return Promise.resolve(ok(mockColumnsResult));
-			if (boardId === "board_2")
-				return Promise.resolve(
-					ok({
-						items: board2Columns,
-						pagination: { returned: 1, has_more: false },
-					}),
-				);
-			return Promise.resolve(
-				ok({ items: [], pagination: { returned: 0, has_more: false } }),
-			);
-		});
-
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: vi.fn().mockResolvedValue(
-				ok({
-					items: [mockBoard, board2],
-					pagination: { returned: 2, has_more: false },
-				}),
+		server.use(
+			http.get(`${BASE_URL}/897362094/boards`, () => {
+				return HttpResponse.json([mockBoard, board2]);
+			}),
+			http.get(
+				`${BASE_URL}/897362094/boards/:boardId/columns`,
+				({ params }) => {
+					if (params.boardId === "board_1") {
+						return HttpResponse.json(mockColumns);
+					}
+					if (params.boardId === "board_2") {
+						return HttpResponse.json(board2Columns);
+					}
+					return HttpResponse.json([]);
+				},
 			),
-			listColumns: listColumnsFn,
-		} as unknown as client.FizzyClient);
+		);
 
-		setDefaultAccount("897362094");
 		const result = await boardsTool.execute({ limit: 25 });
 
 		const parsed = JSON.parse(result);
@@ -200,12 +228,17 @@ describe("boardsTool", () => {
 	});
 
 	test("should strip extra fields from columns to produce ColumnSummary", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: vi.fn().mockResolvedValue(ok(mockPaginatedResult)),
-			listColumns: vi.fn().mockResolvedValue(ok(mockColumnsResult)),
-		} as unknown as client.FizzyClient);
+		setTestAccount("897362094");
 
-		setDefaultAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/897362094/boards`, () => {
+				return HttpResponse.json([mockBoard]);
+			}),
+			http.get(`${BASE_URL}/897362094/boards/board_1/columns`, () => {
+				return HttpResponse.json(mockColumns);
+			}),
+		);
+
 		const result = await boardsTool.execute({ limit: 25 });
 
 		const parsed = JSON.parse(result);
@@ -223,12 +256,17 @@ describe("boardsTool", () => {
 	});
 
 	test("should gracefully handle column fetch failure with empty array", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: vi.fn().mockResolvedValue(ok(mockPaginatedResult)),
-			listColumns: vi.fn().mockResolvedValue(err(new NotFoundError())),
-		} as unknown as client.FizzyClient);
+		setTestAccount("897362094");
 
-		setDefaultAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/897362094/boards`, () => {
+				return HttpResponse.json([mockBoard]);
+			}),
+			http.get(`${BASE_URL}/897362094/boards/board_1/columns`, () => {
+				return HttpResponse.json({}, { status: 404 });
+			}),
+		);
+
 		const result = await boardsTool.execute({ limit: 25 });
 
 		const parsed = JSON.parse(result);
@@ -237,16 +275,14 @@ describe("boardsTool", () => {
 	});
 
 	test("should return empty items array when no boards found", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: vi
-				.fn()
-				.mockResolvedValue(
-					ok({ items: [], pagination: { returned: 0, has_more: false } }),
-				),
-			listColumns: vi.fn().mockResolvedValue(ok(mockColumnsResult)),
-		} as unknown as client.FizzyClient);
+		setTestAccount("897362094");
 
-		setDefaultAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/897362094/boards`, () => {
+				return HttpResponse.json([]);
+			}),
+		);
+
 		const result = await boardsTool.execute({ limit: 25 });
 
 		const parsed = JSON.parse(result);
@@ -255,12 +291,14 @@ describe("boardsTool", () => {
 	});
 
 	test("should throw UserError on API error", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listBoards: vi.fn().mockResolvedValue(err(new AuthenticationError())),
-			listColumns: vi.fn().mockResolvedValue(ok(mockColumnsResult)),
-		} as unknown as client.FizzyClient);
+		setTestAccount("897362094");
 
-		setDefaultAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/897362094/boards`, () => {
+				return HttpResponse.json({}, { status: 401 });
+			}),
+		);
+
 		await expect(boardsTool.execute({ limit: 25 })).rejects.toThrow(
 			"Authentication failed",
 		);

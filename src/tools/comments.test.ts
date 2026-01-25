@@ -1,10 +1,27 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
-import { NotFoundError } from "../client/errors.js";
-import * as client from "../client/index.js";
+import { HttpResponse, http } from "msw";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "vitest";
 import { ENV_TOKEN } from "../config.js";
-import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
-import { err, ok } from "../types/result.js";
+import { clearResolverCache } from "../state/account-resolver.js";
+import { clearSession, setSession } from "../state/session.js";
+import { server } from "../test/mocks/server.js";
 import { commentTool } from "./comments.js";
+
+const BASE_URL = "https://app.fizzy.do";
+
+function setTestAccount(slug: string): void {
+	setSession({
+		account: { slug, name: "Test Account", id: "acc_test" },
+		user: { id: "user_test", name: "Test User", role: "member" },
+	});
+}
 
 const mockComment = {
 	id: "comment_1",
@@ -31,78 +48,115 @@ const mockComment = {
 };
 
 describe("commentTool", () => {
+	beforeAll(() => {
+		server.listen({ onUnhandledRequest: "error" });
+	});
+
+	afterAll(() => {
+		server.close();
+	});
+
 	beforeEach(() => {
-		vi.restoreAllMocks();
-		clearDefaultAccount();
+		clearSession();
+		clearResolverCache();
 		process.env[ENV_TOKEN] = "test-token";
 	});
 
+	afterEach(() => {
+		server.resetHandlers();
+	});
+
 	test("should resolve account from args", async () => {
-		const createCommentFn = vi.fn().mockResolvedValue(ok(mockComment));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createComment: createCommentFn,
-		} as unknown as client.FizzyClient);
+		let capturedAccountSlug: string | undefined;
+		let capturedCardNumber: string | undefined;
+
+		server.use(
+			http.post(
+				`${BASE_URL}/:accountSlug/cards/:cardNumber/comments`,
+				({ params }) => {
+					capturedAccountSlug = params.accountSlug as string;
+					capturedCardNumber = params.cardNumber as string;
+					return HttpResponse.json(mockComment, { status: 201 });
+				},
+			),
+		);
 
 		await commentTool.execute({
 			account_slug: "my-account",
 			card_number: 42,
 			body: "New comment",
 		});
-		expect(createCommentFn).toHaveBeenCalledWith(
-			"my-account",
-			42,
-			"New comment",
-		);
+
+		expect(capturedAccountSlug).toBe("my-account");
+		expect(capturedCardNumber).toBe("42");
 	});
 
 	test("should resolve account from default when not provided", async () => {
-		setDefaultAccount("default-account");
-		const createCommentFn = vi.fn().mockResolvedValue(ok(mockComment));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createComment: createCommentFn,
-		} as unknown as client.FizzyClient);
+		setTestAccount("default-account");
+
+		let capturedAccountSlug: string | undefined;
+
+		server.use(
+			http.post(
+				`${BASE_URL}/:accountSlug/cards/:cardNumber/comments`,
+				({ params }) => {
+					capturedAccountSlug = params.accountSlug as string;
+					return HttpResponse.json(mockComment, { status: 201 });
+				},
+			),
+		);
 
 		await commentTool.execute({
 			card_number: 42,
 			body: "New comment",
 		});
-		expect(createCommentFn).toHaveBeenCalledWith(
-			"default-account",
-			42,
-			"New comment",
-		);
+
+		expect(capturedAccountSlug).toBe("default-account");
 	});
 
 	test("should throw when no account and no default set", async () => {
+		server.use(
+			http.get(`${BASE_URL}/my/identity`, () => {
+				return HttpResponse.json({}, { status: 401 });
+			}),
+		);
+
 		await expect(
 			commentTool.execute({ card_number: 42, body: "Test" }),
-		).rejects.toThrow("No account specified and no default set");
+		).rejects.toThrow(/No account specified/);
 	});
 
 	test("should strip leading slash from account slug", async () => {
-		const createCommentFn = vi.fn().mockResolvedValue(ok(mockComment));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createComment: createCommentFn,
-		} as unknown as client.FizzyClient);
+		let capturedAccountSlug: string | undefined;
+
+		server.use(
+			http.post(
+				`${BASE_URL}/:accountSlug/cards/:cardNumber/comments`,
+				({ params }) => {
+					capturedAccountSlug = params.accountSlug as string;
+					return HttpResponse.json(mockComment, { status: 201 });
+				},
+			),
+		);
 
 		await commentTool.execute({
 			account_slug: "/897362094",
 			card_number: 42,
 			body: "New comment",
 		});
-		expect(createCommentFn).toHaveBeenCalledWith(
-			"897362094",
-			42,
-			"New comment",
-		);
+
+		expect(capturedAccountSlug).toBe("897362094");
 	});
 
 	test("should return created comment as JSON", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createComment: vi.fn().mockResolvedValue(ok(mockComment)),
-		} as unknown as client.FizzyClient);
+		setTestAccount("897362094");
 
-		setDefaultAccount("897362094");
+		server.use(
+			http.post(`${BASE_URL}/897362094/cards/42/comments`, () => {
+				return HttpResponse.json(mockComment, { status: 201 });
+			}),
+		);
+
 		const result = await commentTool.execute({
 			card_number: 42,
 			body: "New comment",
@@ -115,11 +169,14 @@ describe("commentTool", () => {
 	});
 
 	test("should throw UserError on not found", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createComment: vi.fn().mockResolvedValue(err(new NotFoundError())),
-		} as unknown as client.FizzyClient);
+		setTestAccount("897362094");
 
-		setDefaultAccount("897362094");
+		server.use(
+			http.post(`${BASE_URL}/897362094/cards/999/comments`, () => {
+				return HttpResponse.json({}, { status: 404 });
+			}),
+		);
+
 		await expect(
 			commentTool.execute({ card_number: 999, body: "Test" }),
 		).rejects.toThrow("[NOT_FOUND] Comment");

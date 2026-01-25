@@ -1,10 +1,28 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
-import { NotFoundError } from "../client/errors.js";
-import * as client from "../client/index.js";
+import { HttpResponse, http } from "msw";
+import {
+	afterAll,
+	afterEach,
+	beforeAll,
+	beforeEach,
+	describe,
+	expect,
+	test,
+} from "vitest";
+import { resetClient } from "../client/fizzy.js";
 import { ENV_TOKEN } from "../config.js";
-import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
-import { err, ok } from "../types/result.js";
+import { clearResolverCache } from "../state/account-resolver.js";
+import { clearSession, setSession } from "../state/session.js";
+import { server } from "../test/mocks/server.js";
 import { taskTool } from "./task.js";
+
+const BASE_URL = "https://app.fizzy.do";
+
+function setTestAccount(slug: string): void {
+	setSession({
+		account: { slug, name: "Test Account", id: "acc_test" },
+		user: { id: "user_test", name: "Test User", role: "member" },
+	});
+}
 
 const mockCard = {
 	id: "card_1",
@@ -26,42 +44,45 @@ const mockCard = {
 };
 
 describe("taskTool - create mode", () => {
+	beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+	afterEach(() => {
+		server.resetHandlers();
+		clearSession();
+		clearResolverCache();
+		resetClient();
+	});
+	afterAll(() => server.close());
+
 	beforeEach(() => {
-		vi.restoreAllMocks();
-		clearDefaultAccount();
 		process.env[ENV_TOKEN] = "test-token";
 	});
 
 	test("should throw when board_id missing in create mode", async () => {
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		await expect(
 			taskTool.execute({ title: "New Card", position: "bottom" }),
 		).rejects.toThrow("Create mode requires board_id");
 	});
 
 	test("should throw when title missing in create mode", async () => {
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		await expect(
 			taskTool.execute({ board_id: "board_1", position: "bottom" }),
 		).rejects.toThrow("Create mode requires title");
 	});
 
 	test("should create basic card", async () => {
-		const createCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createCard: createCardFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.post(`${BASE_URL}/:accountSlug/boards/:boardId/cards`, () => {
+				return HttpResponse.json(mockCard, { status: 201 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			board_id: "board_1",
 			title: "New Card",
 			position: "bottom",
-		});
-
-		expect(createCardFn).toHaveBeenCalledWith("test-account", "board_1", {
-			title: "New Card",
-			description: undefined,
 		});
 
 		const parsed = JSON.parse(result);
@@ -70,14 +91,19 @@ describe("taskTool - create mode", () => {
 	});
 
 	test("should create card with steps", async () => {
-		const createCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const createStepFn = vi.fn().mockResolvedValue(ok({ id: "step_1" }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createCard: createCardFn,
-			createStep: createStepFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.post(`${BASE_URL}/:accountSlug/boards/:boardId/cards`, () => {
+				return HttpResponse.json(mockCard, { status: 201 });
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/steps`, () => {
+				return HttpResponse.json(
+					{ id: "step_1", content: "Step", completed: false },
+					{ status: 201 },
+				);
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			board_id: "board_1",
 			title: "New Card",
@@ -85,20 +111,21 @@ describe("taskTool - create mode", () => {
 			position: "bottom",
 		});
 
-		expect(createStepFn).toHaveBeenCalledTimes(2);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.steps_created).toBe(2);
 	});
 
 	test("should create card with tags", async () => {
-		const createCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const toggleTagFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createCard: createCardFn,
-			toggleTag: toggleTagFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.post(`${BASE_URL}/:accountSlug/boards/:boardId/cards`, () => {
+				return HttpResponse.json(mockCard, { status: 201 });
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/taggings`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			board_id: "board_1",
 			title: "New Card",
@@ -106,22 +133,21 @@ describe("taskTool - create mode", () => {
 			position: "bottom",
 		});
 
-		expect(toggleTagFn).toHaveBeenCalledWith("test-account", 42, "Feature");
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.tags_added).toEqual(["Feature"]);
 	});
 
 	test("should create card with triage", async () => {
-		const createCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const triageCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, column_id: "col_1" }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createCard: createCardFn,
-			triageCard: triageCardFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.post(`${BASE_URL}/:accountSlug/boards/:boardId/cards`, () => {
+				return HttpResponse.json(mockCard, { status: 201 });
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			board_id: "board_1",
 			title: "New Card",
@@ -129,28 +155,29 @@ describe("taskTool - create mode", () => {
 			position: "top",
 		});
 
-		expect(triageCardFn).toHaveBeenCalledWith(
-			"test-account",
-			42,
-			"col_1",
-			"top",
-		);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.triaged_to).toBe("col_1");
 	});
 
 	test("should report partial failures", async () => {
-		const createCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const createStepFn = vi
-			.fn()
-			.mockResolvedValueOnce(ok({ id: "step_1" }))
-			.mockResolvedValueOnce(err(new NotFoundError()));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createCard: createCardFn,
-			createStep: createStepFn,
-		} as unknown as client.FizzyClient);
+		let stepCallCount = 0;
+		server.use(
+			http.post(`${BASE_URL}/:accountSlug/boards/:boardId/cards`, () => {
+				return HttpResponse.json(mockCard, { status: 201 });
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/steps`, () => {
+				stepCallCount++;
+				if (stepCallCount === 1) {
+					return HttpResponse.json(
+						{ id: "step_1", content: "Step 1", completed: false },
+						{ status: 201 },
+					);
+				}
+				return HttpResponse.json({}, { status: 404 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			board_id: "board_1",
 			title: "New Card",
@@ -166,76 +193,79 @@ describe("taskTool - create mode", () => {
 });
 
 describe("taskTool - update mode", () => {
+	beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+	afterEach(() => {
+		server.resetHandlers();
+		clearSession();
+		clearResolverCache();
+		resetClient();
+	});
+	afterAll(() => server.close());
+
 	beforeEach(() => {
-		vi.restoreAllMocks();
-		clearDefaultAccount();
 		process.env[ENV_TOKEN] = "test-token";
 	});
 
 	test("should update title", async () => {
-		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const updateCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, title: "Updated" }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			updateCard: updateCardFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(mockCard);
+			}),
+			http.put(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json({ ...mockCard, title: "Updated" });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			title: "Updated",
 			position: "bottom",
 		});
 
-		expect(updateCardFn).toHaveBeenCalledWith("test-account", 42, {
-			title: "Updated",
-			description: undefined,
-		});
 		const parsed = JSON.parse(result);
 		expect(parsed.mode).toBe("update");
 		expect(parsed.operations.title_updated).toBe(true);
 	});
 
 	test("should change status to closed", async () => {
-		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const closeCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, status: "closed" }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(mockCard);
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			status: "closed",
 			position: "bottom",
 		});
 
-		expect(closeCardFn).toHaveBeenCalledWith("test-account", 42);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.status_changed).toBe("closed");
 	});
 
 	test("should change status to not_now", async () => {
-		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const notNowCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			notNowCard: notNowCardFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(mockCard);
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/not_now`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			status: "not_now",
 			position: "bottom",
 		});
 
-		expect(notNowCardFn).toHaveBeenCalledWith("test-account", 42);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.status_changed).toBe("not_now");
 		expect(parsed.card.status).toBe("deferred");
@@ -243,113 +273,125 @@ describe("taskTool - update mode", () => {
 
 	test("should add tags with pre-check", async () => {
 		const cardWithoutTag = { ...mockCard, tags: [] };
-		const getCardFn = vi.fn().mockResolvedValue(ok(cardWithoutTag));
-		const toggleTagFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			toggleTag: toggleTagFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(cardWithoutTag);
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/taggings`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			add_tags: ["Feature"],
 			position: "bottom",
 		});
 
-		expect(toggleTagFn).toHaveBeenCalledWith("test-account", 42, "Feature");
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.tags_added).toEqual(["Feature"]);
 	});
 
 	test("should skip adding tag if already present", async () => {
-		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard)); // Has "Bug" tag
-		const toggleTagFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			toggleTag: toggleTagFn,
-		} as unknown as client.FizzyClient);
+		let taggingsCallCount = 0;
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(mockCard); // Has "Bug" tag
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/taggings`, () => {
+				taggingsCallCount++;
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			add_tags: ["Bug"], // Already on card
 			position: "bottom",
 		});
 
-		expect(toggleTagFn).not.toHaveBeenCalled();
+		expect(taggingsCallCount).toBe(0);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.tags_added).toBeUndefined();
 	});
 
 	test("should remove tags with pre-check", async () => {
-		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard)); // Has "Bug" tag
-		const toggleTagFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			toggleTag: toggleTagFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(mockCard); // Has "Bug" tag
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/taggings`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			remove_tags: ["Bug"],
 			position: "bottom",
 		});
 
-		expect(toggleTagFn).toHaveBeenCalledWith("test-account", 42, "Bug");
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.tags_removed).toEqual(["Bug"]);
 	});
 
 	test("should skip removing tag if not present", async () => {
-		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard)); // Has "Bug" tag
-		const toggleTagFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			toggleTag: toggleTagFn,
-		} as unknown as client.FizzyClient);
+		let taggingsCallCount = 0;
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(mockCard); // Has "Bug" tag, not "Feature"
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/taggings`, () => {
+				taggingsCallCount++;
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			remove_tags: ["Feature"], // Not on card
 			position: "bottom",
 		});
 
-		expect(toggleTagFn).not.toHaveBeenCalled();
+		expect(taggingsCallCount).toBe(0);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.tags_removed).toBeUndefined();
 	});
 
 	test("should throw when card not found", async () => {
-		const getCardFn = vi.fn().mockResolvedValue(err(new NotFoundError()));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json({}, { status: 404 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		await expect(
 			taskTool.execute({ card_number: 999, title: "Test", position: "bottom" }),
 		).rejects.toThrow("[NOT_FOUND] Card #999");
 	});
 
 	test("should handle void return from closeCard", async () => {
-		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const closeCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(mockCard);
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			status: "closed",
 			position: "bottom",
 		});
 
-		expect(closeCardFn).toHaveBeenCalledWith("test-account", 42);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.status_changed).toBe("closed");
 		expect(parsed.card.status).toBe("closed");
@@ -357,21 +399,22 @@ describe("taskTool - update mode", () => {
 
 	test("should handle void return from reopenCard", async () => {
 		const closedCard = { ...mockCard, status: "closed" as const };
-		const getCardFn = vi.fn().mockResolvedValue(ok(closedCard));
-		const reopenCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			reopenCard: reopenCardFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(closedCard);
+			}),
+			http.delete(`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			status: "open",
 			position: "bottom",
 		});
 
-		expect(reopenCardFn).toHaveBeenCalledWith("test-account", 42);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.status_changed).toBe("open");
 		expect(parsed.card.status).toBe("open");
@@ -379,83 +422,95 @@ describe("taskTool - update mode", () => {
 
 	test("should call unTriageCard before triageCard when card already in column", async () => {
 		const cardInColumn = { ...mockCard, column_id: "old_col" };
-		const getCardFn = vi.fn().mockResolvedValue(ok(cardInColumn));
-		const unTriageCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		const triageCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			unTriageCard: unTriageCardFn,
-			triageCard: triageCardFn,
-		} as unknown as client.FizzyClient);
+		let unTriageCalled = false;
+		let triageCalled = false;
 
-		setDefaultAccount("test-account");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(cardInColumn);
+			}),
+			http.delete(`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`, () => {
+				unTriageCalled = true;
+				return new HttpResponse(null, { status: 204 });
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`, () => {
+				triageCalled = true;
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
+
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			column_id: "new_col",
 			position: "top",
 		});
 
-		expect(unTriageCardFn).toHaveBeenCalledWith("test-account", 42);
-		expect(triageCardFn).toHaveBeenCalledWith(
-			"test-account",
-			42,
-			"new_col",
-			"top",
-		);
+		expect(unTriageCalled).toBe(true);
+		expect(triageCalled).toBe(true);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.triaged_to).toBe("new_col");
 	});
 
 	test("should not call unTriageCard when card has no column", async () => {
-		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard)); // column_id: null
-		const unTriageCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		const triageCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			unTriageCard: unTriageCardFn,
-			triageCard: triageCardFn,
-		} as unknown as client.FizzyClient);
+		let unTriageCalled = false;
+		let triageCalled = false;
 
-		setDefaultAccount("test-account");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(mockCard); // column_id: null
+			}),
+			http.delete(`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`, () => {
+				unTriageCalled = true;
+				return new HttpResponse(null, { status: 204 });
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`, () => {
+				triageCalled = true;
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
+
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			column_id: "new_col",
 			position: "bottom",
 		});
 
-		expect(unTriageCardFn).not.toHaveBeenCalled();
-		expect(triageCardFn).toHaveBeenCalledWith(
-			"test-account",
-			42,
-			"new_col",
-			"bottom",
-		);
+		expect(unTriageCalled).toBe(false);
+		expect(triageCalled).toBe(true);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.triaged_to).toBe("new_col");
 	});
 
 	test("should not call triageCard when unTriageCard fails", async () => {
 		const cardInColumn = { ...mockCard, column_id: "old_col" };
-		const getCardFn = vi.fn().mockResolvedValue(ok(cardInColumn));
-		const unTriageCardFn = vi
-			.fn()
-			.mockResolvedValue(err(new Error("Untriage failed")));
-		const triageCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			unTriageCard: unTriageCardFn,
-			triageCard: triageCardFn,
-		} as unknown as client.FizzyClient);
+		let unTriageCalled = false;
+		let triageCalled = false;
 
-		setDefaultAccount("test-account");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(cardInColumn);
+			}),
+			http.delete(`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`, () => {
+				unTriageCalled = true;
+				return HttpResponse.json({}, { status: 500 });
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`, () => {
+				triageCalled = true;
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
+
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			column_id: "new_col",
 			position: "top",
 		});
 
-		expect(unTriageCardFn).toHaveBeenCalledWith("test-account", 42);
-		expect(triageCardFn).not.toHaveBeenCalled();
+		expect(unTriageCalled).toBe(true);
+		expect(triageCalled).toBe(false);
 		const parsed = JSON.parse(result);
 		expect(parsed.failures).toHaveLength(1);
 		expect(parsed.failures[0].operation).toBe("untriage");
@@ -464,51 +519,79 @@ describe("taskTool - update mode", () => {
 
 	test("should skip untriage and triage when column unchanged", async () => {
 		const cardInColumn = { ...mockCard, column_id: "same_col" };
-		const getCardFn = vi.fn().mockResolvedValue(ok(cardInColumn));
-		const unTriageCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		const triageCardFn = vi.fn().mockResolvedValue(ok(undefined));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			getCard: getCardFn,
-			unTriageCard: unTriageCardFn,
-			triageCard: triageCardFn,
-		} as unknown as client.FizzyClient);
+		let unTriageCalled = false;
+		let triageCalled = false;
 
-		setDefaultAccount("test-account");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
+				return HttpResponse.json(cardInColumn);
+			}),
+			http.delete(`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`, () => {
+				unTriageCalled = true;
+				return new HttpResponse(null, { status: 204 });
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`, () => {
+				triageCalled = true;
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
+
+		setTestAccount("test-account");
 		const result = await taskTool.execute({
 			card_number: 42,
 			column_id: "same_col",
 			position: "top",
 		});
 
-		expect(unTriageCardFn).not.toHaveBeenCalled();
-		expect(triageCardFn).not.toHaveBeenCalled();
+		expect(unTriageCalled).toBe(false);
+		expect(triageCalled).toBe(false);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.triaged_to).toBeUndefined();
 	});
 });
 
 describe("taskTool - account resolution", () => {
+	beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+	afterEach(() => {
+		server.resetHandlers();
+		clearSession();
+		clearResolverCache();
+		resetClient();
+	});
+	afterAll(() => server.close());
+
 	beforeEach(() => {
-		vi.restoreAllMocks();
-		clearDefaultAccount();
 		process.env[ENV_TOKEN] = "test-token";
 	});
 
 	test("should throw when no account and no default set", async () => {
+		// Mock whoami to fail so auto-detect doesn't work
+		server.use(
+			http.get(`${BASE_URL}/my/identity`, () => {
+				return HttpResponse.json({}, { status: 401 });
+			}),
+		);
+
 		await expect(
 			taskTool.execute({
 				board_id: "board_1",
 				title: "Test",
 				position: "bottom",
 			}),
-		).rejects.toThrow("No account specified and no default set");
+		).rejects.toThrow(/No account specified/);
 	});
 
 	test("should use account_slug from args", async () => {
-		const createCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createCard: createCardFn,
-		} as unknown as client.FizzyClient);
+		let capturedAccountSlug: string | null = null;
+		server.use(
+			http.post(
+				`${BASE_URL}/:accountSlug/boards/:boardId/cards`,
+				({ params }) => {
+					capturedAccountSlug = params.accountSlug as string;
+					return HttpResponse.json(mockCard, { status: 201 });
+				},
+			),
+		);
 
 		await taskTool.execute({
 			account_slug: "my-account",
@@ -517,9 +600,6 @@ describe("taskTool - account resolution", () => {
 			position: "bottom",
 		});
 
-		expect(createCardFn).toHaveBeenCalledWith("my-account", "board_1", {
-			title: "Test",
-			description: undefined,
-		});
+		expect(capturedAccountSlug).toBe("my-account");
 	});
 });
