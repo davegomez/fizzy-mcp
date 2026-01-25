@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { AuthenticationError, NotFoundError } from "../client/errors.js";
 import * as client from "../client/index.js";
+import { ENV_TOKEN } from "../config.js";
 import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
 import { err, ok } from "../types/result.js";
 import { getCardTool, searchTool } from "./cards.js";
@@ -30,7 +31,7 @@ describe("searchTool", () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();
 		clearDefaultAccount();
-		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+		process.env[ENV_TOKEN] = "test-token";
 	});
 
 	test("should resolve account from args", async () => {
@@ -194,7 +195,7 @@ describe("getCardTool", () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();
 		clearDefaultAccount();
-		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+		process.env[ENV_TOKEN] = "test-token";
 	});
 
 	test("should fetch card by number", async () => {
