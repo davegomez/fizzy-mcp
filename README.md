@@ -137,12 +137,15 @@ Searches for cards with filters.
 
 ### fizzy_get_card
 
-Gets full details of a card by number.
+Gets full details of a card by number or ID.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `account_slug` | string | No | Account slug |
-| `card_number` | number | Yes | Card number from URL |
+| `card_number` | number | No* | Card number from URL (e.g., `42` from `#42`) |
+| `card_id` | string | No* | Card UUID from API responses |
+
+*Provide `card_number` OR `card_id`. Prefer `card_number` when you have the human-readable `#` from the UI.
 
 **Returns:** Card object with `id`, `number`, `title`, `description` (markdown), `status`, `board_id`, `column_id`, `tags`, `assignees`, `steps_count`, `completed_steps_count`, `comments_count`, `url`, timestamps.
 
