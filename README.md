@@ -15,7 +15,7 @@ MCP server for [Fizzy](https://fizzy.do) task management. Exposes 8 tools for ma
      "mcpServers": {
        "fizzy": {
          "command": "npx",
-         "args": ["-y", "fizzy-mcp"],
+         "args": ["-y", "@silky/fizzy-mcp"],
          "env": {
            "FIZZY_TOKEN": "your-token-here"
          }
@@ -37,7 +37,7 @@ MCP server for [Fizzy](https://fizzy.do) task management. Exposes 8 tools for ma
    {
      "fizzy": {
        "command": "npx",
-       "args": ["-y", "fizzy-mcp"],
+       "args": ["-y", "@silky/fizzy-mcp"],
        "env": {
          "FIZZY_TOKEN": "your-token-here"
        }
