@@ -459,6 +459,20 @@ export class FizzyClient {
 		return result;
 	}
 
+	async getCardById(
+		accountSlug: string,
+		cardId: string,
+	): Promise<Result<Card, FizzyApiError>> {
+		const result = await this.request<Card>(
+			"GET",
+			`/${accountSlug}/cards/${cardId}`,
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
 	async createCard(
 		accountSlug: string,
 		boardId: string,
