@@ -1,9 +1,10 @@
 import { UserError } from "fastmcp";
 import { z } from "zod";
+import type { FizzyApiError } from "../client/errors.js";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import type { Card } from "../schemas/cards.js";
 import { getDefaultAccount } from "../state/session.js";
-import { isErr } from "../types/result.js";
+import { isErr, type Result } from "../types/result.js";
 
 function resolveAccount(accountSlug?: string): string {
 	// Strip leading slash to normalize URLs pasted directly from Fizzy
@@ -56,7 +57,7 @@ export const taskTool = {
 Creates card, then best-effort: adds steps, toggles tags, triages to column.
 
 **Update mode:**
-Updates title/description if provided. Changes status (open/closed/not_now). Manages tags with add/remove. Triages to column.
+Updates title/description if provided. Changes status (open/closed/not_now). Manages tags with add/remove. Moves card to column (from inbox or another column). Same-column moves are skipped.
 
 **Arguments:**
 - \`account_slug\` (optional): Uses session default if omitted
@@ -65,7 +66,7 @@ Updates title/description if provided. Changes status (open/closed/not_now). Man
 - \`title\` (optional): Card title. Required for create mode.
 - \`description\` (optional): Card body in markdown
 - \`status\` (optional): open | closed | not_now — changes card lifecycle state
-- \`column_id\` (optional): Triage card to this column
+- \`column_id\` (optional): Move card to this column (works from inbox or other columns; skipped if already there)
 - \`position\` (optional): top | bottom (default: bottom) — position in column
 - \`add_tags\` (optional): Tag titles to add
 - \`remove_tags\` (optional): Tag titles to remove
@@ -250,28 +251,27 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 			}
 
 			// Map user-facing status names to Fizzy API lifecycle methods
+			// These methods may return void or Card, so we update local card state manually
 			if (args.status !== undefined) {
 				const currentStatus = card.status;
-				let statusResult:
-					| Awaited<ReturnType<typeof client.closeCard>>
-					| undefined;
+				let statusResult: Result<unknown, FizzyApiError> | undefined;
 
 				if (args.status === "closed" && currentStatus !== "closed") {
 					statusResult = await client.closeCard(slug, cardNumber);
 					if (!isErr(statusResult)) {
-						card = statusResult.value;
+						card = { ...card, status: "closed" };
 						operations.status_changed = "closed";
 					}
 				} else if (args.status === "open" && currentStatus !== "open") {
 					statusResult = await client.reopenCard(slug, cardNumber);
 					if (!isErr(statusResult)) {
-						card = statusResult.value;
+						card = { ...card, status: "open" };
 						operations.status_changed = "open";
 					}
 				} else if (args.status === "not_now" && currentStatus !== "deferred") {
 					statusResult = await client.notNowCard(slug, cardNumber);
 					if (!isErr(statusResult)) {
-						card = statusResult.value;
+						card = { ...card, status: "deferred" };
 						operations.status_changed = "not_now";
 					}
 				}
@@ -331,21 +331,37 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				}
 			}
 
-			if (args.column_id) {
-				const triageResult = await client.triageCard(
-					slug,
-					cardNumber,
-					args.column_id,
-					args.position,
-				);
-				if (isErr(triageResult)) {
-					failures.push({
-						operation: `triage:${args.column_id}`,
-						error: triageResult.error.message,
-					});
-				} else {
-					card = triageResult.value;
-					operations.triaged_to = args.column_id;
+			if (args.column_id && args.column_id !== card.column_id) {
+				// Column-to-column moves require removing from current column first
+				let unTriageFailed = false;
+				if (card.column_id) {
+					const unTriageResult = await client.unTriageCard(slug, cardNumber);
+					if (isErr(unTriageResult)) {
+						failures.push({
+							operation: "untriage",
+							error: unTriageResult.error.message,
+						});
+						unTriageFailed = true;
+					}
+				}
+
+				// Skip triage if untriage failed to avoid double failures
+				if (!unTriageFailed) {
+					const triageResult = await client.triageCard(
+						slug,
+						cardNumber,
+						args.column_id,
+						args.position,
+					);
+					if (isErr(triageResult)) {
+						failures.push({
+							operation: `triage:${args.column_id}`,
+							error: triageResult.error.message,
+						});
+					} else {
+						card = { ...card, column_id: args.column_id };
+						operations.triaged_to = args.column_id;
+					}
 				}
 			}
 		}
