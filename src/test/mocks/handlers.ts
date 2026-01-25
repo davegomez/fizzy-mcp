@@ -662,9 +662,9 @@ export const handlers = [
 		},
 	),
 
-	// Close card (POST)
+	// Close card (POST /closure) - returns 204 No Content
 	http.post(
-		`${BASE_URL}/:accountSlug/cards/:cardNumber/close`,
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`,
 		({ request, params }) => {
 			const auth = request.headers.get("Authorization");
 			if (!auth || auth === "Bearer invalid") {
@@ -677,18 +677,13 @@ export const handlers = [
 				return HttpResponse.json({}, { status: 404 });
 			}
 
-			return HttpResponse.json({
-				...card,
-				status: "closed",
-				closed_at: "2024-03-15T00:00:00Z",
-				updated_at: "2024-03-15T00:00:00Z",
-			});
+			return new HttpResponse(null, { status: 204 });
 		},
 	),
 
-	// Reopen card (DELETE /close)
+	// Reopen card (DELETE /closure) - returns 204 No Content
 	http.delete(
-		`${BASE_URL}/:accountSlug/cards/:cardNumber/close`,
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`,
 		({ request, params }) => {
 			const auth = request.headers.get("Authorization");
 			if (!auth || auth === "Bearer invalid") {
@@ -701,12 +696,7 @@ export const handlers = [
 				return HttpResponse.json({}, { status: 404 });
 			}
 
-			return HttpResponse.json({
-				...card,
-				status: "open",
-				closed_at: null,
-				updated_at: "2024-03-15T00:00:00Z",
-			});
+			return new HttpResponse(null, { status: 204 });
 		},
 	),
 
@@ -764,7 +754,7 @@ export const handlers = [
 		},
 	),
 
-	// Triage card (POST)
+	// Triage card (POST) - returns 204 No Content
 	http.post(
 		`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`,
 		async ({ request, params }) => {
@@ -790,15 +780,11 @@ export const handlers = [
 				);
 			}
 
-			return HttpResponse.json({
-				...card,
-				column_id: body.column_id,
-				updated_at: "2024-03-15T00:00:00Z",
-			});
+			return new HttpResponse(null, { status: 204 });
 		},
 	),
 
-	// Untriage card (DELETE)
+	// Untriage card (DELETE) - returns 204 No Content
 	http.delete(
 		`${BASE_URL}/:accountSlug/cards/:cardNumber/triage`,
 		({ request, params }) => {
@@ -813,15 +799,11 @@ export const handlers = [
 				return HttpResponse.json({}, { status: 404 });
 			}
 
-			return HttpResponse.json({
-				...card,
-				column_id: null,
-				updated_at: "2024-03-15T00:00:00Z",
-			});
+			return new HttpResponse(null, { status: 204 });
 		},
 	),
 
-	// Not Now card (POST)
+	// Not Now card (POST) - returns 204 No Content
 	http.post(
 		`${BASE_URL}/:accountSlug/cards/:cardNumber/not_now`,
 		({ request, params }) => {
@@ -836,11 +818,7 @@ export const handlers = [
 				return HttpResponse.json({}, { status: 404 });
 			}
 
-			return HttpResponse.json({
-				...card,
-				status: "deferred",
-				updated_at: "2024-03-15T00:00:00Z",
-			});
+			return new HttpResponse(null, { status: 204 });
 		},
 	),
 

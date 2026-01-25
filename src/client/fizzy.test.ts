@@ -979,14 +979,14 @@ describe("FizzyClient", () => {
 			process.env[ENV_TOKEN] = "valid-token";
 		});
 
-		test("should close card", async () => {
+		test("should close card via /closure endpoint returning void", async () => {
 			const client = new FizzyClient();
 			const result = await client.closeCard("897362094", 1);
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value.status).toBe("closed");
-				expect(result.value.closed_at).toBe("2024-03-15T00:00:00Z");
+				// API returns 204 No Content, so result.value should be undefined
+				expect(result.value).toBeUndefined();
 			}
 		});
 
@@ -1017,14 +1017,14 @@ describe("FizzyClient", () => {
 			process.env[ENV_TOKEN] = "valid-token";
 		});
 
-		test("should reopen card", async () => {
+		test("should reopen card via /closure endpoint returning void", async () => {
 			const client = new FizzyClient();
 			const result = await client.reopenCard("897362094", 3);
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value.status).toBe("open");
-				expect(result.value.closed_at).toBeNull();
+				// API returns 204 No Content, so result.value should be undefined
+				expect(result.value).toBeUndefined();
 			}
 		});
 
@@ -1055,23 +1055,23 @@ describe("FizzyClient", () => {
 			process.env[ENV_TOKEN] = "valid-token";
 		});
 
-		test("should triage card to column", async () => {
+		test("should triage card to column (returns void on 204)", async () => {
 			const client = new FizzyClient();
 			const result = await client.triageCard("897362094", 4, "col_1");
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value.column_id).toBe("col_1");
+				expect(result.value).toBeUndefined();
 			}
 		});
 
-		test("should triage card with position", async () => {
+		test("should triage card with position (returns void on 204)", async () => {
 			const client = new FizzyClient();
 			const result = await client.triageCard("897362094", 4, "col_1", "top");
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value.column_id).toBe("col_1");
+				expect(result.value).toBeUndefined();
 			}
 		});
 
@@ -1102,13 +1102,13 @@ describe("FizzyClient", () => {
 			process.env[ENV_TOKEN] = "valid-token";
 		});
 
-		test("should untriage card back to inbox", async () => {
+		test("should untriage card back to inbox (returns void on 204)", async () => {
 			const client = new FizzyClient();
 			const result = await client.unTriageCard("897362094", 1);
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value.column_id).toBeNull();
+				expect(result.value).toBeUndefined();
 			}
 		});
 
@@ -1145,7 +1145,7 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value.status).toBe("deferred");
+				expect(result.value).toBe(undefined);
 			}
 		});
 
