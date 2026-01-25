@@ -197,7 +197,7 @@ describe("getCardTool", () => {
 		process.env.FIZZY_ACCESS_TOKEN = "test-token";
 	});
 
-	test("should resolve account from args", async () => {
+	test("should fetch card by number", async () => {
 		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard));
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			getCard: getCardFn,
@@ -205,6 +205,43 @@ describe("getCardTool", () => {
 
 		await getCardTool.execute({ account_slug: "my-account", card_number: 42 });
 		expect(getCardFn).toHaveBeenCalledWith("my-account", 42);
+	});
+
+	test("should fetch card by ID when card_id provided", async () => {
+		const getCardByIdFn = vi.fn().mockResolvedValue(ok(mockCard));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			getCardById: getCardByIdFn,
+		} as unknown as client.FizzyClient);
+
+		await getCardTool.execute({
+			account_slug: "my-account",
+			card_id: "03fgjbkhgph377d3fbph6z2qj",
+		});
+		expect(getCardByIdFn).toHaveBeenCalledWith(
+			"my-account",
+			"03fgjbkhgph377d3fbph6z2qj",
+		);
+	});
+
+	test("should prefer card_number over card_id when both provided", async () => {
+		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			getCard: getCardFn,
+		} as unknown as client.FizzyClient);
+
+		await getCardTool.execute({
+			account_slug: "my-account",
+			card_number: 42,
+			card_id: "03fgjbkhgph377d3fbph6z2qj",
+		});
+		expect(getCardFn).toHaveBeenCalledWith("my-account", 42);
+	});
+
+	test("should throw when neither card_number nor card_id provided", async () => {
+		setDefaultAccount("my-account");
+		await expect(getCardTool.execute({})).rejects.toThrow(
+			"Either card_number or card_id must be provided",
+		);
 	});
 
 	test("should throw when no account and no default set", async () => {
@@ -246,7 +283,7 @@ describe("getCardTool", () => {
 		expect(parsed.description).toBeNull();
 	});
 
-	test("should throw UserError on not found", async () => {
+	test("should throw UserError on not found by number", async () => {
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			getCard: vi.fn().mockResolvedValue(err(new NotFoundError())),
 		} as unknown as client.FizzyClient);
@@ -255,5 +292,50 @@ describe("getCardTool", () => {
 		await expect(getCardTool.execute({ card_number: 999 })).rejects.toThrow(
 			"[NOT_FOUND] Card #999",
 		);
+	});
+
+	test("should throw UserError on not found by ID", async () => {
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			getCardById: vi.fn().mockResolvedValue(err(new NotFoundError())),
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			getCardTool.execute({ card_id: "nonexistent_id" }),
+		).rejects.toThrow("[NOT_FOUND] Card nonexistent_id");
+	});
+
+	describe("schema validation", () => {
+		test("should use strict schema that rejects unknown keys", () => {
+			// Verify the schema rejects unknown parameters
+			const result = getCardTool.parameters.safeParse({
+				card_number: 42,
+				unknown_param: "should fail",
+			});
+			expect(result.success).toBe(false);
+			if (!result.success) {
+				expect(result.error.issues[0].code).toBe("unrecognized_keys");
+			}
+		});
+
+		test("should accept card_number alone", () => {
+			const result = getCardTool.parameters.safeParse({ card_number: 42 });
+			expect(result.success).toBe(true);
+		});
+
+		test("should accept card_id alone", () => {
+			const result = getCardTool.parameters.safeParse({
+				card_id: "03fgjbkhgph377d3fbph6z2qj",
+			});
+			expect(result.success).toBe(true);
+		});
+
+		test("should accept both card_number and card_id", () => {
+			const result = getCardTool.parameters.safeParse({
+				card_number: 42,
+				card_id: "03fgjbkhgph377d3fbph6z2qj",
+			});
+			expect(result.success).toBe(true);
+		});
 	});
 });
