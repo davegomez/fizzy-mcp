@@ -2,6 +2,9 @@ import { HttpResponse, http } from "msw";
 
 const BASE_URL = "https://app.fizzy.do";
 
+// Stores last created card for GET retrieval after POST 201
+let lastCreatedCard: Record<string, unknown> | null = null;
+
 const mockColumns = [
 	{
 		id: "col_1",
@@ -512,6 +515,12 @@ export const handlers = [
 			const identifier = params.cardIdentifier as string;
 			// Check if it's a number or an ID string
 			const cardNumber = Number(identifier);
+
+			// Check for newly created card (via POST 201 -> Location follow)
+			if (cardNumber === 100 && lastCreatedCard) {
+				return HttpResponse.json(lastCreatedCard);
+			}
+
 			const card = Number.isNaN(cardNumber)
 				? mockCards.find((c) => c.id === identifier) // lookup by ID
 				: mockCards.find((c) => c.number === cardNumber); // lookup by number
@@ -581,6 +590,7 @@ export const handlers = [
 		return HttpResponse.json(pageData, { headers });
 	}),
 
+	// Create card - returns 201 with Location header, no body (matches real API)
 	http.post(
 		`${BASE_URL}/:accountSlug/boards/:boardId/cards`,
 		async ({ request, params }) => {
@@ -599,7 +609,8 @@ export const handlers = [
 				);
 			}
 
-			return HttpResponse.json({
+			// Store for subsequent GET
+			lastCreatedCard = {
 				id: "card_new",
 				number: 100,
 				title: body.card.title,
@@ -615,7 +626,15 @@ export const handlers = [
 				created_at: "2024-03-01T00:00:00Z",
 				updated_at: "2024-03-01T00:00:00Z",
 				closed_at: null,
-				url: "https://app.fizzy.do/897362094/cards/100",
+				url: `${BASE_URL}/${params.accountSlug}/cards/100`,
+			};
+
+			// Return 201 with Location header, no body
+			return new HttpResponse(null, {
+				status: 201,
+				headers: {
+					Location: `${BASE_URL}/${params.accountSlug}/cards/100`,
+				},
 			});
 		},
 	),
