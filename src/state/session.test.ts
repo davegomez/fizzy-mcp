@@ -1,33 +1,64 @@
 import { beforeEach, describe, expect, test } from "vitest";
 import {
-	clearDefaultAccount,
+	clearSession,
 	getDefaultAccount,
-	setDefaultAccount,
+	getSession,
+	type SessionContext,
+	setSession,
 } from "./session.js";
 
 describe("session state", () => {
 	beforeEach(() => {
-		clearDefaultAccount();
+		clearSession();
 	});
 
-	test("should return undefined when no default account set", () => {
-		expect(getDefaultAccount()).toBeUndefined();
+	describe("setSession / getSession", () => {
+		test("stores full account and user context", () => {
+			const ctx: SessionContext = {
+				account: { slug: "897362094", name: "Acme Corp", id: "acc_123" },
+				user: { id: "user_456", name: "Jane Doe", role: "owner" },
+			};
+			setSession(ctx);
+			expect(getSession()).toEqual(ctx);
+		});
+
+		test("overwrites previous session", () => {
+			setSession({
+				account: { slug: "111", name: "First", id: "acc_1" },
+				user: { id: "u1", name: "User 1", role: "member" },
+			});
+			const newCtx: SessionContext = {
+				account: { slug: "222", name: "Second", id: "acc_2" },
+				user: { id: "u2", name: "User 2", role: "owner" },
+			};
+			setSession(newCtx);
+			expect(getSession()).toEqual(newCtx);
+		});
 	});
 
-	test("should store and retrieve default account", () => {
-		setDefaultAccount("897362094");
-		expect(getDefaultAccount()).toBe("897362094");
+	describe("getDefaultAccount", () => {
+		test("returns undefined when no session set", () => {
+			expect(getDefaultAccount()).toBeUndefined();
+		});
+
+		test("returns account slug from session", () => {
+			setSession({
+				account: { slug: "897362094", name: "Acme", id: "acc_123" },
+				user: { id: "u1", name: "User", role: "member" },
+			});
+			expect(getDefaultAccount()).toBe("897362094");
+		});
 	});
 
-	test("should overwrite previous default account", () => {
-		setDefaultAccount("111111111");
-		setDefaultAccount("222222222");
-		expect(getDefaultAccount()).toBe("222222222");
-	});
-
-	test("should clear default account", () => {
-		setDefaultAccount("897362094");
-		clearDefaultAccount();
-		expect(getDefaultAccount()).toBeUndefined();
+	describe("clearSession", () => {
+		test("clears all session state", () => {
+			setSession({
+				account: { slug: "897362094", name: "Acme", id: "acc_123" },
+				user: { id: "u1", name: "User", role: "member" },
+			});
+			clearSession();
+			expect(getSession()).toBeUndefined();
+			expect(getDefaultAccount()).toBeUndefined();
+		});
 	});
 });

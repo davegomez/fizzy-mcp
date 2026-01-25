@@ -1,15 +1,35 @@
-// Module-level state persists across tool invocations within a single MCP session.
-// This lets users set a default account once rather than passing it to every call.
-let defaultAccountSlug: string | undefined;
+import type { User } from "../schemas/identity.js";
+
+export type SessionSource = "explicit" | "auto-detect";
+
+export interface SessionContext {
+	account: {
+		slug: string;
+		name: string;
+		id: string;
+	};
+	user: {
+		id: string;
+		name: string;
+		role: User["role"];
+	};
+	source?: SessionSource;
+}
+
+let session: SessionContext | undefined;
+
+export function getSession(): SessionContext | undefined {
+	return session;
+}
+
+export function setSession(ctx: SessionContext): void {
+	session = ctx;
+}
 
 export function getDefaultAccount(): string | undefined {
-	return defaultAccountSlug;
+	return session?.account.slug;
 }
 
-export function setDefaultAccount(slug: string): void {
-	defaultAccountSlug = slug;
-}
-
-export function clearDefaultAccount(): void {
-	defaultAccountSlug = undefined;
+export function clearSession(): void {
+	session = undefined;
 }
