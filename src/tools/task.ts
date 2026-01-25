@@ -3,19 +3,8 @@ import { z } from "zod";
 import type { FizzyApiError } from "../client/errors.js";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import type { Card } from "../schemas/cards.js";
-import { getDefaultAccount } from "../state/session.js";
+import { resolveAccount } from "../state/account-resolver.js";
 import { isErr, type Result } from "../types/result.js";
-
-function resolveAccount(accountSlug?: string): string {
-	// Strip leading slash to normalize URLs pasted directly from Fizzy
-	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
-	if (!slug) {
-		throw new UserError(
-			"No account specified and no default set. Use fizzy_default_account first.",
-		);
-	}
-	return slug;
-}
 
 interface TaskFailure {
 	operation: string;
@@ -140,7 +129,7 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 		remove_tags?: string[];
 		steps?: string[];
 	}): Promise<string> => {
-		const slug = resolveAccount(args.account_slug);
+		const slug = await resolveAccount(args.account_slug);
 		const client = getFizzyClient();
 		const failures: TaskFailure[] = [];
 		const operations: TaskOperations = {};

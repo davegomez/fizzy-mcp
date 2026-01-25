@@ -1,4 +1,3 @@
-import { UserError } from "fastmcp";
 import { z } from "zod";
 import {
 	type FizzyClient,
@@ -11,19 +10,8 @@ import type {
 	ColumnSummary,
 } from "../schemas/boards.js";
 import { DEFAULT_LIMIT } from "../schemas/pagination.js";
-import { getDefaultAccount } from "../state/session.js";
+import { resolveAccount } from "../state/account-resolver.js";
 import { isErr, isOk } from "../types/result.js";
-
-function resolveAccount(accountSlug?: string): string {
-	// Strip leading slash to normalize URLs pasted directly from Fizzy
-	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
-	if (!slug) {
-		throw new UserError(
-			"No account specified and no default set. Use fizzy_default_account first.",
-		);
-	}
-	return slug;
-}
 
 // List boards API doesn't return columns; fetch them separately in parallel.
 async function hydrateColumnsForBoards(
@@ -108,7 +96,7 @@ To move a card from a column back to Maybe?, use \`fizzy_task\` with \`column_id
 		limit: number;
 		cursor?: string;
 	}) => {
-		const slug = resolveAccount(args.account_slug);
+		const slug = await resolveAccount(args.account_slug);
 		const client = getFizzyClient();
 		const result = await client.listBoards(slug, {
 			limit: args.limit,

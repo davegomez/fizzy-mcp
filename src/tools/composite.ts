@@ -2,19 +2,8 @@ import { UserError } from "fastmcp";
 import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import type { Card } from "../schemas/cards.js";
-import { getDefaultAccount } from "../state/session.js";
+import { resolveAccount } from "../state/account-resolver.js";
 import { isErr } from "../types/result.js";
-
-function resolveAccount(accountSlug?: string): string {
-	// Strip leading slash to normalize URLs pasted directly from Fizzy
-	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
-	if (!slug) {
-		throw new UserError(
-			"No account specified and no default set. Use fizzy_default_account first.",
-		);
-	}
-	return slug;
-}
 
 interface BulkCloseResult {
 	closed: number[];
@@ -110,7 +99,7 @@ Provide either \`card_numbers\` OR at least one filter. Filters AND together. On
 			throw new UserError("Bulk close requires force: true");
 		}
 
-		const slug = resolveAccount(args.account_slug);
+		const slug = await resolveAccount(args.account_slug);
 		const client = getFizzyClient();
 
 		let targetCardNumbers: number[];

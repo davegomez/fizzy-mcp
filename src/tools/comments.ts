@@ -1,21 +1,9 @@
-import { UserError } from "fastmcp";
 import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import { htmlToMarkdown } from "../client/markdown.js";
 import type { Comment } from "../schemas/comments.js";
-import { getDefaultAccount } from "../state/session.js";
+import { resolveAccount } from "../state/account-resolver.js";
 import { isErr } from "../types/result.js";
-
-function resolveAccount(accountSlug?: string): string {
-	// Strip leading slash to normalize URLs pasted directly from Fizzy
-	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
-	if (!slug) {
-		throw new UserError(
-			"No account specified and no default set. Use fizzy_default_account first.",
-		);
-	}
-	return slug;
-}
 
 function formatComment(comment: Comment): string {
 	// Convert HTML to markdown for LLM-friendly output
@@ -69,7 +57,7 @@ Post a message or note on a task for discussion or documentation.
 		card_number: number;
 		body: string;
 	}) => {
-		const slug = resolveAccount(args.account_slug);
+		const slug = await resolveAccount(args.account_slug);
 		const client = getFizzyClient();
 		const result = await client.createComment(
 			slug,

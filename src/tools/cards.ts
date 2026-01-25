@@ -4,19 +4,8 @@ import { getFizzyClient, toUserError } from "../client/index.js";
 import { htmlToMarkdown } from "../client/markdown.js";
 import type { Card, CardStatus } from "../schemas/cards.js";
 import { DEFAULT_LIMIT } from "../schemas/pagination.js";
-import { getDefaultAccount } from "../state/session.js";
+import { resolveAccount } from "../state/account-resolver.js";
 import { isErr } from "../types/result.js";
-
-function resolveAccount(accountSlug?: string): string {
-	// Strip leading slash to normalize URLs pasted directly from Fizzy
-	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
-	if (!slug) {
-		throw new UserError(
-			"No account specified and no default set. Use fizzy_set_default_account first.",
-		);
-	}
-	return slug;
-}
 
 function formatCard(card: Card): string {
 	// Convert HTML to markdown for LLM-friendly output
@@ -125,7 +114,7 @@ Find cards matching criteria or review board/column contents.
 		limit: number;
 		cursor?: string;
 	}) => {
-		const slug = resolveAccount(args.account_slug);
+		const slug = await resolveAccount(args.account_slug);
 		const client = getFizzyClient();
 		const result = await client.listCards(
 			slug,
@@ -199,7 +188,7 @@ Example: \`{"id": "card_abc", "number": 42, "title": "Fix bug", "status": "open"
 		card_number?: number;
 		card_id?: string;
 	}) => {
-		const slug = resolveAccount(args.account_slug);
+		const slug = await resolveAccount(args.account_slug);
 		const client = getFizzyClient();
 
 		// Prefer card_number over card_id
