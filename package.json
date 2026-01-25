@@ -12,6 +12,7 @@
 	"engines": {
 		"node": "^24"
 	},
+	"packageManager": "pnpm@10.12.1",
 	"type": "module",
 	"main": "dist/index.js",
 	"bin": {
@@ -23,6 +24,7 @@
 		"task-management"
 	],
 	"scripts": {
+		"preinstall": "npx only-allow pnpm",
 		"build": "tsc",
 		"dev": "tsx src/index.ts",
 		"test": "vitest",
