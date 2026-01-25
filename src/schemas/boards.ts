@@ -14,10 +14,14 @@ export const BoardSchema = z.object({
 	name: z.string(),
 	slug: z.string(),
 	description: z.string().nullable(),
-	columns: z.array(ColumnSummarySchema),
+	columns: z.array(ColumnSummarySchema).optional(),
 	created_at: z.string(),
 	updated_at: z.string(),
 	url: z.string().url(),
+});
+
+export const BoardWithColumnsSchema = BoardSchema.extend({
+	columns: z.array(ColumnSummarySchema),
 });
 
 export const CreateBoardInputSchema = z.object({
@@ -32,5 +36,6 @@ export const UpdateBoardInputSchema = z.object({
 
 export type ColumnSummary = z.infer<typeof ColumnSummarySchema>;
 export type Board = z.infer<typeof BoardSchema>;
+export type BoardWithColumns = z.infer<typeof BoardWithColumnsSchema>;
 export type CreateBoardInput = z.infer<typeof CreateBoardInputSchema>;
 export type UpdateBoardInput = z.infer<typeof UpdateBoardInputSchema>;

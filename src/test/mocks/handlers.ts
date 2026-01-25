@@ -271,7 +271,10 @@ export const handlers = [
 
 		const start = (page - 1) * perPage;
 		const end = start + perPage;
-		const pageData = mockBoards.slice(start, end);
+		// Real API doesn't return columns on list endpoint - strip them
+		const pageData = mockBoards
+			.slice(start, end)
+			.map(({ columns: _, ...board }) => board);
 
 		const headers: Record<string, string> = {};
 		if (end < mockBoards.length) {
