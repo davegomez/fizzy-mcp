@@ -49,6 +49,10 @@ MCP server exposing Fizzy task management API via FastMCP. Five layers:
 
 Node 24+, TypeScript strict, FastMCP, Zod v4, Vitest, MSW, Biome (tabs, double quotes).
 
+## Documentation
+
+When modifying project or code documentation (README, CONTRIBUTING, inline comments, JSDoc), invoke `/diataxis-documentation` to ensure content follows the Diataxis framework and serves user needs effectively.
+
 ## Commits
 
 Use [Conventional Commits](https://www.conventionalcommits.org/). No co-authoring footers.
