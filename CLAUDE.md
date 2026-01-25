@@ -48,3 +48,17 @@ MCP server exposing Fizzy task management API via FastMCP. Five layers:
 ## Stack
 
 Node 24+, TypeScript strict, FastMCP, Zod v4, Vitest, MSW, Biome (tabs, double quotes).
+
+## Commits
+
+Use [Conventional Commits](https://www.conventionalcommits.org/). No co-authoring footers.
+
+Format: `<type>(<scope>): <description>`
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `build`, `ci`, `perf`.
+
+- `feat`: new feature
+- `fix`: bug fix
+- `!` after type/scope indicates breaking change
+- Body optional, separated by blank line
+- Footers for `BREAKING CHANGE:`, issue refs, etc.
