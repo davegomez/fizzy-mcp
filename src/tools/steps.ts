@@ -1,19 +1,8 @@
 import { UserError } from "fastmcp";
 import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
-import { getDefaultAccount } from "../state/session.js";
+import { resolveAccount } from "../state/account-resolver.js";
 import { isErr } from "../types/result.js";
-
-function resolveAccount(accountSlug?: string): string {
-	// Strip leading slash to normalize URLs pasted directly from Fizzy
-	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
-	if (!slug) {
-		throw new UserError(
-			"No account specified and no default set. Use fizzy_default_account first.",
-		);
-	}
-	return slug;
-}
 
 export const completeStepTool = {
 	name: "fizzy_complete_step",
@@ -53,7 +42,7 @@ Find a step by content substring or position and mark it done.
 		card_number: number;
 		step: string | number;
 	}) => {
-		const slug = resolveAccount(args.account_slug);
+		const slug = await resolveAccount(args.account_slug);
 		const client = getFizzyClient();
 
 		// Fetch steps for the card
