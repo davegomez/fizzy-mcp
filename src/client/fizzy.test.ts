@@ -1,5 +1,7 @@
+import { HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { ENV_BASE_URL, ENV_TOKEN, ENV_TOKEN_LEGACY } from "../config.js";
+import { server } from "../test/mocks/server.js";
 import { isErr, isOk } from "../types/result.js";
 import {
 	AuthenticationError,
@@ -9,6 +11,8 @@ import {
 	ValidationError,
 } from "./errors.js";
 import { FizzyClient, getFizzyClient, resetClient } from "./fizzy.js";
+
+const BASE_URL = "https://app.fizzy.do";
 
 describe("FizzyClient", () => {
 	const originalEnv = process.env;
@@ -679,10 +683,10 @@ describe("FizzyClient", () => {
 			}
 		});
 
-		test("should filter by board_id", async () => {
+		test("should filter by board_ids", async () => {
 			const client = new FizzyClient();
 			const result = await client.listCards("897362094", {
-				board_id: "board_1",
+				board_ids: ["board_1"],
 			});
 
 			expect(isOk(result)).toBe(true);
@@ -707,15 +711,48 @@ describe("FizzyClient", () => {
 			}
 		});
 
-		test("should filter by status", async () => {
+		test("should filter by indexed_by=closed", async () => {
 			const client = new FizzyClient();
-			const result = await client.listCards("897362094", { status: "closed" });
+			const result = await client.listCards("897362094", {
+				indexed_by: "closed",
+			});
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
 				expect(result.value.items.length).toBe(1);
-				expect(result.value.items[0]?.status).toBe("closed");
+				expect(result.value.items[0]?.closed).toBe(true);
 			}
+		});
+
+		test("should serialize board_ids[] as array params", async () => {
+			server.use(
+				http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+					const url = new URL(request.url);
+					expect(url.searchParams.getAll("board_ids[]")).toEqual([
+						"board_1",
+						"board_2",
+					]);
+					return HttpResponse.json([]);
+				}),
+			);
+
+			const client = new FizzyClient();
+			await client.listCards("897362094", {
+				board_ids: ["board_1", "board_2"],
+			});
+		});
+
+		test("should serialize indexed_by as single param", async () => {
+			server.use(
+				http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+					const url = new URL(request.url);
+					expect(url.searchParams.get("indexed_by")).toBe("not_now");
+					return HttpResponse.json([]);
+				}),
+			);
+
+			const client = new FizzyClient();
+			await client.listCards("897362094", { indexed_by: "not_now" });
 		});
 
 		test("should return ValidationError for invalid cursor", async () => {
