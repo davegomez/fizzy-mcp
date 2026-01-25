@@ -205,12 +205,22 @@ Replace `npx -y @silky/fizzy-mcp` with `node /absolute/path/to/fizzy-mcp/dist/in
 
 ## Configuration Reference
 
-| Variable         | Required | Default                | Description                   |
-| ---------------- | -------- | ---------------------- | ----------------------------- |
-| `FIZZY_TOKEN`    | Yes      | —                      | API token from Fizzy settings |
-| `FIZZY_BASE_URL` | No       | `https://app.fizzy.do` | API base URL                  |
+| Variable         | Required | Default                | Description                                    |
+| ---------------- | -------- | ---------------------- | ---------------------------------------------- |
+| `FIZZY_TOKEN`    | Yes      | —                      | API token from Fizzy settings                  |
+| `FIZZY_ACCOUNT`  | No       | —                      | Default account slug (e.g., `897362094`)       |
+| `FIZZY_BASE_URL` | No       | `https://app.fizzy.do` | API base URL                                   |
 
 > **Note:** `FIZZY_ACCESS_TOKEN` is supported for backward compatibility but deprecated.
+
+### Account Resolution
+
+Tools resolve `account_slug` in this order:
+
+1. Explicit `account_slug` parameter on the tool call
+2. Session default (set via `fizzy_account` tool with `action: "set"`)
+3. `FIZZY_ACCOUNT` environment variable
+4. Auto-detect (if user has exactly one account)
 
 ---
 
@@ -218,14 +228,17 @@ Replace `npx -y @silky/fizzy-mcp` with `node /absolute/path/to/fizzy-mcp/dist/in
 
 ### fizzy_account
 
-Gets or sets the default account for subsequent tool calls.
+Gets, sets, or lists accounts for subsequent tool calls.
 
-| Parameter      | Type               | Required  | Description                 |
-| -------------- | ------------------ | --------- | --------------------------- |
-| `action`       | `"get"` \| `"set"` | Yes       | Action to perform           |
-| `account_slug` | string             | For `set` | Account slug from Fizzy URL |
+| Parameter      | Type                              | Required  | Description                 |
+| -------------- | --------------------------------- | --------- | --------------------------- |
+| `action`       | `"get"` \| `"set"` \| `"list"` | Yes       | Action to perform           |
+| `account_slug` | string                            | For `set` | Account slug from Fizzy URL |
 
-**Returns:** `{ "action": "...", "account_slug": "..." | null }`
+**Returns:**
+- `get`: `{ "action": "get", "account_slug": "897362094" | null }`
+- `set`: `{ "action": "set", "account_slug": "897362094" }`
+- `list`: `{ "action": "list", "accounts": [{ "slug": "...", "name": "...", "id": "..." }] }`
 
 ---
 
@@ -374,13 +387,14 @@ List operations return:
 
 ## Error Reference
 
-| Error                                     | Cause                                            |
-| ----------------------------------------- | ------------------------------------------------ |
-| "No account specified and no default set" | No `account_slug` and `fizzy_account` not called |
-| "Card #N not found"                       | Card number does not exist                       |
-| "Board not found"                         | Invalid `board_id`                               |
-| "Tag not found"                           | Invalid tag title in `fizzy_bulk_close`          |
-| "Bulk close requires force: true"         | Missing confirmation flag                        |
+| Error                                                                                              | Cause                                            |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
+| "No account specified. Set FIZZY_ACCOUNT env var, use fizzy_account tool, or pass account_slug." | No account resolvable via any method             |
+| "Account \"...\" not found"                                                                       | Invalid slug passed to `fizzy_account` set       |
+| "Card #N not found"                                                                                | Card number does not exist                       |
+| "Board not found"                                                                                  | Invalid `board_id`                               |
+| "Tag not found"                                                                                    | Invalid tag title in `fizzy_bulk_close`          |
+| "Bulk close requires force: true"                                                                  | Missing confirmation flag                        |
 
 ---
 
