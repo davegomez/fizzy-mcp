@@ -1,4 +1,5 @@
 import parseLinkHeader from "parse-link-header";
+import { ENV_BASE_URL, ENV_TOKEN, getToken } from "../config.js";
 import type { Board } from "../schemas/boards.js";
 import type { Card, CardFilters } from "../schemas/cards.js";
 import type { Column } from "../schemas/columns.js";
@@ -62,12 +63,12 @@ export class FizzyClient {
 	private readonly token: string;
 
 	constructor() {
-		const token = process.env.FIZZY_ACCESS_TOKEN;
+		const token = getToken();
 		if (!token) {
-			throw new Error("FIZZY_ACCESS_TOKEN environment variable is required");
+			throw new Error(`${ENV_TOKEN} environment variable is required`);
 		}
 		this.token = token;
-		this.baseUrl = process.env.FIZZY_BASE_URL || DEFAULT_BASE_URL;
+		this.baseUrl = process.env[ENV_BASE_URL] || DEFAULT_BASE_URL;
 	}
 
 	async request<T>(
