@@ -260,16 +260,15 @@ Lists boards in the account with column summaries.
 
 Searches for cards with filters.
 
-| Parameter      | Type                                   | Required | Description                        |
-| -------------- | -------------------------------------- | -------- | ---------------------------------- |
-| `account_slug` | string                                 | No       | Account slug                       |
-| `board_id`     | string                                 | No       | Filter by board                    |
-| `column_id`    | string                                 | No       | Filter by column                   |
-| `tag_ids`      | string[]                               | No       | Filter by ALL tags                 |
-| `assignee_ids` | string[]                               | No       | Filter by ANY assignees            |
-| `status`       | `"open"` \| `"closed"` \| `"deferred"` | No       | Filter by status                   |
-| `limit`        | number                                 | No       | Items per page (1-100, default 25) |
-| `cursor`       | string                                 | No       | Pagination cursor                  |
+| Parameter      | Type                                                                          | Required | Description                        |
+| -------------- | ----------------------------------------------------------------------------- | -------- | ---------------------------------- |
+| `account_slug` | string                                                                        | No       | Account slug                       |
+| `board_id`     | string                                                                        | No       | Filter by board                    |
+| `tag_ids`      | string[]                                                                      | No       | Filter by ALL tags                 |
+| `assignee_ids` | string[]                                                                      | No       | Filter by ANY assignees            |
+| `indexed_by`   | `"closed"` \| `"not_now"` \| `"all"` \| `"stalled"` \| `"postponing_soon"` \| `"golden"` | No       | Filter by index                    |
+| `limit`        | number                                                                        | No       | Items per page (1-100, default 25) |
+| `cursor`       | string                                                                        | No       | Pagination cursor                  |
 
 **Returns:** `{ "items": Card[], "pagination": {...} }`
 
