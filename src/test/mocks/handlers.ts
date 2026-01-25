@@ -197,7 +197,7 @@ export const handlers = [
 				{
 					id: "acc_123",
 					name: "Test Account",
-					slug: "897362094",
+					slug: "/897362094",
 					created_at: "2024-01-01T00:00:00Z",
 					user: {
 						id: "user_123",
