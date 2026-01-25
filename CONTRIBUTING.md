@@ -1,5 +1,10 @@
 # Contributing
 
+## Prerequisites
+
+- **Node.js 24+** and **pnpm** (npm/yarn blocked)
+- **`/diataxis-documentation` skill** for documentation changes: [abatilo/vimrc/plugins/abatilo-core/skills/diataxis-documentation](https://github.com/abatilo/vimrc/tree/master/plugins/abatilo-core/skills/diataxis-documentation)
+
 ## How to Set Up the Development Environment
 
 1. Clone and install dependencies:
