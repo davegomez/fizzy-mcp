@@ -768,6 +768,45 @@ describe("FizzyClient", () => {
 		});
 	});
 
+	describe("getCardById", () => {
+		beforeEach(() => {
+			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		});
+
+		test("should return card by ID", async () => {
+			const client = new FizzyClient();
+			const result = await client.getCardById("897362094", "card_1");
+
+			expect(isOk(result)).toBe(true);
+			if (isOk(result)) {
+				expect(result.value.id).toBe("card_1");
+				expect(result.value.number).toBe(1);
+				expect(result.value.title).toBe("Fix login bug");
+			}
+		});
+
+		test("should return NotFoundError for missing card ID", async () => {
+			const client = new FizzyClient();
+			const result = await client.getCardById("897362094", "nonexistent_id");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(NotFoundError);
+			}
+		});
+
+		test("should return AuthenticationError on 401", async () => {
+			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			const client = new FizzyClient();
+			const result = await client.getCardById("897362094", "card_1");
+
+			expect(isErr(result)).toBe(true);
+			if (isErr(result)) {
+				expect(result.error).toBeInstanceOf(AuthenticationError);
+			}
+		});
+	});
+
 	describe("createCard", () => {
 		beforeEach(() => {
 			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
