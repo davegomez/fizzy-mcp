@@ -44,7 +44,8 @@ const mockCards = [
 		number: 1,
 		title: "Fix login bug",
 		description_html: "<p>Users cannot login with SSO</p>",
-		status: "open",
+		status: "published",
+		closed: false,
 		board_id: "board_1",
 		column_id: "col_1",
 		tags: [{ id: "tag_1", title: "Bug", color: "#ff0000" }],
@@ -64,7 +65,8 @@ const mockCards = [
 		number: 2,
 		title: "Add dark mode",
 		description_html: "<p>Implement dark mode theme</p>",
-		status: "open",
+		status: "published",
+		closed: false,
 		board_id: "board_1",
 		column_id: "col_2",
 		tags: [{ id: "tag_2", title: "Feature", color: "#00ff00" }],
@@ -82,7 +84,8 @@ const mockCards = [
 		number: 3,
 		title: "Write API docs",
 		description_html: null,
-		status: "closed",
+		status: "published",
+		closed: true,
 		board_id: "board_1",
 		column_id: "col_3",
 		tags: [{ id: "tag_3", title: "Documentation", color: "#0000ff" }],
@@ -102,7 +105,8 @@ const mockCards = [
 		number: 4,
 		title: "Inbox card",
 		description_html: "<p>Card in inbox</p>",
-		status: "open",
+		status: "published",
+		closed: false,
 		board_id: "board_2",
 		column_id: null,
 		tags: [],
@@ -546,20 +550,21 @@ export const handlers = [
 		// Apply filters
 		let filteredCards = [...mockCards];
 
-		const boardId = url.searchParams.get("board_id");
-		if (boardId) {
-			filteredCards = filteredCards.filter((c) => c.board_id === boardId);
+		const boardIds = url.searchParams.getAll("board_ids[]");
+		if (boardIds.length > 0) {
+			filteredCards = filteredCards.filter((c) =>
+				boardIds.includes(c.board_id),
+			);
 		}
 
-		const columnId = url.searchParams.get("column_id");
-		if (columnId) {
-			filteredCards = filteredCards.filter((c) => c.column_id === columnId);
+		const indexedBy = url.searchParams.get("indexed_by");
+		if (indexedBy === "closed") {
+			filteredCards = filteredCards.filter((c) => c.closed);
+		} else if (indexedBy === "not_now") {
+			// Mock: no cards marked as not_now in test data
+			filteredCards = [];
 		}
-
-		const status = url.searchParams.get("status");
-		if (status) {
-			filteredCards = filteredCards.filter((c) => c.status === status);
-		}
+		// "all" returns everything, other values not filtered in mock
 
 		const tagIds = url.searchParams.getAll("tag_ids[]");
 		if (tagIds.length > 0) {
