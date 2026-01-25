@@ -2,8 +2,12 @@
 
 ## Prerequisites
 
-- **Node.js 24+** and **pnpm** (npm/yarn blocked)
-- **`/diataxis-documentation` skill** for documentation changes: [abatilo/vimrc/plugins/abatilo-core/skills/diataxis-documentation](https://github.com/abatilo/vimrc/tree/master/plugins/abatilo-core/skills/diataxis-documentation)
+- **Node.js 24+**
+- **pnpm** via [Corepack](https://nodejs.org/api/corepack.html):
+  ```bash
+  corepack enable
+  ```
+  Corepack reads the `packageManager` field in `package.json` and ensures the correct pnpm version is used automatically.
 
 ## How to Set Up the Development Environment
 
@@ -11,18 +15,18 @@
    ```bash
    git clone https://github.com/davegomez/fizzy-mcp.git
    cd fizzy-mcp
-   npm install
+   pnpm install
    ```
 
 2. Verify setup:
    ```bash
-   npm run check
+   pnpm check
    ```
    You should see `Checked N files` with no errors.
 
 3. Run tests:
    ```bash
-   npm run test:run
+   pnpm test:run
    ```
    All 373 tests should pass.
 
@@ -110,7 +114,7 @@
 
 5. Verify:
    ```bash
-   npm run check && npm run test:run
+   pnpm check && pnpm test:run
    ```
 
 ## How to Submit a Pull Request
@@ -127,7 +131,7 @@
 
 3. Run all checks before pushing:
    ```bash
-   npm run check && npm run test:run
+   pnpm check && pnpm test:run
    ```
 
 4. Push and create PR:
@@ -206,19 +210,19 @@ Each domain follows this pattern:
 
 | Command | Purpose |
 |---------|---------|
-| `npm run dev` | Run with tsx (live reload) |
-| `npm run build` | Compile TypeScript to `dist/` |
-| `npm run test` | Vitest watch mode |
-| `npm run test:run` | Run tests once |
-| `npm run lint` | Check with Biome |
-| `npm run lint:fix` | Auto-fix lint issues |
-| `npm run check` | Lint + typecheck (CI-ready) |
+| `pnpm dev` | Run with tsx (live reload) |
+| `pnpm build` | Compile TypeScript to `dist/` |
+| `pnpm test` | Vitest watch mode |
+| `pnpm test:run` | Run tests once |
+| `pnpm lint` | Check with Biome |
+| `pnpm lint:fix` | Auto-fix lint issues |
+| `pnpm check` | Lint + typecheck (CI-ready) |
 
 ### Running Specific Tests
 
 ```bash
-npm test -- src/client/fizzy.test.ts     # Single file
-npm test -- -t "creates a card"          # By test name pattern
+pnpm test -- src/client/fizzy.test.ts     # Single file
+pnpm test -- -t "creates a card"          # By test name pattern
 ```
 
 ---

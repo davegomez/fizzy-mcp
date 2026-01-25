@@ -31,7 +31,6 @@
 		"access": "public"
 	},
 	"scripts": {
-		"preinstall": "npx only-allow pnpm",
 		"build": "tsc",
 		"dev": "tsx src/index.ts",
 		"test": "vitest",
