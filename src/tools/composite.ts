@@ -118,17 +118,10 @@ Provide either \`card_numbers\` OR at least one filter. Filters AND together. On
 			}
 
 			// Build filters for listCards
+			// Default search excludes closed cards, which is what we want
 			const filters: {
-				column_id?: string;
 				tag_ids?: string[];
-				status?: "open";
-			} = {
-				status: "open", // Only close open cards
-			};
-
-			if (args.column_id) {
-				filters.column_id = args.column_id;
-			}
+			} = {};
 
 			if (args.tag_title) {
 				const tagId = await getTagIdByTitle(slug, args.tag_title);
@@ -147,6 +140,14 @@ Provide either \`card_numbers\` OR at least one filter. Filters AND together. On
 			}
 
 			let cards = listResult.value.items;
+
+			// Filter out already-closed cards (API default excludes them but be explicit)
+			cards = cards.filter((card) => !card.closed);
+
+			// Apply column_id filter client-side (API doesn't support it)
+			if (args.column_id) {
+				cards = cards.filter((card) => card.column_id === args.column_id);
+			}
 
 			// Apply age filter client-side
 			if (args.older_than_days !== undefined) {

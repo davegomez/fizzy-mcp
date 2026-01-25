@@ -21,7 +21,8 @@ const mockCard = {
 	number: 42,
 	title: "Test Card",
 	description_html: null,
-	status: "open" as const,
+	status: "published" as const,
+	closed: false,
 	board_id: "board_1",
 	column_id: "col_1",
 	tags: [{ id: "tag_1", title: "Bug", color: "red" }],
@@ -140,11 +141,15 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should filter by column_id", async () => {
-		let capturedFilters: URLSearchParams | undefined;
+		// Card in col_1 (should be closed)
+		const cardInCol1 = { ...mockCard, column_id: "col_1" };
+		// Card in different column (should be excluded)
+		const cardInCol2 = { ...mockCard2, column_id: "col_2" };
+
 		server.use(
-			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
-				capturedFilters = new URL(request.url).searchParams;
-				return HttpResponse.json([mockCard, mockCard2]);
+			http.get(`${BASE_URL}/:accountSlug/cards`, () => {
+				// API returns all cards, tool filters client-side by column_id
+				return HttpResponse.json([cardInCol1, cardInCol2]);
 			}),
 			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`, () => {
 				return new HttpResponse(null, { status: 204 });
@@ -157,11 +162,10 @@ describe("bulkCloseCardsTool", () => {
 			force: true,
 		});
 
-		expect(capturedFilters?.get("status")).toBe("open");
-		expect(capturedFilters?.get("column_id")).toBe("col_1");
 		const parsed = JSON.parse(result);
-		expect(parsed.closed).toEqual([42, 43]);
-		expect(parsed.success_count).toBe(2);
+		// Only card in col_1 should be closed
+		expect(parsed.closed).toEqual([42]);
+		expect(parsed.success_count).toBe(1);
 	});
 
 	test("should filter by tag_title", async () => {
@@ -185,7 +189,6 @@ describe("bulkCloseCardsTool", () => {
 			force: true,
 		});
 
-		expect(capturedCardFilters?.get("status")).toBe("open");
 		expect(capturedCardFilters?.getAll("tag_ids[]")).toEqual(["tag_1"]);
 		const parsed = JSON.parse(result);
 		expect(parsed.closed).toEqual([42]);
@@ -278,8 +281,7 @@ describe("bulkCloseCardsTool", () => {
 			force: true,
 		});
 
-		expect(capturedFilters?.get("status")).toBe("open");
-		expect(capturedFilters?.get("column_id")).toBe("col_1");
+		// tag_ids passed to API, column_id and age filtered client-side
 		expect(capturedFilters?.getAll("tag_ids[]")).toEqual(["tag_1"]);
 		const parsed = JSON.parse(result);
 		// Only cardMatchingAll should be closed (matches age filter)

@@ -29,7 +29,8 @@ const mockCard = {
 	number: 42,
 	title: "Test Card",
 	description_html: null,
-	status: "open" as const,
+	status: "published" as const,
+	closed: false,
 	board_id: "board_1",
 	column_id: null,
 	tags: [{ id: "tag_1", title: "Bug", color: "red" }],
@@ -268,7 +269,8 @@ describe("taskTool - update mode", () => {
 
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.status_changed).toBe("not_now");
-		expect(parsed.card.status).toBe("deferred");
+		// not_now defers the card but doesn't close it - lifecycle status remains "open"
+		expect(parsed.card.status).toBe("open");
 	});
 
 	test("should add tags with pre-check", async () => {
@@ -398,7 +400,7 @@ describe("taskTool - update mode", () => {
 	});
 
 	test("should handle void return from reopenCard", async () => {
-		const closedCard = { ...mockCard, status: "closed" as const };
+		const closedCard = { ...mockCard, closed: true };
 		server.use(
 			http.get(`${BASE_URL}/:accountSlug/cards/:cardNumber`, () => {
 				return HttpResponse.json(closedCard);
