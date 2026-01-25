@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { NotFoundError } from "../client/errors.js";
 import * as client from "../client/index.js";
+import { ENV_TOKEN } from "../config.js";
 import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
 import { err, ok } from "../types/result.js";
 import { completeStepTool } from "./steps.js";
@@ -15,7 +16,7 @@ describe("completeStepTool", () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();
 		clearDefaultAccount();
-		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+		process.env[ENV_TOKEN] = "test-token";
 	});
 
 	test("should throw when no account and no default set", async () => {
