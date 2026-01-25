@@ -1,4 +1,5 @@
 import { UserError } from "fastmcp";
+import { ENV_TOKEN } from "../config.js";
 
 export interface ErrorContext {
 	resourceType?: string;
@@ -29,7 +30,7 @@ export class FizzyApiError extends Error {
 
 export class AuthenticationError extends FizzyApiError {
 	constructor() {
-		super(401, "Authentication failed. Check your FIZZY_ACCESS_TOKEN.");
+		super(401, `Authentication failed. Check your ${ENV_TOKEN}.`);
 		this.name = "AuthenticationError";
 	}
 }
@@ -81,7 +82,7 @@ function formatInstructiveMessage(
 	const listTool = RESOURCE_LIST_TOOLS[resource] ?? "fizzy_list_boards";
 
 	if (error instanceof AuthenticationError) {
-		return "[UNAUTHORIZED] Authentication failed. Set FIZZY_ACCESS_TOKEN environment variable with valid API token.";
+		return `[UNAUTHORIZED] Authentication failed. Set ${ENV_TOKEN} environment variable with valid API token.`;
 	}
 
 	if (error instanceof ForbiddenError) {
