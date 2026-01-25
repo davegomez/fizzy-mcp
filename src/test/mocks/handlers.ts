@@ -497,16 +497,22 @@ export const handlers = [
 		return HttpResponse.json([]);
 	}),
 
+	// Get card by number or ID
 	http.get(
-		`${BASE_URL}/:accountSlug/cards/:cardNumber`,
+		`${BASE_URL}/:accountSlug/cards/:cardIdentifier`,
 		({ request, params }) => {
 			const auth = request.headers.get("Authorization");
 			if (!auth || auth === "Bearer invalid") {
 				return HttpResponse.json({}, { status: 401 });
 			}
 
-			const cardNumber = Number(params.cardNumber);
-			const card = mockCards.find((c) => c.number === cardNumber);
+			const identifier = params.cardIdentifier as string;
+			// Check if it's a number or an ID string
+			const cardNumber = Number(identifier);
+			const card = Number.isNaN(cardNumber)
+				? mockCards.find((c) => c.id === identifier) // lookup by ID
+				: mockCards.find((c) => c.number === cardNumber); // lookup by number
+
 			if (!card) {
 				return HttpResponse.json({}, { status: 404 });
 			}
