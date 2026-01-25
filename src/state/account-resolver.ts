@@ -63,7 +63,10 @@ async function autoDetectAccount(): Promise<string | undefined> {
 
 	// Single account - auto-select and populate session
 	const [account] = accounts;
-	if (!account) return undefined; // Safety check, shouldn't reach here
+	if (!account) {
+		cachedAutoDetect = null;
+		return undefined;
+	}
 	const slug = normalizeSlug(account.slug);
 	setSession({
 		account: {
