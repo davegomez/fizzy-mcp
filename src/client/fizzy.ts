@@ -534,13 +534,13 @@ export class FizzyClient {
 	async closeCard(
 		accountSlug: string,
 		cardNumber: number,
-	): Promise<Result<Card, FizzyApiError>> {
-		const result = await this.request<Card>(
+	): Promise<Result<void, FizzyApiError>> {
+		const result = await this.request<void>(
 			"POST",
-			`/${accountSlug}/cards/${cardNumber}/close`,
+			`/${accountSlug}/cards/${cardNumber}/closure`,
 		);
 		if (result.ok) {
-			return ok(result.value.data);
+			return ok(undefined);
 		}
 		return result;
 	}
@@ -548,14 +548,14 @@ export class FizzyClient {
 	async reopenCard(
 		accountSlug: string,
 		cardNumber: number,
-	): Promise<Result<Card, FizzyApiError>> {
-		// DELETE on /close removes the closed state, reopening the card
-		const result = await this.request<Card>(
+	): Promise<Result<void, FizzyApiError>> {
+		// DELETE on /closure removes the closed state, reopening the card
+		const result = await this.request<void>(
 			"DELETE",
-			`/${accountSlug}/cards/${cardNumber}/close`,
+			`/${accountSlug}/cards/${cardNumber}/closure`,
 		);
 		if (result.ok) {
-			return ok(result.value.data);
+			return ok(undefined);
 		}
 		return result;
 	}
@@ -565,20 +565,20 @@ export class FizzyClient {
 		cardNumber: number,
 		columnId: string,
 		position?: "top" | "bottom",
-	): Promise<Result<Card, FizzyApiError>> {
+	): Promise<Result<void, FizzyApiError>> {
 		const body: { column_id: string; position?: string } = {
 			column_id: columnId,
 		};
 		if (position) {
 			body.position = position;
 		}
-		const result = await this.request<Card>(
+		const result = await this.request<void>(
 			"POST",
 			`/${accountSlug}/cards/${cardNumber}/triage`,
 			{ body },
 		);
 		if (result.ok) {
-			return ok(result.value.data);
+			return ok(undefined);
 		}
 		return result;
 	}
@@ -586,14 +586,14 @@ export class FizzyClient {
 	async unTriageCard(
 		accountSlug: string,
 		cardNumber: number,
-	): Promise<Result<Card, FizzyApiError>> {
+	): Promise<Result<void, FizzyApiError>> {
 		// DELETE on /triage removes column assignment, returning card to inbox
-		const result = await this.request<Card>(
+		const result = await this.request<void>(
 			"DELETE",
 			`/${accountSlug}/cards/${cardNumber}/triage`,
 		);
 		if (result.ok) {
-			return ok(result.value.data);
+			return ok(undefined);
 		}
 		return result;
 	}
@@ -601,13 +601,13 @@ export class FizzyClient {
 	async notNowCard(
 		accountSlug: string,
 		cardNumber: number,
-	): Promise<Result<Card, FizzyApiError>> {
-		const result = await this.request<Card>(
+	): Promise<Result<void, FizzyApiError>> {
+		const result = await this.request<void>(
 			"POST",
 			`/${accountSlug}/cards/${cardNumber}/not_now`,
 		);
 		if (result.ok) {
-			return ok(result.value.data);
+			return ok(undefined);
 		}
 		return result;
 	}
