@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { ENV_BASE_URL, ENV_TOKEN, ENV_TOKEN_LEGACY } from "../config.js";
 import { isErr, isOk } from "../types/result.js";
 import {
 	AuthenticationError,
@@ -23,20 +24,35 @@ describe("FizzyClient", () => {
 	});
 
 	describe("constructor", () => {
-		test("should throw when FIZZY_ACCESS_TOKEN is missing", () => {
-			delete process.env.FIZZY_ACCESS_TOKEN;
-			expect(() => new FizzyClient()).toThrow("FIZZY_ACCESS_TOKEN");
+		test("should throw when token env var is missing", () => {
+			delete process.env[ENV_TOKEN];
+			delete process.env[ENV_TOKEN_LEGACY];
+			expect(() => new FizzyClient()).toThrow(ENV_TOKEN);
 		});
 
-		test("should use default base URL when FIZZY_BASE_URL not set", () => {
-			process.env.FIZZY_ACCESS_TOKEN = "test-token";
+		test("should use FIZZY_TOKEN when set", () => {
+			process.env[ENV_TOKEN] = "test-token";
+			const client = new FizzyClient();
+			expect(client.baseUrl).toBe("https://app.fizzy.do");
+		});
+
+		test("should fall back to FIZZY_ACCESS_TOKEN for backward compatibility", () => {
+			delete process.env[ENV_TOKEN];
+			process.env[ENV_TOKEN_LEGACY] = "legacy-token";
+			const client = new FizzyClient();
+			expect(client.baseUrl).toBe("https://app.fizzy.do");
+		});
+
+		test("should prefer FIZZY_TOKEN over FIZZY_ACCESS_TOKEN", () => {
+			process.env[ENV_TOKEN] = "primary-token";
+			process.env[ENV_TOKEN_LEGACY] = "legacy-token";
 			const client = new FizzyClient();
 			expect(client.baseUrl).toBe("https://app.fizzy.do");
 		});
 
 		test("should use custom base URL from environment", () => {
-			process.env.FIZZY_ACCESS_TOKEN = "test-token";
-			process.env.FIZZY_BASE_URL = "https://custom.fizzy.do";
+			process.env[ENV_TOKEN] = "test-token";
+			process.env[ENV_BASE_URL] = "https://custom.fizzy.do";
 			const client = new FizzyClient();
 			expect(client.baseUrl).toBe("https://custom.fizzy.do");
 		});
@@ -44,7 +60,7 @@ describe("FizzyClient", () => {
 
 	describe("whoami", () => {
 		test("should return identity on success", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 			const client = new FizzyClient();
 			const result = await client.whoami();
 
@@ -56,7 +72,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.whoami();
 
@@ -69,7 +85,7 @@ describe("FizzyClient", () => {
 
 	describe("error handling", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return ForbiddenError on 403", async () => {
@@ -126,7 +142,7 @@ describe("FizzyClient", () => {
 
 	describe("getFizzyClient", () => {
 		test("should return singleton instance", () => {
-			process.env.FIZZY_ACCESS_TOKEN = "test-token";
+			process.env[ENV_TOKEN] = "test-token";
 			const client1 = getFizzyClient();
 			const client2 = getFizzyClient();
 			expect(client1).toBe(client2);
@@ -135,7 +151,7 @@ describe("FizzyClient", () => {
 
 	describe("listBoards", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return paginated boards with first page", async () => {
@@ -199,7 +215,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.listBoards("897362094");
 
@@ -212,7 +228,7 @@ describe("FizzyClient", () => {
 
 	describe("getBoard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return board details", async () => {
@@ -238,7 +254,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.getBoard("897362094", "board_1");
 
@@ -251,7 +267,7 @@ describe("FizzyClient", () => {
 
 	describe("createBoard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should create board with name only", async () => {
@@ -297,7 +313,7 @@ describe("FizzyClient", () => {
 
 	describe("updateBoard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should update board name", async () => {
@@ -339,7 +355,7 @@ describe("FizzyClient", () => {
 
 	describe("listTags", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return paginated tags with first page", async () => {
@@ -382,7 +398,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.listTags("897362094");
 
@@ -395,7 +411,7 @@ describe("FizzyClient", () => {
 
 	describe("listColumns", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return paginated columns with first page", async () => {
@@ -438,7 +454,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.listColumns("897362094", "board_1");
 
@@ -451,7 +467,7 @@ describe("FizzyClient", () => {
 
 	describe("getColumn", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return column details", async () => {
@@ -482,7 +498,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.getColumn("897362094", "board_1", "col_1");
 
@@ -495,7 +511,7 @@ describe("FizzyClient", () => {
 
 	describe("createColumn", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should create column with name only", async () => {
@@ -540,7 +556,7 @@ describe("FizzyClient", () => {
 
 	describe("updateColumn", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should update column name", async () => {
@@ -595,7 +611,7 @@ describe("FizzyClient", () => {
 
 	describe("deleteColumn", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should delete column", async () => {
@@ -620,7 +636,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.deleteColumn("897362094", "board_1", "col_1");
 
@@ -633,7 +649,7 @@ describe("FizzyClient", () => {
 
 	describe("listCards", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return paginated cards with first page", async () => {
@@ -717,7 +733,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.listCards("897362094");
 
@@ -730,7 +746,7 @@ describe("FizzyClient", () => {
 
 	describe("getCard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return card by number", async () => {
@@ -757,7 +773,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.getCard("897362094", 1);
 
@@ -770,7 +786,7 @@ describe("FizzyClient", () => {
 
 	describe("getCardById", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return card by ID", async () => {
@@ -796,7 +812,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.getCardById("897362094", "card_1");
 
@@ -809,7 +825,7 @@ describe("FizzyClient", () => {
 
 	describe("createCard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should create card with title only", async () => {
@@ -855,7 +871,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.createCard("897362094", "board_1", {
 				title: "Test",
@@ -870,7 +886,7 @@ describe("FizzyClient", () => {
 
 	describe("updateCard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should update card title", async () => {
@@ -911,7 +927,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.updateCard("897362094", 1, {
 				title: "Test",
@@ -926,7 +942,7 @@ describe("FizzyClient", () => {
 
 	describe("deleteCard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should delete card", async () => {
@@ -947,7 +963,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.deleteCard("897362094", 1);
 
@@ -960,7 +976,7 @@ describe("FizzyClient", () => {
 
 	describe("closeCard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should close card", async () => {
@@ -985,7 +1001,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.closeCard("897362094", 1);
 
@@ -998,7 +1014,7 @@ describe("FizzyClient", () => {
 
 	describe("reopenCard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should reopen card", async () => {
@@ -1023,7 +1039,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.reopenCard("897362094", 3);
 
@@ -1036,7 +1052,7 @@ describe("FizzyClient", () => {
 
 	describe("triageCard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should triage card to column", async () => {
@@ -1070,7 +1086,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.triageCard("897362094", 4, "col_1");
 
@@ -1083,7 +1099,7 @@ describe("FizzyClient", () => {
 
 	describe("unTriageCard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should untriage card back to inbox", async () => {
@@ -1107,7 +1123,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.unTriageCard("897362094", 1);
 
@@ -1120,7 +1136,7 @@ describe("FizzyClient", () => {
 
 	describe("notNowCard", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should defer card", async () => {
@@ -1144,7 +1160,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.notNowCard("897362094", 1);
 
@@ -1157,7 +1173,7 @@ describe("FizzyClient", () => {
 
 	describe("toggleTag", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should toggle tag on card", async () => {
@@ -1178,7 +1194,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.toggleTag("897362094", 1, "Bug");
 
@@ -1191,7 +1207,7 @@ describe("FizzyClient", () => {
 
 	describe("toggleAssignee", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should toggle assignee on card", async () => {
@@ -1212,7 +1228,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.toggleAssignee("897362094", 1, "user_1");
 
@@ -1225,7 +1241,7 @@ describe("FizzyClient", () => {
 
 	describe("createStep", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should create step with content", async () => {
@@ -1280,7 +1296,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.createStep("897362094", 1, {
 				content: "Test",
@@ -1295,7 +1311,7 @@ describe("FizzyClient", () => {
 
 	describe("updateStep", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should update step content", async () => {
@@ -1335,7 +1351,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.updateStep("897362094", 1, "step_1", {
 				content: "Test",
@@ -1350,7 +1366,7 @@ describe("FizzyClient", () => {
 
 	describe("deleteStep", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should delete step", async () => {
@@ -1371,7 +1387,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.deleteStep("897362094", 1, "step_1");
 
@@ -1384,7 +1400,7 @@ describe("FizzyClient", () => {
 
 	describe("updateComment", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should update comment body (converts markdown to HTML)", async () => {
@@ -1434,7 +1450,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.updateComment(
 				"897362094",
@@ -1452,7 +1468,7 @@ describe("FizzyClient", () => {
 
 	describe("listComments", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should return paginated comments with first page", async () => {
@@ -1516,7 +1532,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.listComments("897362094", 1);
 
@@ -1529,7 +1545,7 @@ describe("FizzyClient", () => {
 
 	describe("createComment", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should create comment with markdown body (converts to HTML)", async () => {
@@ -1563,7 +1579,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.createComment("897362094", 1, "Test comment");
 
@@ -1576,7 +1592,7 @@ describe("FizzyClient", () => {
 
 	describe("updateComment", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should update comment body (converts markdown to HTML)", async () => {
@@ -1626,7 +1642,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.updateComment(
 				"897362094",
@@ -1644,7 +1660,7 @@ describe("FizzyClient", () => {
 
 	describe("deleteComment", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should delete comment (returns 204 No Content)", async () => {
@@ -1679,7 +1695,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.deleteComment("897362094", 1, "comment_1");
 
@@ -1692,7 +1708,7 @@ describe("FizzyClient", () => {
 
 	describe("createDirectUpload", () => {
 		beforeEach(() => {
-			process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+			process.env[ENV_TOKEN] = "valid-token";
 		});
 
 		test("should create direct upload with blob data", async () => {
@@ -1713,7 +1729,7 @@ describe("FizzyClient", () => {
 		});
 
 		test("should return AuthenticationError on 401", async () => {
-			process.env.FIZZY_ACCESS_TOKEN = "invalid";
+			process.env[ENV_TOKEN] = "invalid";
 			const client = new FizzyClient();
 			const result = await client.createDirectUpload("897362094", {
 				filename: "test.txt",

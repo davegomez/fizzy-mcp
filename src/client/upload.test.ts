@@ -11,6 +11,7 @@ import {
 	test,
 	vi,
 } from "vitest";
+import { ENV_TOKEN } from "../config.js";
 import { isErr, isOk } from "../types/result.js";
 import { resetClient } from "./fizzy.js";
 import {
@@ -36,7 +37,7 @@ describe("upload utilities", () => {
 	beforeEach(() => {
 		vi.resetModules();
 		process.env = { ...originalEnv };
-		process.env.FIZZY_ACCESS_TOKEN = "valid-token";
+		process.env[ENV_TOKEN] = "valid-token";
 		resetClient();
 	});
 
