@@ -2,9 +2,62 @@ import { describe, expect, test } from "vitest";
 import {
 	CardFiltersSchema,
 	CardSchema,
+	CardStatusSchema,
 	CreateCardInputSchema,
+	IndexedBySchema,
 	UpdateCardInputSchema,
 } from "./cards.js";
+
+describe("CardStatusSchema", () => {
+	test("should accept 'published' status", () => {
+		const result = CardStatusSchema.safeParse("published");
+		expect(result.success).toBe(true);
+	});
+
+	test("should accept 'drafted' status", () => {
+		const result = CardStatusSchema.safeParse("drafted");
+		expect(result.success).toBe(true);
+	});
+
+	test("should reject 'open' status (lifecycle, not publication)", () => {
+		const result = CardStatusSchema.safeParse("open");
+		expect(result.success).toBe(false);
+	});
+
+	test("should reject 'closed' status (use closed boolean instead)", () => {
+		const result = CardStatusSchema.safeParse("closed");
+		expect(result.success).toBe(false);
+	});
+
+	test("should reject 'deferred' status (use indexed_by instead)", () => {
+		const result = CardStatusSchema.safeParse("deferred");
+		expect(result.success).toBe(false);
+	});
+});
+
+describe("IndexedBySchema", () => {
+	test.each([
+		"closed",
+		"not_now",
+		"all",
+		"stalled",
+		"postponing_soon",
+		"golden",
+	])("should accept '%s' value", (value) => {
+		const result = IndexedBySchema.safeParse(value);
+		expect(result.success).toBe(true);
+	});
+
+	test("should reject 'open' value", () => {
+		const result = IndexedBySchema.safeParse("open");
+		expect(result.success).toBe(false);
+	});
+
+	test("should reject 'deferred' value", () => {
+		const result = IndexedBySchema.safeParse("deferred");
+		expect(result.success).toBe(false);
+	});
+});
 
 describe("CardSchema", () => {
 	const validCard = {
@@ -12,7 +65,8 @@ describe("CardSchema", () => {
 		number: 42,
 		title: "Fix login bug",
 		description_html: "<p>Description here</p>",
-		status: "open",
+		status: "published",
+		closed: false,
 		board_id: "board_1",
 		column_id: "col_1",
 		tags: [{ id: "tag_1", title: "Bug", color: "#ff0000" }],
@@ -57,27 +111,33 @@ describe("CardSchema", () => {
 		}
 	});
 
-	test("should parse card with closed status and closed_at date", () => {
+	test("should parse card with closed=true and closed_at date", () => {
 		const closedCard = {
 			...validCard,
-			status: "closed",
+			closed: true,
 			closed_at: "2024-01-20T00:00:00Z",
 		};
 		const result = CardSchema.safeParse(closedCard);
 		expect(result.success).toBe(true);
 		if (result.success) {
-			expect(result.data.status).toBe("closed");
+			expect(result.data.closed).toBe(true);
 			expect(result.data.closed_at).toBe("2024-01-20T00:00:00Z");
 		}
 	});
 
-	test("should parse card with deferred status", () => {
-		const deferredCard = { ...validCard, status: "deferred" };
-		const result = CardSchema.safeParse(deferredCard);
+	test("should parse card with drafted status", () => {
+		const draftedCard = { ...validCard, status: "drafted" };
+		const result = CardSchema.safeParse(draftedCard);
 		expect(result.success).toBe(true);
 		if (result.success) {
-			expect(result.data.status).toBe("deferred");
+			expect(result.data.status).toBe("drafted");
 		}
+	});
+
+	test("should require closed boolean field", () => {
+		const { closed: _, ...cardWithoutClosed } = validCard;
+		const result = CardSchema.safeParse(cardWithoutClosed);
+		expect(result.success).toBe(false);
 	});
 
 	test("should reject card with invalid status", () => {
@@ -99,27 +159,21 @@ describe("CardFiltersSchema", () => {
 		expect(result.success).toBe(true);
 	});
 
-	test("should parse filter with board_id", () => {
-		const result = CardFiltersSchema.safeParse({ board_id: "board_1" });
+	test("should parse filter with board_ids array", () => {
+		const result = CardFiltersSchema.safeParse({
+			board_ids: ["board_1", "board_2"],
+		});
 		expect(result.success).toBe(true);
 		if (result.success) {
-			expect(result.data.board_id).toBe("board_1");
+			expect(result.data.board_ids).toEqual(["board_1", "board_2"]);
 		}
 	});
 
-	test("should parse filter with column_id", () => {
-		const result = CardFiltersSchema.safeParse({ column_id: "col_1" });
+	test("should parse filter with indexed_by", () => {
+		const result = CardFiltersSchema.safeParse({ indexed_by: "closed" });
 		expect(result.success).toBe(true);
 		if (result.success) {
-			expect(result.data.column_id).toBe("col_1");
-		}
-	});
-
-	test("should parse filter with status", () => {
-		const result = CardFiltersSchema.safeParse({ status: "open" });
-		expect(result.success).toBe(true);
-		if (result.success) {
-			expect(result.data.status).toBe("open");
+			expect(result.data.indexed_by).toBe("closed");
 		}
 	});
 
@@ -145,17 +199,31 @@ describe("CardFiltersSchema", () => {
 
 	test("should parse filter with all options", () => {
 		const result = CardFiltersSchema.safeParse({
-			board_id: "board_1",
-			column_id: "col_1",
-			status: "closed",
+			board_ids: ["board_1"],
+			indexed_by: "not_now",
 			tag_ids: ["tag_1"],
 			assignee_ids: ["user_1"],
 		});
 		expect(result.success).toBe(true);
 	});
 
-	test("should reject invalid status", () => {
-		const result = CardFiltersSchema.safeParse({ status: "invalid" });
+	test("should reject invalid indexed_by value", () => {
+		const result = CardFiltersSchema.safeParse({ indexed_by: "open" });
+		expect(result.success).toBe(false);
+	});
+
+	test("should reject column_id (not supported by API)", () => {
+		const result = CardFiltersSchema.safeParse({ column_id: "col_1" });
+		expect(result.success).toBe(false);
+	});
+
+	test("should reject status field (use indexed_by instead)", () => {
+		const result = CardFiltersSchema.safeParse({ status: "open" });
+		expect(result.success).toBe(false);
+	});
+
+	test("should reject board_id singular (use board_ids array)", () => {
+		const result = CardFiltersSchema.safeParse({ board_id: "board_1" });
 		expect(result.success).toBe(false);
 	});
 });
