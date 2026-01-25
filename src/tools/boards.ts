@@ -1,9 +1,18 @@
 import { UserError } from "fastmcp";
 import { z } from "zod";
-import { getFizzyClient, toUserError } from "../client/index.js";
+import {
+	type FizzyClient,
+	getFizzyClient,
+	toUserError,
+} from "../client/index.js";
+import type {
+	Board,
+	BoardWithColumns,
+	ColumnSummary,
+} from "../schemas/boards.js";
 import { DEFAULT_LIMIT } from "../schemas/pagination.js";
 import { getDefaultAccount } from "../state/session.js";
-import { isErr } from "../types/result.js";
+import { isErr, isOk } from "../types/result.js";
 
 function resolveAccount(accountSlug?: string): string {
 	// Strip leading slash to normalize URLs pasted directly from Fizzy
@@ -14,6 +23,34 @@ function resolveAccount(accountSlug?: string): string {
 		);
 	}
 	return slug;
+}
+
+// List boards API doesn't return columns; fetch them separately in parallel.
+async function hydrateColumnsForBoards(
+	client: FizzyClient,
+	accountSlug: string,
+	boards: Board[],
+): Promise<BoardWithColumns[]> {
+	const columnResults = await Promise.all(
+		boards.map((board) => client.listColumns(accountSlug, board.id)),
+	);
+
+	return boards.map((board, i) => {
+		const colResult = columnResults[i];
+		const columns: ColumnSummary[] =
+			colResult && isOk(colResult)
+				? colResult.value.items.map(
+						({ id, name, color, cards_count, position }) => ({
+							id,
+							name,
+							color,
+							cards_count,
+							position,
+						}),
+					)
+				: [];
+		return { ...board, columns };
+	});
 }
 
 export const boardsTool = {
@@ -74,6 +111,20 @@ Get an overview of boards and their column structure including card counts.
 				container: `account "${slug}"`,
 			});
 		}
-		return JSON.stringify(result.value, null, 2);
+
+		const boardsWithColumns = await hydrateColumnsForBoards(
+			client,
+			slug,
+			result.value.items,
+		);
+
+		return JSON.stringify(
+			{
+				items: boardsWithColumns,
+				pagination: result.value.pagination,
+			},
+			null,
+			2,
+		);
 	},
 };
