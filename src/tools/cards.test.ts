@@ -29,7 +29,8 @@ const mockCard = {
 	number: 42,
 	title: "Fix authentication bug",
 	description_html: "<p>Users are getting logged out unexpectedly</p>",
-	status: "open",
+	status: "published",
+	closed: false,
 	board_id: "board_1",
 	column_id: "col_1",
 	tags: [{ id: "tag_1", title: "bug", color: "red" }],
@@ -117,24 +118,39 @@ describe("searchTool", () => {
 		server.use(
 			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
 				const url = new URL(request.url);
-				expect(url.searchParams.get("board_id")).toBe("board_1");
-				expect(url.searchParams.get("column_id")).toBe("col_1");
+				expect(url.searchParams.getAll("board_ids[]")).toEqual(["board_1"]);
+				expect(url.searchParams.get("indexed_by")).toBe("stalled");
 				expect(url.searchParams.getAll("tag_ids[]")).toEqual([
 					"tag_1",
 					"tag_2",
 				]);
 				expect(url.searchParams.getAll("assignee_ids[]")).toEqual(["user_1"]);
-				expect(url.searchParams.get("status")).toBe("open");
 				return HttpResponse.json([]);
 			}),
 		);
 
 		await searchTool.execute({
 			board_id: "board_1",
-			column_id: "col_1",
+			indexed_by: "stalled",
 			tag_ids: ["tag_1", "tag_2"],
 			assignee_ids: ["user_1"],
-			status: "open",
+			limit: 25,
+		});
+	});
+
+	test("should convert singular board_id to board_ids array", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				const url = new URL(request.url);
+				const boardIds = url.searchParams.getAll("board_ids[]");
+				expect(boardIds).toEqual(["board_123"]);
+				return HttpResponse.json([]);
+			}),
+		);
+
+		await searchTool.execute({
+			board_id: "board_123",
 			limit: 25,
 		});
 	});
@@ -289,7 +305,8 @@ describe("getCardTool", () => {
 		expect(parsed.description).toBe(
 			"Users are getting logged out unexpectedly",
 		);
-		expect(parsed.status).toBe("open");
+		expect(parsed.status).toBe("published");
+		expect(parsed.closed).toBe(false);
 		expect(parsed.tags).toHaveLength(1);
 		expect(parsed.tags[0].title).toBe("bug");
 		expect(parsed.assignees).toHaveLength(1);

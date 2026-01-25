@@ -2,7 +2,7 @@ import { UserError } from "fastmcp";
 import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import { htmlToMarkdown } from "../client/markdown.js";
-import type { Card, CardStatus } from "../schemas/cards.js";
+import type { Card, IndexedBy } from "../schemas/cards.js";
 import { DEFAULT_LIMIT } from "../schemas/pagination.js";
 import { resolveAccount } from "../state/account-resolver.js";
 import { isErr } from "../types/result.js";
@@ -19,6 +19,7 @@ function formatCard(card: Card): string {
 			title: card.title,
 			description,
 			status: card.status,
+			closed: card.closed,
 			board_id: card.board_id,
 			column_id: card.column_id,
 			tags: card.tags,
@@ -39,21 +40,20 @@ function formatCard(card: Card): string {
 export const searchTool = {
 	name: "fizzy_search",
 	description: `Search for cards with filters.
-Find cards matching criteria or review board/column contents.
+Find cards matching criteria or review board contents.
 
 **When to use:**
-- Find cards by status, tag, assignee, or location
-- Review what's on a board or in a column
+- Find cards by tag, assignee, or board
+- Filter by index category (closed, stalled, golden, etc.)
 
 **Don't use when:** You already know the card number — use \`fizzy_get_card\` instead.
 
 **Arguments:**
 - \`account_slug\` (optional): Uses session default if omitted
 - \`board_id\` (optional): Filter to cards on this board
-- \`column_id\` (optional): Filter to cards in this column
+- \`indexed_by\` (optional): Filter by index category: closed | not_now | all | stalled | postponing_soon | golden
 - \`tag_ids\` (optional): Filter to cards with ALL these tag IDs
 - \`assignee_ids\` (optional): Filter to cards assigned to ANY of these user IDs
-- \`status\` (optional): open | closed | deferred
 - \`limit\` (optional): Max items, 1-100 (default: 25)
 - \`cursor\` (optional): Continuation cursor from previous response
 
@@ -74,10 +74,19 @@ Find cards matching criteria or review board/column contents.
 			.string()
 			.optional()
 			.describe("Filter to cards on this board ID."),
-		column_id: z
-			.string()
+		indexed_by: z
+			.enum([
+				"closed",
+				"not_now",
+				"all",
+				"stalled",
+				"postponing_soon",
+				"golden",
+			])
 			.optional()
-			.describe("Filter to cards in this column ID."),
+			.describe(
+				"Filter by index category: closed | not_now | all | stalled | postponing_soon | golden.",
+			),
 		tag_ids: z
 			.array(z.string())
 			.optional()
@@ -86,10 +95,6 @@ Find cards matching criteria or review board/column contents.
 			.array(z.string())
 			.optional()
 			.describe("Filter to cards assigned to ANY of these user IDs."),
-		status: z
-			.enum(["open", "closed", "deferred"])
-			.optional()
-			.describe("Filter by card status: open | closed | deferred."),
 		limit: z
 			.number()
 			.int()
@@ -107,10 +112,9 @@ Find cards matching criteria or review board/column contents.
 	execute: async (args: {
 		account_slug?: string;
 		board_id?: string;
-		column_id?: string;
+		indexed_by?: IndexedBy;
 		tag_ids?: string[];
 		assignee_ids?: string[];
-		status?: CardStatus;
 		limit: number;
 		cursor?: string;
 	}) => {
@@ -119,11 +123,10 @@ Find cards matching criteria or review board/column contents.
 		const result = await client.listCards(
 			slug,
 			{
-				board_id: args.board_id,
-				column_id: args.column_id,
+				board_ids: args.board_id ? [args.board_id] : undefined,
+				indexed_by: args.indexed_by,
 				tag_ids: args.tag_ids,
 				assignee_ids: args.assignee_ids,
-				status: args.status,
 			},
 			{ limit: args.limit, cursor: args.cursor },
 		);
