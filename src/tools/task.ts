@@ -246,27 +246,28 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 			}
 
 			// Map user-facing status names to Fizzy API lifecycle methods
-			// These methods may return void or Card, so we update local card state manually
+			// card.closed indicates lifecycle state; card.status is publication state
 			if (args.status !== undefined) {
-				const currentStatus = card.status;
+				const isClosed = card.closed;
 				let statusResult: Result<unknown, FizzyApiError> | undefined;
 
-				if (args.status === "closed" && currentStatus !== "closed") {
+				if (args.status === "closed" && !isClosed) {
 					statusResult = await client.closeCard(slug, cardNumber);
 					if (!isErr(statusResult)) {
-						card = { ...card, status: "closed", column_id: null };
+						card = { ...card, closed: true, column_id: null };
 						operations.status_changed = "closed";
 					}
-				} else if (args.status === "open" && currentStatus !== "open") {
+				} else if (args.status === "open" && isClosed) {
 					statusResult = await client.reopenCard(slug, cardNumber);
 					if (!isErr(statusResult)) {
-						card = { ...card, status: "open" };
+						card = { ...card, closed: false };
 						operations.status_changed = "open";
 					}
-				} else if (args.status === "not_now" && currentStatus !== "deferred") {
+				} else if (args.status === "not_now" && !isClosed) {
+					// not_now defers the card (moves to Not Now column)
 					statusResult = await client.notNowCard(slug, cardNumber);
 					if (!isErr(statusResult)) {
-						card = { ...card, status: "deferred" };
+						// Card is not closed, just deferred
 						operations.status_changed = "not_now";
 					}
 				}
@@ -361,6 +362,10 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 			}
 		}
 
+		// Derive user-facing lifecycle status from card.closed
+		// "open" = not closed, "closed" = closed
+		const lifecycleStatus = card.closed ? "closed" : "open";
+
 		const result: TaskResult = {
 			mode: isCreateMode ? "create" : "update",
 			card: {
@@ -368,7 +373,7 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				number: card.number,
 				title: card.title,
 				url: card.url,
-				status: card.status,
+				status: lifecycleStatus,
 			},
 			operations,
 			failures,
