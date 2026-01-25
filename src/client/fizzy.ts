@@ -107,6 +107,31 @@ export class FizzyClient {
 			});
 		}
 
+		// 201 Created with Location header but no body - follow the Location
+		if (response.status === 201) {
+			const location = response.headers.get("Location");
+			if (location) {
+				// Resolve relative URLs against base URL
+				const absoluteUrl = new URL(location, this.baseUrl).toString();
+				const followResponse = await fetch(absoluteUrl, {
+					method: "GET",
+					headers: {
+						Authorization: `Bearer ${this.token}`,
+						Accept: "application/json",
+					},
+				});
+				if (!followResponse.ok) {
+					return err(await this.handleError(followResponse));
+				}
+				const data = (await followResponse.json()) as T;
+				return ok({
+					data,
+					linkHeader: followResponse.headers.get("Link") ?? undefined,
+					etag: followResponse.headers.get("ETag") ?? undefined,
+				});
+			}
+		}
+
 		const data = (await response.json()) as T;
 		return ok({
 			data,
