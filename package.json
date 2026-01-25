@@ -23,6 +23,13 @@
 		"fizzy",
 		"task-management"
 	],
+	"files": [
+		"dist",
+		"!dist/test"
+	],
+	"publishConfig": {
+		"access": "public"
+	},
 	"scripts": {
 		"preinstall": "npx only-allow pnpm",
 		"build": "tsc",
