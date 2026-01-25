@@ -12,7 +12,18 @@ export const CardTagSchema = z.object({
 	color: z.string(),
 });
 
-export const CardStatusSchema = z.enum(["open", "closed", "deferred"]);
+// Publication status: published (visible) or drafted (hidden)
+export const CardStatusSchema = z.enum(["published", "drafted"]);
+
+// Index/filter categories for card queries
+export const IndexedBySchema = z.enum([
+	"closed",
+	"not_now",
+	"all",
+	"stalled",
+	"postponing_soon",
+	"golden",
+]);
 
 export const CardSchema = z.object({
 	id: z.string(),
@@ -20,6 +31,7 @@ export const CardSchema = z.object({
 	title: z.string(),
 	description_html: z.string().nullable(),
 	status: CardStatusSchema,
+	closed: z.boolean(),
 	board_id: z.string(),
 	// Null when card is closed or not yet placed in a column
 	column_id: z.string().nullable(),
@@ -34,13 +46,14 @@ export const CardSchema = z.object({
 	url: z.string(),
 });
 
-export const CardFiltersSchema = z.object({
-	board_id: z.string().optional(),
-	column_id: z.string().optional(),
-	tag_ids: z.array(z.string()).optional(),
-	assignee_ids: z.array(z.string()).optional(),
-	status: CardStatusSchema.optional(),
-});
+export const CardFiltersSchema = z
+	.object({
+		board_ids: z.array(z.string()).optional(),
+		indexed_by: IndexedBySchema.optional(),
+		tag_ids: z.array(z.string()).optional(),
+		assignee_ids: z.array(z.string()).optional(),
+	})
+	.strict();
 
 export const CreateCardInputSchema = z.object({
 	title: z.string().min(1),
@@ -55,6 +68,7 @@ export const UpdateCardInputSchema = z.object({
 export type CardAssignee = z.infer<typeof CardAssigneeSchema>;
 export type CardTag = z.infer<typeof CardTagSchema>;
 export type CardStatus = z.infer<typeof CardStatusSchema>;
+export type IndexedBy = z.infer<typeof IndexedBySchema>;
 export type Card = z.infer<typeof CardSchema>;
 export type CardFilters = z.infer<typeof CardFiltersSchema>;
 export type CreateCardInput = z.infer<typeof CreateCardInputSchema>;
