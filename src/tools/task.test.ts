@@ -222,9 +222,7 @@ describe("taskTool - update mode", () => {
 
 	test("should change status to not_now", async () => {
 		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const notNowCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, status: "deferred" }));
+		const notNowCardFn = vi.fn().mockResolvedValue(ok(undefined));
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
 			getCard: getCardFn,
 			notNowCard: notNowCardFn,
@@ -240,6 +238,7 @@ describe("taskTool - update mode", () => {
 		expect(notNowCardFn).toHaveBeenCalledWith("test-account", 42);
 		const parsed = JSON.parse(result);
 		expect(parsed.operations.status_changed).toBe("not_now");
+		expect(parsed.card.status).toBe("deferred");
 	});
 
 	test("should add tags with pre-check", async () => {
@@ -333,6 +332,158 @@ describe("taskTool - update mode", () => {
 		await expect(
 			taskTool.execute({ card_number: 999, title: "Test", position: "bottom" }),
 		).rejects.toThrow("[NOT_FOUND] Card #999");
+	});
+
+	test("should handle void return from closeCard", async () => {
+		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard));
+		const closeCardFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			getCard: getCardFn,
+			closeCard: closeCardFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("test-account");
+		const result = await taskTool.execute({
+			card_number: 42,
+			status: "closed",
+			position: "bottom",
+		});
+
+		expect(closeCardFn).toHaveBeenCalledWith("test-account", 42);
+		const parsed = JSON.parse(result);
+		expect(parsed.operations.status_changed).toBe("closed");
+		expect(parsed.card.status).toBe("closed");
+	});
+
+	test("should handle void return from reopenCard", async () => {
+		const closedCard = { ...mockCard, status: "closed" as const };
+		const getCardFn = vi.fn().mockResolvedValue(ok(closedCard));
+		const reopenCardFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			getCard: getCardFn,
+			reopenCard: reopenCardFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("test-account");
+		const result = await taskTool.execute({
+			card_number: 42,
+			status: "open",
+			position: "bottom",
+		});
+
+		expect(reopenCardFn).toHaveBeenCalledWith("test-account", 42);
+		const parsed = JSON.parse(result);
+		expect(parsed.operations.status_changed).toBe("open");
+		expect(parsed.card.status).toBe("open");
+	});
+
+	test("should call unTriageCard before triageCard when card already in column", async () => {
+		const cardInColumn = { ...mockCard, column_id: "old_col" };
+		const getCardFn = vi.fn().mockResolvedValue(ok(cardInColumn));
+		const unTriageCardFn = vi.fn().mockResolvedValue(ok(undefined));
+		const triageCardFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			getCard: getCardFn,
+			unTriageCard: unTriageCardFn,
+			triageCard: triageCardFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("test-account");
+		const result = await taskTool.execute({
+			card_number: 42,
+			column_id: "new_col",
+			position: "top",
+		});
+
+		expect(unTriageCardFn).toHaveBeenCalledWith("test-account", 42);
+		expect(triageCardFn).toHaveBeenCalledWith(
+			"test-account",
+			42,
+			"new_col",
+			"top",
+		);
+		const parsed = JSON.parse(result);
+		expect(parsed.operations.triaged_to).toBe("new_col");
+	});
+
+	test("should not call unTriageCard when card has no column", async () => {
+		const getCardFn = vi.fn().mockResolvedValue(ok(mockCard)); // column_id: null
+		const unTriageCardFn = vi.fn().mockResolvedValue(ok(undefined));
+		const triageCardFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			getCard: getCardFn,
+			unTriageCard: unTriageCardFn,
+			triageCard: triageCardFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("test-account");
+		const result = await taskTool.execute({
+			card_number: 42,
+			column_id: "new_col",
+			position: "bottom",
+		});
+
+		expect(unTriageCardFn).not.toHaveBeenCalled();
+		expect(triageCardFn).toHaveBeenCalledWith(
+			"test-account",
+			42,
+			"new_col",
+			"bottom",
+		);
+		const parsed = JSON.parse(result);
+		expect(parsed.operations.triaged_to).toBe("new_col");
+	});
+
+	test("should not call triageCard when unTriageCard fails", async () => {
+		const cardInColumn = { ...mockCard, column_id: "old_col" };
+		const getCardFn = vi.fn().mockResolvedValue(ok(cardInColumn));
+		const unTriageCardFn = vi
+			.fn()
+			.mockResolvedValue(err(new Error("Untriage failed")));
+		const triageCardFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			getCard: getCardFn,
+			unTriageCard: unTriageCardFn,
+			triageCard: triageCardFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("test-account");
+		const result = await taskTool.execute({
+			card_number: 42,
+			column_id: "new_col",
+			position: "top",
+		});
+
+		expect(unTriageCardFn).toHaveBeenCalledWith("test-account", 42);
+		expect(triageCardFn).not.toHaveBeenCalled();
+		const parsed = JSON.parse(result);
+		expect(parsed.failures).toHaveLength(1);
+		expect(parsed.failures[0].operation).toBe("untriage");
+		expect(parsed.operations.triaged_to).toBeUndefined();
+	});
+
+	test("should skip untriage and triage when column unchanged", async () => {
+		const cardInColumn = { ...mockCard, column_id: "same_col" };
+		const getCardFn = vi.fn().mockResolvedValue(ok(cardInColumn));
+		const unTriageCardFn = vi.fn().mockResolvedValue(ok(undefined));
+		const triageCardFn = vi.fn().mockResolvedValue(ok(undefined));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			getCard: getCardFn,
+			unTriageCard: unTriageCardFn,
+			triageCard: triageCardFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("test-account");
+		const result = await taskTool.execute({
+			card_number: 42,
+			column_id: "same_col",
+			position: "top",
+		});
+
+		expect(unTriageCardFn).not.toHaveBeenCalled();
+		expect(triageCardFn).not.toHaveBeenCalled();
+		const parsed = JSON.parse(result);
+		expect(parsed.operations.triaged_to).toBeUndefined();
 	});
 });
 
