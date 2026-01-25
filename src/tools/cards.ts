@@ -150,45 +150,85 @@ Find cards matching criteria or review board/column contents.
 
 export const getCardTool = {
 	name: "fizzy_get_card",
-	description: `Get full details of a card by its number.
+	description: `Get full details of a card by its number or ID.
 Retrieve complete card data including description, steps count, and metadata.
 
 **When to use:**
 - Need full description or metadata for a specific card
 - Check step completion status or see all tags/assignees
 
-**Don't use when:** Scanning multiple cards - use \`fizzy_list_cards\` first.
+**Don't use when:** Scanning multiple cards - use \`fizzy_search\` first.
 
 **Arguments:**
-\`account_slug\` (optional, uses session default), \`card_number\` (required) - the \`#\` number from URLs/lists.
+- \`account_slug\` (optional): Uses session default if omitted
+- \`card_number\` (recommended): The human-readable \`#\` number from URLs/lists (e.g., 42)
+- \`card_id\` (alternative): The UUID from API responses. Use \`card_number\` when possible.
+
+**IMPORTANT:** Provide \`card_number\` (integer) OR \`card_id\` (string UUID), not both.
+The \`card_number\` is the \`#\` visible in the UI (e.g., #42). The \`card_id\` is the internal UUID.
 
 **Returns:**
 JSON with id, number, title, description (markdown), status, board_id, column_id, tags array, assignees array, steps_count, completed_steps_count, comments_count, url, created_at, updated_at, closed_at (null if open).
 Example: \`{"id": "card_abc", "number": 42, "title": "Fix bug", "status": "open", "steps_count": 3, ...}\`
 
-**Related:** Use \`fizzy_list_comments\` or \`fizzy_create_step\` for deeper interaction.`,
-	parameters: z.object({
-		account_slug: z
-			.string()
-			.optional()
-			.describe(
-				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
-			),
-		card_number: z
-			.number()
-			.describe("Card number (the # from URLs/lists, e.g., 42)."),
-	}),
-	execute: async (args: { account_slug?: string; card_number: number }) => {
+**Related:** Use \`fizzy_comment\` or \`fizzy_complete_step\` for deeper interaction.`,
+	parameters: z
+		.object({
+			account_slug: z
+				.string()
+				.optional()
+				.describe(
+					"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
+				),
+			card_number: z
+				.number()
+				.optional()
+				.describe(
+					"Card number - the human-readable # from URLs/UI (e.g., 42). Preferred over card_id.",
+				),
+			card_id: z
+				.string()
+				.optional()
+				.describe(
+					"Card UUID from API responses. Use card_number instead when you have the # visible in the UI.",
+				),
+		})
+		.strict(),
+	execute: async (args: {
+		account_slug?: string;
+		card_number?: number;
+		card_id?: string;
+	}) => {
 		const slug = resolveAccount(args.account_slug);
 		const client = getFizzyClient();
-		const result = await client.getCard(slug, args.card_number);
-		if (isErr(result)) {
-			throw toUserError(result.error, {
-				resourceType: "Card",
-				resourceId: `#${args.card_number}`,
-				container: `account "${slug}"`,
-			});
+
+		// Prefer card_number over card_id
+		if (args.card_number !== undefined) {
+			const result = await client.getCard(slug, args.card_number);
+			if (isErr(result)) {
+				throw toUserError(result.error, {
+					resourceType: "Card",
+					resourceId: `#${args.card_number}`,
+					container: `account "${slug}"`,
+				});
+			}
+			return formatCard(result.value);
 		}
-		return formatCard(result.value);
+
+		if (args.card_id !== undefined) {
+			const result = await client.getCardById(slug, args.card_id);
+			if (isErr(result)) {
+				throw toUserError(result.error, {
+					resourceType: "Card",
+					resourceId: args.card_id,
+					container: `account "${slug}"`,
+				});
+			}
+			return formatCard(result.value);
+		}
+
+		throw new UserError(
+			"Either card_number or card_id must be provided. Use card_number (the # from URLs) when possible.",
+		);
 	},
 };
