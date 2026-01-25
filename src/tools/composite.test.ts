@@ -1,10 +1,20 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
-import { NotFoundError } from "../client/errors.js";
-import * as client from "../client/index.js";
+import { HttpResponse, http } from "msw";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
+import { resetClient } from "../client/fizzy.js";
 import { ENV_TOKEN } from "../config.js";
-import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
-import { err, ok } from "../types/result.js";
+import { clearResolverCache } from "../state/account-resolver.js";
+import { clearSession, setSession } from "../state/session.js";
+import { server } from "../test/mocks/server.js";
 import { bulkCloseCardsTool } from "./composite.js";
+
+const BASE_URL = "https://app.fizzy.do";
+
+function setTestAccount(slug: string): void {
+	setSession({
+		account: { slug, name: "Test Account", id: "acc_test" },
+		user: { id: "user_test", name: "Test User", role: "member" },
+	});
+}
 
 const mockCard = {
 	id: "card_1",
@@ -30,44 +40,63 @@ const mockCard2 = {
 	id: "card_2",
 	number: 43,
 	title: "Test Card 2",
-	updated_at: "2024-01-01T00:00:00Z", // Older
+	updated_at: "2024-01-01T00:00:00Z",
 };
 
 const mockTags = [
-	{ id: "tag_1", title: "Bug", color: "red", description: null },
-	{ id: "tag_2", title: "Feature", color: "blue", description: null },
+	{
+		id: "tag_1",
+		title: "Bug",
+		color: "red",
+		created_at: "2024-01-01T00:00:00Z",
+	},
+	{
+		id: "tag_2",
+		title: "Feature",
+		color: "blue",
+		created_at: "2024-01-01T00:00:00Z",
+	},
 ];
 
 describe("bulkCloseCardsTool", () => {
 	beforeEach(() => {
-		vi.restoreAllMocks();
-		clearDefaultAccount();
+		clearSession();
+		clearResolverCache();
+		resetClient();
 		process.env[ENV_TOKEN] = "test-token";
 	});
 
+	afterEach(() => {
+		delete process.env[ENV_TOKEN];
+	});
+
 	test("should throw when force is false", async () => {
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		await expect(
 			bulkCloseCardsTool.execute({ card_numbers: [1, 2, 3], force: false }),
 		).rejects.toThrow("Bulk close requires force: true");
 	});
 
 	test("should throw when no card_numbers and no filters", async () => {
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		await expect(bulkCloseCardsTool.execute({ force: true })).rejects.toThrow(
 			"Must provide card_numbers or at least one filter",
 		);
 	});
 
 	test("should close explicit card numbers", async () => {
-		const closeCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
+		const closedCards: number[] = [];
+		server.use(
+			http.post(
+				`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`,
+				({ params }) => {
+					closedCards.push(Number(params.cardNumber));
+					return new HttpResponse(null, { status: 204 });
+				},
+			),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await bulkCloseCardsTool.execute({
 			card_numbers: [42, 43, 44],
 			force: true,
@@ -78,20 +107,24 @@ describe("bulkCloseCardsTool", () => {
 		expect(parsed.failed).toEqual([]);
 		expect(parsed.total).toBe(3);
 		expect(parsed.success_count).toBe(3);
-		expect(closeCardFn).toHaveBeenCalledTimes(3);
+		expect(closedCards).toEqual([42, 43, 44]);
 	});
 
 	test("should report partial failures for explicit card numbers", async () => {
-		const closeCardFn = vi
-			.fn()
-			.mockResolvedValueOnce(ok({ ...mockCard, status: "closed" as const }))
-			.mockResolvedValueOnce(err(new NotFoundError()))
-			.mockResolvedValueOnce(ok({ ...mockCard, status: "closed" as const }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.post(
+				`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`,
+				({ params }) => {
+					const cardNumber = Number(params.cardNumber);
+					if (cardNumber === 43) {
+						return HttpResponse.json({}, { status: 404 });
+					}
+					return new HttpResponse(null, { status: 204 });
+				},
+			),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await bulkCloseCardsTool.execute({
 			card_numbers: [42, 43, 44],
 			force: true,
@@ -107,81 +140,65 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should filter by column_id", async () => {
-		const listCardsFn = vi.fn().mockResolvedValue(
-			ok({
-				items: [mockCard, mockCard2],
-				pagination: { returned: 2, has_more: false },
+		let capturedFilters: URLSearchParams | undefined;
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				capturedFilters = new URL(request.url).searchParams;
+				return HttpResponse.json([mockCard, mockCard2]);
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`, () => {
+				return new HttpResponse(null, { status: 204 });
 			}),
 		);
-		const closeCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listCards: listCardsFn,
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await bulkCloseCardsTool.execute({
 			column_id: "col_1",
 			force: true,
 		});
 
-		expect(listCardsFn).toHaveBeenCalledWith("test-account", {
-			status: "open",
-			column_id: "col_1",
-		});
+		expect(capturedFilters?.get("status")).toBe("open");
+		expect(capturedFilters?.get("column_id")).toBe("col_1");
 		const parsed = JSON.parse(result);
 		expect(parsed.closed).toEqual([42, 43]);
 		expect(parsed.success_count).toBe(2);
 	});
 
 	test("should filter by tag_title", async () => {
-		const listTagsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ items: mockTags, pagination: { returned: 2, has_more: false } }),
-			);
-		const listCardsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ items: [mockCard], pagination: { returned: 1, has_more: false } }),
-			);
-		const closeCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listTags: listTagsFn,
-			listCards: listCardsFn,
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
+		let capturedCardFilters: URLSearchParams | undefined;
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/tags`, () => {
+				return HttpResponse.json(mockTags);
+			}),
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				capturedCardFilters = new URL(request.url).searchParams;
+				return HttpResponse.json([mockCard]);
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await bulkCloseCardsTool.execute({
 			tag_title: "Bug",
 			force: true,
 		});
 
-		expect(listTagsFn).toHaveBeenCalledWith("test-account");
-		expect(listCardsFn).toHaveBeenCalledWith("test-account", {
-			status: "open",
-			tag_ids: ["tag_1"],
-		});
+		expect(capturedCardFilters?.get("status")).toBe("open");
+		expect(capturedCardFilters?.getAll("tag_ids[]")).toEqual(["tag_1"]);
 		const parsed = JSON.parse(result);
 		expect(parsed.closed).toEqual([42]);
 	});
 
 	test("should throw when tag not found", async () => {
-		const listTagsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ items: mockTags, pagination: { returned: 2, has_more: false } }),
-			);
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listTags: listTagsFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/tags`, () => {
+				return HttpResponse.json(mockTags);
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		await expect(
 			bulkCloseCardsTool.execute({
 				tag_title: "NonExistent",
@@ -198,26 +215,18 @@ describe("bulkCloseCardsTool", () => {
 		recentDate.setDate(recentDate.getDate() - 5);
 
 		const oldCard = { ...mockCard, updated_at: oldDate.toISOString() };
-		const recentCard = {
-			...mockCard2,
-			updated_at: recentDate.toISOString(),
-		};
+		const recentCard = { ...mockCard2, updated_at: recentDate.toISOString() };
 
-		const listCardsFn = vi.fn().mockResolvedValue(
-			ok({
-				items: [oldCard, recentCard],
-				pagination: { returned: 2, has_more: false },
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, () => {
+				return HttpResponse.json([oldCard, recentCard]);
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`, () => {
+				return new HttpResponse(null, { status: 204 });
 			}),
 		);
-		const closeCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listCards: listCardsFn,
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await bulkCloseCardsTool.execute({
 			older_than_days: 30,
 			force: true,
@@ -247,27 +256,21 @@ describe("bulkCloseCardsTool", () => {
 			tags: [{ id: "tag_1", title: "Bug", color: "red" }],
 		};
 
-		const listTagsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ items: mockTags, pagination: { returned: 2, has_more: false } }),
-			);
-		const listCardsFn = vi.fn().mockResolvedValue(
-			ok({
-				items: [cardMatchingAll, cardMismatchAge],
-				pagination: { returned: 2, has_more: false },
+		let capturedFilters: URLSearchParams | undefined;
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/tags`, () => {
+				return HttpResponse.json(mockTags);
+			}),
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				capturedFilters = new URL(request.url).searchParams;
+				return HttpResponse.json([cardMatchingAll, cardMismatchAge]);
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`, () => {
+				return new HttpResponse(null, { status: 204 });
 			}),
 		);
-		const closeCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listTags: listTagsFn,
-			listCards: listCardsFn,
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await bulkCloseCardsTool.execute({
 			column_id: "col_1",
 			tag_title: "Bug",
@@ -275,11 +278,9 @@ describe("bulkCloseCardsTool", () => {
 			force: true,
 		});
 
-		expect(listCardsFn).toHaveBeenCalledWith("test-account", {
-			status: "open",
-			column_id: "col_1",
-			tag_ids: ["tag_1"],
-		});
+		expect(capturedFilters?.get("status")).toBe("open");
+		expect(capturedFilters?.get("column_id")).toBe("col_1");
+		expect(capturedFilters?.getAll("tag_ids[]")).toEqual(["tag_1"]);
 		const parsed = JSON.parse(result);
 		// Only cardMatchingAll should be closed (matches age filter)
 		expect(parsed.closed).toEqual([42]);
@@ -287,16 +288,13 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should return empty result when no cards match filters", async () => {
-		const listCardsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ items: [], pagination: { returned: 0, has_more: false } }),
-			);
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listCards: listCardsFn,
-		} as unknown as client.FizzyClient);
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, () => {
+				return HttpResponse.json([]);
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		const result = await bulkCloseCardsTool.execute({
 			column_id: "col_nonexistent",
 			force: true,
@@ -310,12 +308,16 @@ describe("bulkCloseCardsTool", () => {
 	});
 
 	test("should resolve account from args", async () => {
-		const closeCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
+		let capturedAccount: string | undefined;
+		server.use(
+			http.post(
+				`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`,
+				({ params }) => {
+					capturedAccount = params.accountSlug as string;
+					return new HttpResponse(null, { status: 204 });
+				},
+			),
+		);
 
 		await bulkCloseCardsTool.execute({
 			account_slug: "my-account",
@@ -323,44 +325,61 @@ describe("bulkCloseCardsTool", () => {
 			force: true,
 		});
 
-		expect(closeCardFn).toHaveBeenCalledWith("my-account", 42);
+		expect(capturedAccount).toBe("my-account");
 	});
 
 	test("should throw when no account and no default set", async () => {
+		// Override identity endpoint to return multiple accounts (cannot auto-select)
+		server.use(
+			http.get(`${BASE_URL}/my/identity`, () => {
+				return HttpResponse.json({
+					accounts: [
+						{
+							id: "acc_1",
+							name: "Account 1",
+							slug: "acc1",
+							user: { id: "u1", name: "User", role: "member" },
+						},
+						{
+							id: "acc_2",
+							name: "Account 2",
+							slug: "acc2",
+							user: { id: "u2", name: "User", role: "member" },
+						},
+					],
+				});
+			}),
+		);
+
 		await expect(
 			bulkCloseCardsTool.execute({ card_numbers: [42], force: true }),
-		).rejects.toThrow("No account specified and no default set");
+		).rejects.toThrow(/No account specified/);
 	});
 
 	test("should match tag title case-insensitively", async () => {
-		const listTagsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ items: mockTags, pagination: { returned: 2, has_more: false } }),
-			);
-		const listCardsFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ items: [mockCard], pagination: { returned: 1, has_more: false } }),
-			);
-		const closeCardFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockCard, status: "closed" as const }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			listTags: listTagsFn,
-			listCards: listCardsFn,
-			closeCard: closeCardFn,
-		} as unknown as client.FizzyClient);
+		let capturedTagFilter: string[] | undefined;
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/tags`, () => {
+				return HttpResponse.json(mockTags);
+			}),
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				capturedTagFilter = new URL(request.url).searchParams.getAll(
+					"tag_ids[]",
+				);
+				return HttpResponse.json([mockCard]);
+			}),
+			http.post(`${BASE_URL}/:accountSlug/cards/:cardNumber/closure`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
 
-		setDefaultAccount("test-account");
+		setTestAccount("test-account");
 		await bulkCloseCardsTool.execute({
 			tag_title: "bug", // lowercase
 			force: true,
 		});
 
-		expect(listCardsFn).toHaveBeenCalledWith("test-account", {
-			status: "open",
-			tag_ids: ["tag_1"],
-		}); // Should find "Bug" tag
+		// Should find "Bug" tag (id: tag_1)
+		expect(capturedTagFilter).toEqual(["tag_1"]);
 	});
 });
