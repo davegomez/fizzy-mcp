@@ -1,6 +1,6 @@
 export default {
 	output: "CHANGELOG.md",
-	excludeAuthors: true,
+	excludeAuthors: [],
 	// Strip date-like scopes (e.g., 08-04, 07-03) - not meaningful to readers
 	scopeMap: {
 		"\\d{2}-\\d{2}": false,
