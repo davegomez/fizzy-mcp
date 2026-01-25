@@ -259,7 +259,7 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				if (args.status === "closed" && currentStatus !== "closed") {
 					statusResult = await client.closeCard(slug, cardNumber);
 					if (!isErr(statusResult)) {
-						card = { ...card, status: "closed" };
+						card = { ...card, status: "closed", column_id: null };
 						operations.status_changed = "closed";
 					}
 				} else if (args.status === "open" && currentStatus !== "open") {
