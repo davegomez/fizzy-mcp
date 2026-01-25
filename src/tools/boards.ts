@@ -64,6 +64,15 @@ Get an overview of boards and their column structure including card counts.
 - See card counts per column across all boards
 - Find the right board/column to create cards or triage
 
+**Fizzy column conventions:**
+Every board has three implicit columns not returned in the columns array:
+- **Maybe?** (inbox): Untriaged cards. Cards here have no \`column_id\`. New cards start here.
+- **Not Now**: Deferred cards. Move here via \`status: "not_now"\` in \`fizzy_task\`.
+- **Done**: Closed cards. Move here via \`status: "closed"\` in \`fizzy_task\`.
+
+The \`columns\` array only contains custom workflow columns (e.g., "In Progress", "Backlog").
+To move a card from a column back to Maybe?, use \`fizzy_task\` with \`column_id\` omitted and no status change.
+
 **Arguments:**
 - \`account_slug\` (optional): Uses session default if omitted
 - \`limit\` (optional): Max items to return, 1-100 (default: 25)

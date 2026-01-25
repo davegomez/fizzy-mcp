@@ -59,6 +59,12 @@ Creates card, then best-effort: adds steps, toggles tags, triages to column.
 **Update mode:**
 Updates title/description if provided. Changes status (open/closed/not_now). Manages tags with add/remove. Moves card to column (from inbox or another column). Same-column moves are skipped.
 
+**Fizzy column conventions:**
+- **Maybe?** (inbox): Cards with no \`column_id\`. This is where new cards start.
+- **Not Now**: Set \`status: "not_now"\` to move here (defers the card).
+- **Done**: Set \`status: "closed"\` to move here (completes the card).
+- **Custom columns**: Use \`column_id\` from \`fizzy_boards\` to triage to workflow columns.
+
 **Arguments:**
 - \`account_slug\` (optional): Uses session default if omitted
 - \`card_number\` (optional): Card to update. Omit to create new card.
