@@ -8,6 +8,7 @@ import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
 function resolveAccount(accountSlug?: string): string {
+	// Strip leading slash to normalize URLs pasted directly from Fizzy
 	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
 	if (!slug) {
 		throw new UserError(
@@ -18,6 +19,7 @@ function resolveAccount(accountSlug?: string): string {
 }
 
 function formatCard(card: Card): string {
+	// Convert HTML to markdown for LLM-friendly output
 	const description = card.description_html
 		? htmlToMarkdown(card.description_html)
 		: null;

@@ -534,6 +534,7 @@ export class FizzyClient {
 		accountSlug: string,
 		cardNumber: number,
 	): Promise<Result<Card, FizzyApiError>> {
+		// DELETE on /close removes the closed state, reopening the card
 		const result = await this.request<Card>(
 			"DELETE",
 			`/${accountSlug}/cards/${cardNumber}/close`,
@@ -571,6 +572,7 @@ export class FizzyClient {
 		accountSlug: string,
 		cardNumber: number,
 	): Promise<Result<Card, FizzyApiError>> {
+		// DELETE on /triage removes column assignment, returning card to inbox
 		const result = await this.request<Card>(
 			"DELETE",
 			`/${accountSlug}/cards/${cardNumber}/triage`,
@@ -824,6 +826,7 @@ export function getFizzyClient(): FizzyClient {
 	return clientInstance;
 }
 
+/** Reset singleton for test isolation */
 export function resetClient(): void {
 	clientInstance = undefined;
 }

@@ -21,6 +21,7 @@ export const CardSchema = z.object({
 	description_html: z.string().nullable(),
 	status: CardStatusSchema,
 	board_id: z.string(),
+	// Null when card is closed or not yet placed in a column
 	column_id: z.string().nullable(),
 	tags: z.array(CardTagSchema),
 	assignees: z.array(CardAssigneeSchema),

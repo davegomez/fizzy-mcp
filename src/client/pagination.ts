@@ -1,5 +1,7 @@
 import parseLinkHeader from "parse-link-header";
 
+// Cursors are opaque to clients but encode full URLs internally,
+// preserving filter state across pagination boundaries
 export function encodeCursor(url: string): string {
 	return Buffer.from(url).toString("base64url");
 }
@@ -7,6 +9,7 @@ export function encodeCursor(url: string): string {
 export function decodeCursor(cursor: string): string | null {
 	try {
 		const decoded = Buffer.from(cursor, "base64url").toString("utf-8");
+		// Validate URL structure to reject malformed or tampered cursors
 		if (!decoded.startsWith("http")) {
 			return null;
 		}

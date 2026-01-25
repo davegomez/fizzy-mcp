@@ -45,6 +45,7 @@ Manages the session default so you don't need to pass \`account_slug\` on every 
 					"Action 'set' requires account_slug. Use fizzy_boards to discover available accounts.",
 				);
 			}
+			// Strip leading slash to normalize URLs pasted directly from Fizzy
 			const slug = args.account_slug.replace(/^\//, "");
 			setDefaultAccount(slug);
 			return JSON.stringify({ action: "set", account_slug: slug });

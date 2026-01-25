@@ -5,6 +5,7 @@ import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
 function resolveAccount(accountSlug?: string): string {
+	// Strip leading slash to normalize URLs pasted directly from Fizzy
 	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
 	if (!slug) {
 		throw new UserError(
@@ -72,7 +73,7 @@ Find a step by content substring or position and mark it done.
 		let targetStep: (typeof steps)[number] | undefined;
 
 		if (typeof args.step === "number") {
-			// Match by 1-based index
+			// Convert 1-based user index to 0-based array index
 			const index = args.step - 1;
 			if (index < 0 || index >= steps.length) {
 				throw new UserError(
@@ -81,7 +82,7 @@ Find a step by content substring or position and mark it done.
 			}
 			targetStep = steps[index];
 		} else {
-			// Match by content substring (case-insensitive)
+			// Substring match lets users identify steps without exact content
 			const searchTerm = args.step.toLowerCase();
 			const matches = steps.filter((s) =>
 				s.content.toLowerCase().includes(searchTerm),
@@ -110,6 +111,7 @@ Find a step by content substring or position and mark it done.
 			throw new UserError("Could not find matching step.");
 		}
 
+		// Idempotent: return success if already complete rather than error
 		if (targetStep.completed) {
 			return JSON.stringify(
 				{

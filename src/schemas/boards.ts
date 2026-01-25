@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// Embedded in BoardSchema - lighter than full ColumnSchema (omits timestamps, url)
 export const ColumnSummarySchema = z.object({
 	id: z.string(),
 	name: z.string(),

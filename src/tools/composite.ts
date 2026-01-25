@@ -6,6 +6,7 @@ import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
 function resolveAccount(accountSlug?: string): string {
+	// Strip leading slash to normalize URLs pasted directly from Fizzy
 	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
 	if (!slug) {
 		throw new UserError(
@@ -22,6 +23,7 @@ interface BulkCloseResult {
 	success_count: number;
 }
 
+// Fizzy API requires tag IDs but users think in tag titles
 async function getTagIdByTitle(
 	accountSlug: string,
 	tagTitle: string,
@@ -31,12 +33,14 @@ async function getTagIdByTitle(
 	if (isErr(result)) {
 		return null;
 	}
+	// Case-insensitive match for user convenience
 	const tag = result.value.items.find(
 		(t) => t.title.toLowerCase() === tagTitle.toLowerCase(),
 	);
 	return tag?.id ?? null;
 }
 
+// Fizzy API doesn't support age-based filtering, so we filter client-side
 function isCardOlderThan(card: Card, days: number): boolean {
 	const cutoffDate = new Date();
 	cutoffDate.setDate(cutoffDate.getDate() - days);
@@ -101,6 +105,7 @@ Provide either \`card_numbers\` OR at least one filter. Filters AND together. On
 		older_than_days?: number;
 		force: boolean;
 	}): Promise<string> => {
+		// Require explicit confirmation to prevent accidental mass operations
 		if (args.force !== true) {
 			throw new UserError("Bulk close requires force: true");
 		}
@@ -174,7 +179,7 @@ Provide either \`card_numbers\` OR at least one filter. Filters AND together. On
 			return JSON.stringify(result, null, 2);
 		}
 
-		// Close each card, collecting results
+		// Close sequentially to avoid rate limits; collect partial results on failure
 		const closed: number[] = [];
 		const failed: Array<{ card_number: number; error: string }> = [];
 

@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+// API-enforced pagination bounds - match Fizzy API constraints
 export const DEFAULT_LIMIT = 25;
 export const MIN_LIMIT = 1;
 export const MAX_LIMIT = 100;
@@ -17,6 +18,7 @@ export type PaginatedResult<T> = {
 	pagination: PaginationMetadata;
 };
 
+// Factory to create typed paginated response schemas for each resource type
 export function createPaginatedResultSchema<T extends z.ZodTypeAny>(
 	itemSchema: T,
 ) {

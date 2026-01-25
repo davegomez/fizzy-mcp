@@ -6,6 +6,7 @@ import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
 function resolveAccount(accountSlug?: string): string {
+	// Strip leading slash to normalize URLs pasted directly from Fizzy
 	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
 	if (!slug) {
 		throw new UserError(
@@ -137,12 +138,12 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 		const failures: TaskFailure[] = [];
 		const operations: TaskOperations = {};
 
+		// Mode detection: presence of card_number determines update vs create
 		const isCreateMode = args.card_number === undefined;
 
 		let card: Card;
 
 		if (isCreateMode) {
-			// CREATE MODE
 			if (!args.board_id) {
 				throw new UserError("Create mode requires board_id.");
 			}
@@ -162,7 +163,7 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 			}
 			card = createResult.value;
 
-			// Best-effort: create steps
+			// Best-effort: secondary operations don't fail the whole request
 			if (args.steps && args.steps.length > 0) {
 				let stepsCreated = 0;
 				for (const content of args.steps) {
@@ -181,7 +182,6 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				operations.steps_created = stepsCreated;
 			}
 
-			// Best-effort: add tags
 			if (args.add_tags && args.add_tags.length > 0) {
 				const tagsAdded: string[] = [];
 				for (const tagTitle of args.add_tags) {
@@ -200,7 +200,6 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				}
 			}
 
-			// Best-effort: triage to column
 			if (args.column_id) {
 				const triageResult = await client.triageCard(
 					slug,
@@ -218,11 +217,9 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				}
 			}
 		} else {
-			// UPDATE MODE
-			// args.card_number is guaranteed defined here since isCreateMode is false
 			const cardNumber = args.card_number as number;
 
-			// Fetch current card state
+			// Fetch current state to enable idempotent tag operations
 			const getResult = await client.getCard(slug, cardNumber);
 			if (isErr(getResult)) {
 				throw toUserError(getResult.error, {
@@ -252,7 +249,7 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				}
 			}
 
-			// Handle status changes
+			// Map user-facing status names to Fizzy API lifecycle methods
 			if (args.status !== undefined) {
 				const currentStatus = card.status;
 				let statusResult:
@@ -287,14 +284,13 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				}
 			}
 
-			// Handle tag additions with pre-check
+			// Pre-check avoids toggling tags that are already in desired state
 			if (args.add_tags && args.add_tags.length > 0) {
 				const tagsAdded: string[] = [];
 				const currentTagTitles = card.tags.map((t) => t.title);
 
 				for (const tagTitle of args.add_tags) {
 					if (currentTagTitles.includes(tagTitle)) {
-						// Already has tag, skip
 						continue;
 					}
 					const tagResult = await client.toggleTag(slug, cardNumber, tagTitle);
@@ -312,14 +308,12 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				}
 			}
 
-			// Handle tag removals with pre-check
 			if (args.remove_tags && args.remove_tags.length > 0) {
 				const tagsRemoved: string[] = [];
 				const currentTagTitles = card.tags.map((t) => t.title);
 
 				for (const tagTitle of args.remove_tags) {
 					if (!currentTagTitles.includes(tagTitle)) {
-						// Doesn't have tag, skip
 						continue;
 					}
 					const tagResult = await client.toggleTag(slug, cardNumber, tagTitle);
@@ -337,7 +331,6 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 				}
 			}
 
-			// Handle triage
 			if (args.column_id) {
 				const triageResult = await client.triageCard(
 					slug,

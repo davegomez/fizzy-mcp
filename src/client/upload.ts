@@ -35,7 +35,9 @@ function escapeHtml(str: string): string {
 }
 
 /**
- * Generate action-text-attachment HTML for embedding signed_id in rich text
+ * Generate action-text-attachment HTML for embedding signed_id in rich text.
+ * Fizzy uses Rails ActionText; this custom element triggers server-side
+ * attachment rendering when included in card descriptions or comments.
  */
 export function embedAttachment(signedId: string): string {
 	const escapedId = escapeHtml(signedId);
