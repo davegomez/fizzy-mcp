@@ -1,4 +1,5 @@
 import { describe, expect, test } from "vitest";
+import { ENV_TOKEN } from "../config.js";
 import {
 	AuthenticationError,
 	FizzyApiError,
@@ -28,7 +29,7 @@ describe("AuthenticationError", () => {
 	test("should have status 401 and user-friendly message", () => {
 		const error = new AuthenticationError();
 		expect(error.status).toBe(401);
-		expect(error.message).toContain("FIZZY_ACCESS_TOKEN");
+		expect(error.message).toContain(ENV_TOKEN);
 	});
 });
 
@@ -82,7 +83,7 @@ describe("toUserError", () => {
 			const error = new AuthenticationError();
 			const userError = toUserError(error);
 			expect(userError.message).toBe(
-				"[UNAUTHORIZED] Authentication failed. Set FIZZY_ACCESS_TOKEN environment variable with valid API token.",
+				`[UNAUTHORIZED] Authentication failed. Set ${ENV_TOKEN} environment variable with valid API token.`,
 			);
 		});
 
