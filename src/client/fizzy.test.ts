@@ -67,7 +67,7 @@ describe("FizzyClient", () => {
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
 				expect(result.value.accounts).toHaveLength(1);
-				expect(result.value.accounts[0]?.slug).toBe("897362094");
+				expect(result.value.accounts[0]?.slug).toBe("/897362094");
 			}
 		});
 
