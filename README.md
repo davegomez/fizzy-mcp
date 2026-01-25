@@ -12,11 +12,12 @@ Get your Fizzy access token:
 
 ## How to Install
 
-### Claude Desktop
+<details>
+<summary><b>Claude Desktop</b></summary>
 
 Add to your config file:
 
-- **macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **macOS:** `~/Library/Application\ Support/Claude/claude_desktop_config.json`
 - **Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
 - **Linux:** `~/.config/Claude/claude_desktop_config.json`
 
@@ -37,8 +38,10 @@ Add to your config file:
 **Windows only:** Add `"APPDATA": "C:\\Users\\YourUsername\\AppData\\Roaming"` to the `env` block.
 
 Restart Claude Desktop completely, then verify: "List my Fizzy boards."
+</details>
 
-### Claude Code
+<details>
+<summary><b>Claude Code</b></summary>
 
 Use the CLI:
 
@@ -64,8 +67,10 @@ Or add to `~/.claude.json`:
 ```
 
 Restart Claude Code, then verify: "List my Fizzy boards."
+</details>
 
-### Cursor
+<details>
+<summary><b>Cursor</b></summary>
 
 Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 
@@ -84,8 +89,10 @@ Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 ```
 
 Restart Cursor completely, then verify in Agent mode (Ctrl+I).
+</details>
 
-### VS Code
+<details>
+<summary><b>VS Code</b></summary>
 
 Add to `.vscode/mcp.json` in your workspace:
 
@@ -112,8 +119,10 @@ Add to `.vscode/mcp.json` in your workspace:
 ```
 
 Or use user settings via Command Palette → "MCP: Open User Configuration".
+</details>
 
-### Windsurf
+<details>
+<summary><b>Windsurf</b></summary>
 
 Add to `~/.codeium/windsurf/mcp_config.json`:
 
@@ -132,8 +141,10 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 ```
 
 Set `FIZZY_TOKEN` in your shell environment, or hardcode the value. Restart Windsurf.
+</details>
 
-### Cline
+<details>
+<summary><b>Cline</b></summary>
 
 Add to the Cline MCP settings file:
 
@@ -156,8 +167,10 @@ Add to the Cline MCP settings file:
   }
 }
 ```
+</details>
 
-### Continue
+<details>
+<summary><b>Continue</b></summary>
 
 Add to `.continue/config.yaml`:
 
@@ -171,8 +184,10 @@ mcpServers:
     env:
       FIZZY_TOKEN: ${{ secrets.FIZZY_TOKEN }}
 ```
+</details>
 
-### From Source
+<details>
+<summary><b>From Source</b></summary>
 
 **Requires [pnpm](https://pnpm.io/).**
 
@@ -184,15 +199,16 @@ pnpm build
 ```
 
 Replace `npx -y @silky/fizzy-mcp` with `node /absolute/path/to/fizzy-mcp/dist/index.js` in any config above.
+</details>
 
 ---
 
 ## Configuration Reference
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `FIZZY_TOKEN` | Yes | — | API token from Fizzy settings |
-| `FIZZY_BASE_URL` | No | `https://app.fizzy.do` | API base URL |
+| Variable         | Required | Default                | Description                   |
+| ---------------- | -------- | ---------------------- | ----------------------------- |
+| `FIZZY_TOKEN`    | Yes      | —                      | API token from Fizzy settings |
+| `FIZZY_BASE_URL` | No       | `https://app.fizzy.do` | API base URL                  |
 
 > **Note:** `FIZZY_ACCESS_TOKEN` is supported for backward compatibility but deprecated.
 
@@ -204,10 +220,10 @@ Replace `npx -y @silky/fizzy-mcp` with `node /absolute/path/to/fizzy-mcp/dist/in
 
 Gets or sets the default account for subsequent tool calls.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `action` | `"get"` \| `"set"` | Yes | Action to perform |
-| `account_slug` | string | For `set` | Account slug from Fizzy URL |
+| Parameter      | Type               | Required  | Description                 |
+| -------------- | ------------------ | --------- | --------------------------- |
+| `action`       | `"get"` \| `"set"` | Yes       | Action to perform           |
+| `account_slug` | string             | For `set` | Account slug from Fizzy URL |
 
 **Returns:** `{ "action": "...", "account_slug": "..." | null }`
 
@@ -217,11 +233,11 @@ Gets or sets the default account for subsequent tool calls.
 
 Lists boards in the account with column summaries.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `account_slug` | string | No | Session default | Account slug |
-| `limit` | number | No | 25 | Items per page (1-100) |
-| `cursor` | string | No | — | Pagination cursor |
+| Parameter      | Type   | Required | Default         | Description            |
+| -------------- | ------ | -------- | --------------- | ---------------------- |
+| `account_slug` | string | No       | Session default | Account slug           |
+| `limit`        | number | No       | 25              | Items per page (1-100) |
+| `cursor`       | string | No       | —               | Pagination cursor      |
 
 **Returns:** `{ "items": Board[], "pagination": { "returned": number, "has_more": boolean, "next_cursor"?: string } }`
 
@@ -231,16 +247,16 @@ Lists boards in the account with column summaries.
 
 Searches for cards with filters.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `account_slug` | string | No | Account slug |
-| `board_id` | string | No | Filter by board |
-| `column_id` | string | No | Filter by column |
-| `tag_ids` | string[] | No | Filter by ALL tags |
-| `assignee_ids` | string[] | No | Filter by ANY assignees |
-| `status` | `"open"` \| `"closed"` \| `"deferred"` | No | Filter by status |
-| `limit` | number | No | Items per page (1-100, default 25) |
-| `cursor` | string | No | Pagination cursor |
+| Parameter      | Type                                   | Required | Description                        |
+| -------------- | -------------------------------------- | -------- | ---------------------------------- |
+| `account_slug` | string                                 | No       | Account slug                       |
+| `board_id`     | string                                 | No       | Filter by board                    |
+| `column_id`    | string                                 | No       | Filter by column                   |
+| `tag_ids`      | string[]                               | No       | Filter by ALL tags                 |
+| `assignee_ids` | string[]                               | No       | Filter by ANY assignees            |
+| `status`       | `"open"` \| `"closed"` \| `"deferred"` | No       | Filter by status                   |
+| `limit`        | number                                 | No       | Items per page (1-100, default 25) |
+| `cursor`       | string                                 | No       | Pagination cursor                  |
 
 **Returns:** `{ "items": Card[], "pagination": {...} }`
 
@@ -250,13 +266,13 @@ Searches for cards with filters.
 
 Gets full details of a card by number or ID.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `account_slug` | string | No | Account slug |
-| `card_number` | number | No* | Card number from URL (e.g., `42` from `#42`) |
-| `card_id` | string | No* | Card UUID from API responses |
+| Parameter      | Type   | Required | Description                                  |
+| -------------- | ------ | -------- | -------------------------------------------- |
+| `account_slug` | string | No       | Account slug                                 |
+| `card_number`  | number | No\*     | Card number from URL (e.g., `42` from `#42`) |
+| `card_id`      | string | No\*     | Card UUID from API responses                 |
 
-*Provide `card_number` OR `card_id`. Prefer `card_number` when you have the human-readable `#` from the UI.
+\*Provide `card_number` OR `card_id`. Prefer `card_number` when you have the human-readable `#` from the UI.
 
 **Returns:** Card object with `id`, `number`, `title`, `description` (markdown), `status`, `board_id`, `column_id`, `tags`, `assignees`, `steps_count`, `completed_steps_count`, `comments_count`, `url`, timestamps.
 
@@ -268,19 +284,19 @@ Creates or updates a card.
 
 **Mode:** Omit `card_number` to create; include it to update.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `account_slug` | string | No | Account slug |
-| `card_number` | number | No | Card to update (omit to create) |
-| `board_id` | string | Create mode | Board for new card |
-| `title` | string | Create mode | Card title |
-| `description` | string | No | Markdown content |
-| `status` | `"open"` \| `"closed"` \| `"not_now"` | No | Change card status |
-| `column_id` | string | No | Triage to column |
-| `position` | `"top"` \| `"bottom"` | No | Position in column (default: `"bottom"`) |
-| `add_tags` | string[] | No | Tag titles to add |
-| `remove_tags` | string[] | No | Tag titles to remove |
-| `steps` | string[] | No | Checklist items (create mode only) |
+| Parameter      | Type                                  | Required    | Description                              |
+| -------------- | ------------------------------------- | ----------- | ---------------------------------------- |
+| `account_slug` | string                                | No          | Account slug                             |
+| `card_number`  | number                                | No          | Card to update (omit to create)          |
+| `board_id`     | string                                | Create mode | Board for new card                       |
+| `title`        | string                                | Create mode | Card title                               |
+| `description`  | string                                | No          | Markdown content                         |
+| `status`       | `"open"` \| `"closed"` \| `"not_now"` | No          | Change card status                       |
+| `column_id`    | string                                | No          | Triage to column                         |
+| `position`     | `"top"` \| `"bottom"`                 | No          | Position in column (default: `"bottom"`) |
+| `add_tags`     | string[]                              | No          | Tag titles to add                        |
+| `remove_tags`  | string[]                              | No          | Tag titles to remove                     |
+| `steps`        | string[]                              | No          | Checklist items (create mode only)       |
 
 **Returns:** `{ "mode": "create" | "update", "card": {...}, "operations": {...}, "failures": [...] }`
 
@@ -290,11 +306,11 @@ Creates or updates a card.
 
 Adds a comment to a card.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `account_slug` | string | No | Account slug |
-| `card_number` | number | Yes | Card to comment on |
-| `body` | string | Yes | Comment in markdown (1-10000 chars) |
+| Parameter      | Type   | Required | Description                         |
+| -------------- | ------ | -------- | ----------------------------------- |
+| `account_slug` | string | No       | Account slug                        |
+| `card_number`  | number | Yes      | Card to comment on                  |
+| `body`         | string | Yes      | Comment in markdown (1-10000 chars) |
 
 **Returns:** Comment object with `id`, `body` (markdown), `creator`, timestamps, `url`.
 
@@ -304,11 +320,11 @@ Adds a comment to a card.
 
 Marks a checklist step as complete.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `account_slug` | string | No | Account slug |
-| `card_number` | number | Yes | Card containing the step |
-| `step` | string \| number | Yes | Content substring OR 1-based index |
+| Parameter      | Type             | Required | Description                        |
+| -------------- | ---------------- | -------- | ---------------------------------- |
+| `account_slug` | string           | No       | Account slug                       |
+| `card_number`  | number           | Yes      | Card containing the step           |
+| `step`         | string \| number | Yes      | Content substring OR 1-based index |
 
 **Returns:** `{ "id": "...", "content": "...", "completed": true }`
 
@@ -318,14 +334,14 @@ Marks a checklist step as complete.
 
 Closes multiple cards at once.
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `account_slug` | string | No | Account slug |
-| `card_numbers` | number[] | No | Explicit card numbers |
-| `column_id` | string | No | Filter: cards in column |
-| `tag_title` | string | No | Filter: cards with tag |
-| `older_than_days` | number | No | Filter: cards not updated in N days |
-| `force` | boolean | Yes | Must be `true` to execute |
+| Parameter         | Type     | Required | Description                         |
+| ----------------- | -------- | -------- | ----------------------------------- |
+| `account_slug`    | string   | No       | Account slug                        |
+| `card_numbers`    | number[] | No       | Explicit card numbers               |
+| `column_id`       | string   | No       | Filter: cards in column             |
+| `tag_title`       | string   | No       | Filter: cards with tag              |
+| `older_than_days` | number   | No       | Filter: cards not updated in N days |
+| `force`           | boolean  | Yes      | Must be `true` to execute           |
 
 Provide `card_numbers` OR at least one filter. Filters combine with AND.
 
@@ -348,23 +364,23 @@ List operations return:
 }
 ```
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `returned` | number | Items in this response |
-| `has_more` | boolean | More items available |
-| `next_cursor` | string | Pass as `cursor` for next page |
+| Field         | Type    | Description                    |
+| ------------- | ------- | ------------------------------ |
+| `returned`    | number  | Items in this response         |
+| `has_more`    | boolean | More items available           |
+| `next_cursor` | string  | Pass as `cursor` for next page |
 
 ---
 
 ## Error Reference
 
-| Error | Cause |
-|-------|-------|
+| Error                                     | Cause                                            |
+| ----------------------------------------- | ------------------------------------------------ |
 | "No account specified and no default set" | No `account_slug` and `fizzy_account` not called |
-| "Card #N not found" | Card number does not exist |
-| "Board not found" | Invalid `board_id` |
-| "Tag not found" | Invalid tag title in `fizzy_bulk_close` |
-| "Bulk close requires force: true" | Missing confirmation flag |
+| "Card #N not found"                       | Card number does not exist                       |
+| "Board not found"                         | Invalid `board_id`                               |
+| "Tag not found"                           | Invalid tag title in `fizzy_bulk_close`          |
+| "Bulk close requires force: true"         | Missing confirmation flag                        |
 
 ---
 
