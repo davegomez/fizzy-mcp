@@ -12,81 +12,43 @@ describe("createServer", () => {
 		expect(() => createServer()).not.toThrow();
 	});
 
-	test("should have all identity tools available", () => {
+	test("should have identity tool available", () => {
 		const toolNames = allTools.map((t) => t.name);
-
-		expect(toolNames).toContain("fizzy_whoami");
-		expect(toolNames).toContain("fizzy_default_account");
+		expect(toolNames).toContain("fizzy_account");
 	});
 
-	test("should have board tools available", () => {
+	test("should have boards tool available", () => {
 		const toolNames = allTools.map((t) => t.name);
-
-		expect(toolNames).toContain("fizzy_list_boards");
-		expect(toolNames).toContain("fizzy_get_board");
-		expect(toolNames).toContain("fizzy_create_board");
-		expect(toolNames).toContain("fizzy_update_board");
+		expect(toolNames).toContain("fizzy_boards");
 	});
 
-	test("should have tag tools available", () => {
+	test("should have search and get card tools available", () => {
 		const toolNames = allTools.map((t) => t.name);
-
-		expect(toolNames).toContain("fizzy_list_tags");
-	});
-
-	test("should have column tools available", () => {
-		const toolNames = allTools.map((t) => t.name);
-
-		expect(toolNames).toContain("fizzy_list_columns");
-		expect(toolNames).toContain("fizzy_get_column");
-		expect(toolNames).toContain("fizzy_create_column");
-		expect(toolNames).toContain("fizzy_update_column");
-		expect(toolNames).toContain("fizzy_delete_column");
-	});
-
-	test("should have card tools available", () => {
-		const toolNames = allTools.map((t) => t.name);
-
-		expect(toolNames).toContain("fizzy_list_cards");
+		expect(toolNames).toContain("fizzy_search");
 		expect(toolNames).toContain("fizzy_get_card");
-		expect(toolNames).toContain("fizzy_create_card");
-		expect(toolNames).toContain("fizzy_update_card");
-		expect(toolNames).toContain("fizzy_delete_card");
-		expect(toolNames).toContain("fizzy_change_card_state");
-		expect(toolNames).toContain("fizzy_toggle_card_attribute");
 	});
 
-	test("should have step tools available", () => {
+	test("should have task tool available", () => {
 		const toolNames = allTools.map((t) => t.name);
-
-		expect(toolNames).toContain("fizzy_create_step");
-		expect(toolNames).toContain("fizzy_update_step");
-		expect(toolNames).toContain("fizzy_delete_step");
+		expect(toolNames).toContain("fizzy_task");
 	});
 
-	test("should have comment tools available", () => {
+	test("should have comment tool available", () => {
 		const toolNames = allTools.map((t) => t.name);
-
-		expect(toolNames).toContain("fizzy_list_comments");
-		expect(toolNames).toContain("fizzy_create_comment");
-		expect(toolNames).toContain("fizzy_update_comment");
-		expect(toolNames).toContain("fizzy_delete_comment");
+		expect(toolNames).toContain("fizzy_comment");
 	});
 
-	test("should have composite tools available", () => {
+	test("should have complete_step tool available", () => {
 		const toolNames = allTools.map((t) => t.name);
-
-		expect(toolNames).toContain("fizzy_create_card_full");
-		expect(toolNames).toContain("fizzy_bulk_close_cards");
+		expect(toolNames).toContain("fizzy_complete_step");
 	});
 
-	test("should have upload tools available", () => {
+	test("should have bulk_close tool available", () => {
 		const toolNames = allTools.map((t) => t.name);
-
-		expect(toolNames).toContain("fizzy_attach_file");
+		expect(toolNames).toContain("fizzy_bulk_close");
 	});
 
-	test("should export exactly 29 tools in allTools", () => {
-		expect(allTools.length).toBe(29);
+	test("should export exactly 8 tools in allTools", () => {
+		expect(allTools.length).toBe(8);
 	});
 });

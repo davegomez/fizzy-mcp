@@ -45,26 +45,31 @@ function formatCard(card: Card): string {
 	);
 }
 
-export const listCardsTool = {
-	name: "fizzy_list_cards",
-	description: `List cards in an account with optional filters.
+export const searchTool = {
+	name: "fizzy_search",
+	description: `Search for cards with filters.
 Find cards matching criteria or review board/column contents.
 
 **When to use:**
 - Find cards by status, tag, assignee, or location
 - Review what's on a board or in a column
 
-**Don't use when:** You already know the card number - use \`fizzy_get_card\` for full details.
+**Don't use when:** You already know the card number — use \`fizzy_get_card\` instead.
 
 **Arguments:**
-\`account_slug\` (optional), \`board_id\` (optional), \`column_id\` (optional), \`tag_ids\` (optional array), \`assignee_ids\` (optional array), \`status\`: open | closed | deferred (optional). Filters AND together.
-\`limit\` (optional): Max items, 1-100 (default: 25). \`cursor\` (optional): Continuation cursor from previous response.
+- \`account_slug\` (optional): Uses session default if omitted
+- \`board_id\` (optional): Filter to cards on this board
+- \`column_id\` (optional): Filter to cards in this column
+- \`tag_ids\` (optional): Filter to cards with ALL these tag IDs
+- \`assignee_ids\` (optional): Filter to cards assigned to ANY of these user IDs
+- \`status\` (optional): open | closed | deferred
+- \`limit\` (optional): Max items, 1-100 (default: 25)
+- \`cursor\` (optional): Continuation cursor from previous response
 
 **Returns:** JSON with items and pagination metadata.
 \`\`\`json
 {"items": [{"number": 42, "title": "...", ...}], "pagination": {"returned": 25, "has_more": true, "next_cursor": "..."}}
 \`\`\`
-Pass \`next_cursor\` to get the next page. Cursor encodes filter state, so keep filters consistent.
 
 **Related:** Use card number with \`fizzy_get_card\` for full details.`,
 	parameters: z.object({
@@ -183,173 +188,5 @@ Example: \`{"id": "card_abc", "number": 42, "title": "Fix bug", "status": "open"
 			});
 		}
 		return formatCard(result.value);
-	},
-};
-
-export const createCardTool = {
-	name: "fizzy_create_card",
-	description: `Create a new card on a board.
-Add a task or work item to track.
-
-**When to use:**
-- Create a single card with title and optional description
-- Quick card creation without tags/steps/assignees
-
-**Don't use when:** You need tags, steps, or assignees at creation - use \`fizzy_create_card_full\` instead.
-
-**Arguments:**
-\`account_slug\` (optional, uses session default), \`board_id\` (required), \`title\` (required, 1-500 chars), \`description\` (optional, markdown auto-converted to HTML).
-
-**Returns:**
-JSON with id, number, title, url of created card.
-Example: \`{"id": "card_xyz", "number": 43, "title": "New task", "url": "https://..."}\`
-
-**Related:** Card lands in inbox. Use \`fizzy_triage_card\` to move to a column.`,
-	parameters: z.object({
-		account_slug: z
-			.string()
-			.optional()
-			.describe(
-				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
-			),
-		board_id: z.string().describe("Board ID to create the card on."),
-		title: z.string().describe("Card title (1-500 characters)."),
-		description: z
-			.string()
-			.optional()
-			.describe(
-				"Card description in markdown (max 10000 chars, auto-converted to HTML).",
-			),
-	}),
-	execute: async (args: {
-		account_slug?: string;
-		board_id: string;
-		title: string;
-		description?: string;
-	}) => {
-		const slug = resolveAccount(args.account_slug);
-		const client = getFizzyClient();
-		const result = await client.createCard(slug, args.board_id, {
-			title: args.title,
-			description: args.description,
-		});
-		if (isErr(result)) {
-			throw toUserError(result.error, {
-				resourceType: "Card",
-				container: `board "${args.board_id}"`,
-			});
-		}
-		const card = result.value;
-		return JSON.stringify(
-			{
-				id: card.id,
-				number: card.number,
-				title: card.title,
-				url: card.url,
-			},
-			null,
-			2,
-		);
-	},
-};
-
-export const updateCardTool = {
-	name: "fizzy_update_card",
-	description: `Update a card's title and/or description.
-Modify card content without changing status or location.
-
-**When to use:**
-- Fix typos or update the title
-- Expand or revise the description
-
-**Don't use when:** Changing status (use close/reopen), location (use triage), or tags (use toggle_tag).
-
-**Arguments:**
-\`account_slug\` (optional, uses session default), \`card_number\` (required), \`title\` (optional), \`description\` (optional, markdown auto-converted).
-
-**Returns:**
-JSON with full updated card details (same format as \`fizzy_get_card\`).`,
-	parameters: z.object({
-		account_slug: z
-			.string()
-			.optional()
-			.describe(
-				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
-			),
-		card_number: z
-			.number()
-			.describe("Card number (the # from URLs/lists, e.g., 42)."),
-		title: z.string().optional().describe("New title (1-500 characters)."),
-		description: z
-			.string()
-			.optional()
-			.describe(
-				"New description in markdown (max 10000 chars, auto-converted to HTML).",
-			),
-	}),
-	execute: async (args: {
-		account_slug?: string;
-		card_number: number;
-		title?: string;
-		description?: string;
-	}) => {
-		const slug = resolveAccount(args.account_slug);
-		const client = getFizzyClient();
-		const result = await client.updateCard(slug, args.card_number, {
-			title: args.title,
-			description: args.description,
-		});
-		if (isErr(result)) {
-			throw toUserError(result.error, {
-				resourceType: "Card",
-				resourceId: `#${args.card_number}`,
-				container: `account "${slug}"`,
-			});
-		}
-		return formatCard(result.value);
-	},
-};
-
-export const deleteCardTool = {
-	name: "fizzy_delete_card",
-	description: `Permanently delete a card by number.
-Remove a card and all its data (comments, steps).
-
-**When to use:**
-- Remove duplicate or spam cards
-- Clean up test data
-
-**Don't use when:** Card should be archived for history - use \`fizzy_close_card\` instead.
-
-**Arguments:**
-\`account_slug\` (optional, uses session default), \`card_number\` (required).
-
-**Returns:**
-Confirmation message: \`"Card #42 deleted."\`
-
-**Related:** This is permanent. Consider \`fizzy_close_card\` to preserve history.`,
-	parameters: z.object({
-		account_slug: z
-			.string()
-			.optional()
-			.describe(
-				"Account slug (e.g., 'acme-corp'). Uses session default if omitted.",
-			),
-		card_number: z
-			.number()
-			.describe("Card number (the # from URLs/lists, e.g., 42)."),
-	}),
-	execute: async (args: { account_slug?: string; card_number: number }) => {
-		const slug = resolveAccount(args.account_slug);
-		const client = getFizzyClient();
-		const result = await client.deleteCard(slug, args.card_number);
-		if (isErr(result)) {
-			throw toUserError(result.error, {
-				resourceType: "Card",
-				resourceId: `#${args.card_number}`,
-				container: `account "${slug}"`,
-			});
-		}
-		return `Card #${args.card_number} deleted.`;
 	},
 };

@@ -780,6 +780,20 @@ export class FizzyClient {
 		return result;
 	}
 
+	async listSteps(
+		accountSlug: string,
+		cardNumber: number,
+	): Promise<Result<Step[], FizzyApiError>> {
+		const result = await this.request<Step[]>(
+			"GET",
+			`/${accountSlug}/cards/${cardNumber}/steps`,
+		);
+		if (result.ok) {
+			return ok(result.value.data);
+		}
+		return result;
+	}
+
 	async createDirectUpload(
 		accountSlug: string,
 		blob: {

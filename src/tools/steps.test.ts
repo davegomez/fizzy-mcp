@@ -1,358 +1,198 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import { NotFoundError, ValidationError } from "../client/errors.js";
+import { NotFoundError } from "../client/errors.js";
 import * as client from "../client/index.js";
 import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
 import { err, ok } from "../types/result.js";
-import { createStepTool, deleteStepTool, updateStepTool } from "./steps.js";
+import { completeStepTool } from "./steps.js";
 
-const mockStep = {
-	id: "step_1",
-	content: "Write tests",
-	completed: false,
-};
+const mockSteps = [
+	{ id: "step_1", content: "Write tests", completed: false },
+	{ id: "step_2", content: "Implement feature", completed: false },
+	{ id: "step_3", content: "Review PR changes", completed: true },
+];
 
-const mockStep2 = {
-	id: "step_2",
-	content: "Implement feature",
-	completed: false,
-};
-
-describe("createStepTool", () => {
+describe("completeStepTool", () => {
 	beforeEach(() => {
 		vi.restoreAllMocks();
 		clearDefaultAccount();
 		process.env.FIZZY_ACCESS_TOKEN = "test-token";
 	});
 
-	test("should resolve account from args", async () => {
-		const createStepFn = vi.fn().mockResolvedValue(ok(mockStep));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createStep: createStepFn,
-		} as unknown as client.FizzyClient);
-
-		await createStepTool.execute({
-			account_slug: "my-account",
-			card_number: 42,
-			steps: ["Write tests"],
-		});
-		expect(createStepFn).toHaveBeenCalledWith("my-account", 42, {
-			content: "Write tests",
-		});
-	});
-
-	test("should resolve account from default when not provided", async () => {
-		setDefaultAccount("default-account");
-		const createStepFn = vi.fn().mockResolvedValue(ok(mockStep));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createStep: createStepFn,
-		} as unknown as client.FizzyClient);
-
-		await createStepTool.execute({
-			card_number: 42,
-			steps: ["Write tests"],
-		});
-		expect(createStepFn).toHaveBeenCalledWith("default-account", 42, {
-			content: "Write tests",
-		});
-	});
-
 	test("should throw when no account and no default set", async () => {
 		await expect(
-			createStepTool.execute({ card_number: 42, steps: ["Write tests"] }),
+			completeStepTool.execute({ card_number: 42, step: 1 }),
 		).rejects.toThrow("No account specified and no default set");
 	});
 
-	test("should strip leading slash from account slug", async () => {
-		const createStepFn = vi.fn().mockResolvedValue(ok(mockStep));
+	test("should throw when card has no steps", async () => {
+		const listStepsFn = vi.fn().mockResolvedValue(ok([]));
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createStep: createStepFn,
-		} as unknown as client.FizzyClient);
-
-		await createStepTool.execute({
-			account_slug: "/897362094",
-			card_number: 42,
-			steps: ["Write tests"],
-		});
-		expect(createStepFn).toHaveBeenCalledWith("897362094", 42, {
-			content: "Write tests",
-		});
-	});
-
-	test("should create multiple steps in order", async () => {
-		const createStepFn = vi
-			.fn()
-			.mockResolvedValueOnce(ok(mockStep))
-			.mockResolvedValueOnce(ok(mockStep2));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createStep: createStepFn,
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("897362094");
-		const result = await createStepTool.execute({
-			card_number: 42,
-			steps: ["Write tests", "Implement feature"],
-		});
-
-		expect(createStepFn).toHaveBeenCalledTimes(2);
-		expect(createStepFn).toHaveBeenNthCalledWith(1, "897362094", 42, {
-			content: "Write tests",
-		});
-		expect(createStepFn).toHaveBeenNthCalledWith(2, "897362094", 42, {
-			content: "Implement feature",
-		});
-
-		const parsed = JSON.parse(result);
-		expect(parsed.created).toHaveLength(2);
-		expect(parsed.created[0].content).toBe("Write tests");
-		expect(parsed.created[1].content).toBe("Implement feature");
-		expect(parsed.failed).toHaveLength(0);
-	});
-
-	test("should return created step details", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createStep: vi.fn().mockResolvedValue(ok(mockStep)),
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("897362094");
-		const result = await createStepTool.execute({
-			card_number: 42,
-			steps: ["Write tests"],
-		});
-
-		const parsed = JSON.parse(result);
-		expect(parsed.created[0].id).toBe("step_1");
-		expect(parsed.created[0].content).toBe("Write tests");
-		expect(parsed.created[0].completed).toBe(false);
-	});
-
-	test("should continue on individual failures (best-effort)", async () => {
-		const createStepFn = vi
-			.fn()
-			.mockResolvedValueOnce(
-				err(new ValidationError({ content: ["is too long"] })),
-			)
-			.mockResolvedValueOnce(ok(mockStep2));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createStep: createStepFn,
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("897362094");
-		const result = await createStepTool.execute({
-			card_number: 42,
-			steps: ["This step has invalid content", "Implement feature"],
-		});
-
-		const parsed = JSON.parse(result);
-		expect(parsed.created).toHaveLength(1);
-		expect(parsed.created[0].content).toBe("Implement feature");
-		expect(parsed.failed).toHaveLength(1);
-		expect(parsed.failed[0].content).toBe("This step has invalid content");
-		expect(parsed.failed[0].error).toContain("Validation");
-	});
-
-	test("should throw when all steps fail", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createStep: vi.fn().mockResolvedValue(err(new NotFoundError())),
+			listSteps: listStepsFn,
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
 		await expect(
-			createStepTool.execute({
-				card_number: 999,
-				steps: ["Write tests"],
-			}),
-		).rejects.toThrow("[NOT_FOUND] Step");
-	});
-});
-
-describe("updateStepTool", () => {
-	beforeEach(() => {
-		vi.restoreAllMocks();
-		clearDefaultAccount();
-		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+			completeStepTool.execute({ card_number: 42, step: 1 }),
+		).rejects.toThrow("Card #42 has no steps");
 	});
 
-	test("should resolve account from args", async () => {
-		const updateStepFn = vi.fn().mockResolvedValue(ok(mockStep));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			updateStep: updateStepFn,
-		} as unknown as client.FizzyClient);
-
-		await updateStepTool.execute({
-			account_slug: "my-account",
-			card_number: 42,
-			step_id: "step_1",
-			content: "Updated content",
-		});
-		expect(updateStepFn).toHaveBeenCalledWith("my-account", 42, "step_1", {
-			content: "Updated content",
-			completed: undefined,
-		});
-	});
-
-	test("should throw when no account and no default set", async () => {
-		await expect(
-			updateStepTool.execute({
-				card_number: 42,
-				step_id: "step_1",
-				content: "Updated",
-			}),
-		).rejects.toThrow("No account specified and no default set");
-	});
-
-	test("should update content only", async () => {
+	test("should complete step by 1-based index", async () => {
+		const listStepsFn = vi.fn().mockResolvedValue(ok(mockSteps));
 		const updateStepFn = vi
 			.fn()
-			.mockResolvedValue(ok({ ...mockStep, content: "Updated content" }));
+			.mockResolvedValue(ok({ ...mockSteps[0], completed: true }));
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listSteps: listStepsFn,
 			updateStep: updateStepFn,
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
-		await updateStepTool.execute({
+		const result = await completeStepTool.execute({
 			card_number: 42,
-			step_id: "step_1",
-			content: "Updated content",
-		});
-		expect(updateStepFn).toHaveBeenCalledWith("897362094", 42, "step_1", {
-			content: "Updated content",
-			completed: undefined,
-		});
-	});
-
-	test("should toggle completion only", async () => {
-		const updateStepFn = vi
-			.fn()
-			.mockResolvedValue(ok({ ...mockStep, completed: true }));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			updateStep: updateStepFn,
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("897362094");
-		const result = await updateStepTool.execute({
-			card_number: 42,
-			step_id: "step_1",
-			completed: true,
+			step: 1,
 		});
 
 		expect(updateStepFn).toHaveBeenCalledWith("897362094", 42, "step_1", {
-			content: undefined,
 			completed: true,
 		});
-
-		const parsed = JSON.parse(result);
-		expect(parsed.completed).toBe(true);
-	});
-
-	test("should update both content and completion", async () => {
-		const updateStepFn = vi
-			.fn()
-			.mockResolvedValue(
-				ok({ ...mockStep, content: "New content", completed: true }),
-			);
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			updateStep: updateStepFn,
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("897362094");
-		await updateStepTool.execute({
-			card_number: 42,
-			step_id: "step_1",
-			content: "New content",
-			completed: true,
-		});
-
-		expect(updateStepFn).toHaveBeenCalledWith("897362094", 42, "step_1", {
-			content: "New content",
-			completed: true,
-		});
-	});
-
-	test("should return updated step details", async () => {
-		const updatedStep = { ...mockStep, content: "Updated", completed: true };
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			updateStep: vi.fn().mockResolvedValue(ok(updatedStep)),
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("897362094");
-		const result = await updateStepTool.execute({
-			card_number: 42,
-			step_id: "step_1",
-			content: "Updated",
-			completed: true,
-		});
-
 		const parsed = JSON.parse(result);
 		expect(parsed.id).toBe("step_1");
-		expect(parsed.content).toBe("Updated");
 		expect(parsed.completed).toBe(true);
 	});
 
-	test("should throw UserError on not found", async () => {
+	test("should complete step by content substring", async () => {
+		const listStepsFn = vi.fn().mockResolvedValue(ok(mockSteps));
+		const updateStepFn = vi
+			.fn()
+			.mockResolvedValue(ok({ ...mockSteps[1], completed: true }));
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			updateStep: vi.fn().mockResolvedValue(err(new NotFoundError())),
+			listSteps: listStepsFn,
+			updateStep: updateStepFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await completeStepTool.execute({
+			card_number: 42,
+			step: "Implement",
+		});
+
+		expect(updateStepFn).toHaveBeenCalledWith("897362094", 42, "step_2", {
+			completed: true,
+		});
+		const parsed = JSON.parse(result);
+		expect(parsed.id).toBe("step_2");
+	});
+
+	test("should match content case-insensitively", async () => {
+		const listStepsFn = vi.fn().mockResolvedValue(ok(mockSteps));
+		const updateStepFn = vi
+			.fn()
+			.mockResolvedValue(ok({ ...mockSteps[0], completed: true }));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listSteps: listStepsFn,
+			updateStep: updateStepFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await completeStepTool.execute({
+			card_number: 42,
+			step: "WRITE TESTS",
+		});
+
+		expect(updateStepFn).toHaveBeenCalledWith("897362094", 42, "step_1", {
+			completed: true,
+		});
+	});
+
+	test("should throw when index out of range", async () => {
+		const listStepsFn = vi.fn().mockResolvedValue(ok(mockSteps));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listSteps: listStepsFn,
 		} as unknown as client.FizzyClient);
 
 		setDefaultAccount("897362094");
 		await expect(
-			updateStepTool.execute({
-				card_number: 42,
-				step_id: "nonexistent",
-				content: "Test",
-			}),
-		).rejects.toThrow("[NOT_FOUND] Step nonexistent");
+			completeStepTool.execute({ card_number: 42, step: 10 }),
+		).rejects.toThrow("Step index 10 out of range. Card has 3 step(s)");
 	});
-});
 
-describe("deleteStepTool", () => {
-	beforeEach(() => {
-		vi.restoreAllMocks();
-		clearDefaultAccount();
-		process.env.FIZZY_ACCESS_TOKEN = "test-token";
+	test("should throw when no step matches content", async () => {
+		const listStepsFn = vi.fn().mockResolvedValue(ok(mockSteps));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listSteps: listStepsFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			completeStepTool.execute({ card_number: 42, step: "nonexistent" }),
+		).rejects.toThrow('No step matches "nonexistent"');
+	});
+
+	test("should throw when multiple steps match content", async () => {
+		const stepsWithDupes = [
+			{ id: "step_1", content: "Review code", completed: false },
+			{ id: "step_2", content: "Review tests", completed: false },
+		];
+		const listStepsFn = vi.fn().mockResolvedValue(ok(stepsWithDupes));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listSteps: listStepsFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			completeStepTool.execute({ card_number: 42, step: "Review" }),
+		).rejects.toThrow('Multiple steps match "Review"');
+	});
+
+	test("should return note when step already completed", async () => {
+		const listStepsFn = vi.fn().mockResolvedValue(ok(mockSteps));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listSteps: listStepsFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		const result = await completeStepTool.execute({
+			card_number: 42,
+			step: 3, // step_3 is already completed
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.id).toBe("step_3");
+		expect(parsed.completed).toBe(true);
+		expect(parsed.note).toBe("Step was already completed.");
+	});
+
+	test("should throw UserError when card not found", async () => {
+		const listStepsFn = vi.fn().mockResolvedValue(err(new NotFoundError()));
+		vi.spyOn(client, "getFizzyClient").mockReturnValue({
+			listSteps: listStepsFn,
+		} as unknown as client.FizzyClient);
+
+		setDefaultAccount("897362094");
+		await expect(
+			completeStepTool.execute({ card_number: 999, step: 1 }),
+		).rejects.toThrow("[NOT_FOUND] Step");
 	});
 
 	test("should resolve account from args", async () => {
-		const deleteStepFn = vi.fn().mockResolvedValue(ok(undefined));
+		const listStepsFn = vi.fn().mockResolvedValue(ok(mockSteps));
+		const updateStepFn = vi
+			.fn()
+			.mockResolvedValue(ok({ ...mockSteps[0], completed: true }));
 		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			deleteStep: deleteStepFn,
+			listSteps: listStepsFn,
+			updateStep: updateStepFn,
 		} as unknown as client.FizzyClient);
 
-		await deleteStepTool.execute({
+		await completeStepTool.execute({
 			account_slug: "my-account",
 			card_number: 42,
-			step_id: "step_1",
-		});
-		expect(deleteStepFn).toHaveBeenCalledWith("my-account", 42, "step_1");
-	});
-
-	test("should throw when no account and no default set", async () => {
-		await expect(
-			deleteStepTool.execute({ card_number: 42, step_id: "step_1" }),
-		).rejects.toThrow("No account specified and no default set");
-	});
-
-	test("should return success message", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			deleteStep: vi.fn().mockResolvedValue(ok(undefined)),
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("897362094");
-		const result = await deleteStepTool.execute({
-			card_number: 42,
-			step_id: "step_1",
+			step: 1,
 		});
 
-		expect(result).toBe("Step step_1 deleted from card #42.");
-	});
-
-	test("should throw UserError on not found", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			deleteStep: vi.fn().mockResolvedValue(err(new NotFoundError())),
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("897362094");
-		await expect(
-			deleteStepTool.execute({ card_number: 42, step_id: "nonexistent" }),
-		).rejects.toThrow("[NOT_FOUND] Step nonexistent");
+		expect(listStepsFn).toHaveBeenCalledWith("my-account", 42);
+		expect(updateStepFn).toHaveBeenCalledWith("my-account", 42, "step_1", {
+			completed: true,
+		});
 	});
 });

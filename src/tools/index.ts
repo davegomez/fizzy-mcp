@@ -1,99 +1,26 @@
-export {
-	createBoardTool,
-	getBoardTool,
-	listBoardsTool,
-	updateBoardTool,
-} from "./boards.js";
-export { toggleCardAttributeTool } from "./card-attribute.js";
-export { changeCardStateTool } from "./card-state.js";
-export {
-	createCardTool,
-	deleteCardTool,
-	getCardTool,
-	listCardsTool,
-	updateCardTool,
-} from "./cards.js";
-export {
-	createColumnTool,
-	deleteColumnTool,
-	getColumnTool,
-	listColumnsTool,
-	updateColumnTool,
-} from "./columns.js";
-export {
-	createCommentTool,
-	deleteCommentTool,
-	listCommentsTool,
-	updateCommentTool,
-} from "./comments.js";
-export { bulkCloseCardsTool, createCardFullTool } from "./composite.js";
-export { defaultAccountTool, whoamiTool } from "./identity.js";
-export { createStepTool, deleteStepTool, updateStepTool } from "./steps.js";
-export { listTagsTool } from "./tags.js";
-export { attachFileTool } from "./upload.js";
+export { boardsTool } from "./boards.js";
+export { getCardTool, searchTool } from "./cards.js";
+export { commentTool } from "./comments.js";
+export { bulkCloseCardsTool } from "./composite.js";
+export { defaultAccountTool } from "./identity.js";
+export { completeStepTool } from "./steps.js";
+export { taskTool } from "./task.js";
 
-import {
-	createBoardTool,
-	getBoardTool,
-	listBoardsTool,
-	updateBoardTool,
-} from "./boards.js";
-import { toggleCardAttributeTool } from "./card-attribute.js";
-import { changeCardStateTool } from "./card-state.js";
-import {
-	createCardTool,
-	deleteCardTool,
-	getCardTool,
-	listCardsTool,
-	updateCardTool,
-} from "./cards.js";
-import {
-	createColumnTool,
-	deleteColumnTool,
-	getColumnTool,
-	listColumnsTool,
-	updateColumnTool,
-} from "./columns.js";
-import {
-	createCommentTool,
-	deleteCommentTool,
-	listCommentsTool,
-	updateCommentTool,
-} from "./comments.js";
-import { bulkCloseCardsTool, createCardFullTool } from "./composite.js";
-import { defaultAccountTool, whoamiTool } from "./identity.js";
-import { createStepTool, deleteStepTool, updateStepTool } from "./steps.js";
-import { listTagsTool } from "./tags.js";
-import { attachFileTool } from "./upload.js";
+import { boardsTool } from "./boards.js";
+import { getCardTool, searchTool } from "./cards.js";
+import { commentTool } from "./comments.js";
+import { bulkCloseCardsTool } from "./composite.js";
+import { defaultAccountTool } from "./identity.js";
+import { completeStepTool } from "./steps.js";
+import { taskTool } from "./task.js";
 
 export const allTools = [
-	whoamiTool,
 	defaultAccountTool,
-	listBoardsTool,
-	getBoardTool,
-	createBoardTool,
-	updateBoardTool,
-	listCardsTool,
+	boardsTool,
+	searchTool,
 	getCardTool,
-	createCardTool,
-	updateCardTool,
-	deleteCardTool,
-	changeCardStateTool,
-	toggleCardAttributeTool,
-	listTagsTool,
-	listColumnsTool,
-	getColumnTool,
-	createColumnTool,
-	updateColumnTool,
-	deleteColumnTool,
-	createStepTool,
-	updateStepTool,
-	deleteStepTool,
-	listCommentsTool,
-	createCommentTool,
-	updateCommentTool,
-	deleteCommentTool,
-	createCardFullTool,
+	taskTool,
+	commentTool,
+	completeStepTool,
 	bulkCloseCardsTool,
-	attachFileTool,
 ];

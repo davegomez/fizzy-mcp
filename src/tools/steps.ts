@@ -1,11 +1,6 @@
 import { UserError } from "fastmcp";
 import { z } from "zod";
-import {
-	type FizzyApiError,
-	getFizzyClient,
-	toUserError,
-} from "../client/index.js";
-import type { Step } from "../schemas/steps.js";
+import { getFizzyClient, toUserError } from "../client/index.js";
 import { getDefaultAccount } from "../state/session.js";
 import { isErr } from "../types/result.js";
 
@@ -13,209 +8,144 @@ function resolveAccount(accountSlug?: string): string {
 	const slug = (accountSlug || getDefaultAccount())?.replace(/^\//, "");
 	if (!slug) {
 		throw new UserError(
-			"No account specified and no default set. Use fizzy_set_default_account first.",
+			"No account specified and no default set. Use fizzy_default_account first.",
 		);
 	}
 	return slug;
 }
 
-interface StepResult {
-	id: string;
-	content: string;
-	completed: boolean;
-}
+export const completeStepTool = {
+	name: "fizzy_complete_step",
+	description: `Mark a step as complete on a card.
 
-interface FailedStep {
-	content: string;
-	error: string;
-}
-
-interface CreateStepsResult {
-	created: StepResult[];
-	failed: FailedStep[];
-}
-
-function formatStep(step: Step): StepResult {
-	return {
-		id: step.id,
-		content: step.content,
-		completed: step.completed,
-	};
-}
-
-export const createStepTool = {
-	name: "fizzy_create_step",
-	description: `Create checklist steps on a card.
-
-Add one or more subtasks to break down work into actionable items.
+Find a step by content substring or position and mark it done.
 
 **When to use:**
-1. Break a task into smaller actionable items
-2. Create a checklist for process steps or requirements
+- Mark a checklist item complete
+- Complete a step without knowing its ID
 
-**Arguments:** \`account_slug\` (optional), \`card_number\` (required), \`steps\` (required — array of strings, min 1)
+**Arguments:**
+- \`account_slug\` (optional): Uses session default if omitted
+- \`card_number\` (required): Card number containing the step
+- \`step\` (required): Content substring to match OR 1-based index (e.g., 1 for first step)
 
-**Returns:** JSON with \`created\` array (id, content, completed) and \`failed\` array (content, error) for partial success handling.
-Example: \`{"created": [{"id": "abc", "content": "Review PR", "completed": false}], "failed": []}\`
+**Returns:** JSON with completed step \`id\`, \`content\`, \`completed\` status.
 
-**Note:** Steps are created sequentially. If some fail, others may still succeed.
-
-**Related:** Use \`fizzy_update_step\` to mark steps complete. See \`fizzy_get_card\` for step counts.`,
+**Examples:**
+- By content: \`{card_number: 42, step: "Review PR"}\` — matches "Review PR changes"
+- By index: \`{card_number: 42, step: 1}\` — completes first step`,
 	parameters: z.object({
 		account_slug: z
 			.string()
 			.optional()
 			.describe("Account slug. Uses default if omitted."),
-		card_number: z.number().describe("Card number to add steps to."),
-		steps: z
-			.array(z.string())
-			.min(1)
-			.describe(
-				"Array of step content strings (each 1-500 chars). Min 1 item.",
-			),
+		card_number: z.number().describe("Card number containing the step."),
+		step: z
+			.union([
+				z.string().describe("Content substring to match"),
+				z.number().describe("1-based step index"),
+			])
+			.describe("Step to complete: content substring or 1-based index."),
 	}),
 	execute: async (args: {
 		account_slug?: string;
 		card_number: number;
-		steps: string[];
+		step: string | number;
 	}) => {
 		const slug = resolveAccount(args.account_slug);
 		const client = getFizzyClient();
 
-		const result: CreateStepsResult = { created: [], failed: [] };
-		let firstError: FizzyApiError | undefined;
-
-		for (const content of args.steps) {
-			const stepResult = await client.createStep(slug, args.card_number, {
-				content,
+		// Fetch steps for the card
+		const stepsResult = await client.listSteps(slug, args.card_number);
+		if (isErr(stepsResult)) {
+			throw toUserError(stepsResult.error, {
+				resourceType: "Step",
+				container: `card #${args.card_number}`,
 			});
-			if (isErr(stepResult)) {
-				if (!firstError) {
-					firstError = stepResult.error;
-				}
-				result.failed.push({
-					content,
-					error: stepResult.error.message,
-				});
-			} else {
-				result.created.push(formatStep(stepResult.value));
+		}
+
+		const steps = stepsResult.value;
+		if (steps.length === 0) {
+			throw new UserError(`Card #${args.card_number} has no steps.`);
+		}
+
+		let targetStep: (typeof steps)[number] | undefined;
+
+		if (typeof args.step === "number") {
+			// Match by 1-based index
+			const index = args.step - 1;
+			if (index < 0 || index >= steps.length) {
+				throw new UserError(
+					`Step index ${args.step} out of range. Card has ${steps.length} step(s).`,
+				);
 			}
+			targetStep = steps[index];
+		} else {
+			// Match by content substring (case-insensitive)
+			const searchTerm = args.step.toLowerCase();
+			const matches = steps.filter((s) =>
+				s.content.toLowerCase().includes(searchTerm),
+			);
+
+			if (matches.length === 0) {
+				const stepList = steps
+					.map((s, i) => `${i + 1}. ${s.content}`)
+					.join("\n");
+				throw new UserError(
+					`No step matches "${args.step}". Available steps:\n${stepList}`,
+				);
+			}
+
+			if (matches.length > 1) {
+				const matchList = matches.map((s) => `- ${s.content}`).join("\n");
+				throw new UserError(
+					`Multiple steps match "${args.step}". Be more specific:\n${matchList}`,
+				);
+			}
+
+			targetStep = matches[0];
 		}
 
-		// If all failed, throw an error
-		if (result.created.length === 0 && firstError) {
-			throw toUserError(firstError, {
+		if (!targetStep) {
+			throw new UserError("Could not find matching step.");
+		}
+
+		if (targetStep.completed) {
+			return JSON.stringify(
+				{
+					id: targetStep.id,
+					content: targetStep.content,
+					completed: true,
+					note: "Step was already completed.",
+				},
+				null,
+				2,
+			);
+		}
+
+		// Mark step as completed
+		const updateResult = await client.updateStep(
+			slug,
+			args.card_number,
+			targetStep.id,
+			{ completed: true },
+		);
+		if (isErr(updateResult)) {
+			throw toUserError(updateResult.error, {
 				resourceType: "Step",
+				resourceId: targetStep.id,
 				container: `card #${args.card_number}`,
 			});
 		}
 
-		return JSON.stringify(result, null, 2);
-	},
-};
-
-export const updateStepTool = {
-	name: "fizzy_update_step",
-	description: `Update a step's content or completion status.
-
-Mark a step done or modify its text.
-
-**When to use:**
-1. Mark a subtask as complete
-2. Fix step wording or uncheck an accidentally completed step
-
-**Arguments:** \`account_slug\` (optional), \`card_number\` (required), \`step_id\` (required), \`content\` (optional — new text), \`completed\` (optional — true/false)
-
-**Returns:** JSON with \`id\`, \`content\`, \`completed\` status.
-Example: \`{"id": "abc123", "content": "Review PR", "completed": true}\`
-
-**Related:** Get step IDs from \`fizzy_get_card\` (includes step details) or create with \`fizzy_create_step\`.`,
-	parameters: z.object({
-		account_slug: z
-			.string()
-			.optional()
-			.describe("Account slug. Uses default if omitted."),
-		card_number: z.number().describe("Card number the step belongs to."),
-		step_id: z.string().describe("Step ID to update. Get from fizzy_get_card."),
-		content: z.string().optional().describe("New step content (1-500 chars)."),
-		completed: z
-			.boolean()
-			.optional()
-			.describe("Set true to mark complete, false to uncheck."),
-	}),
-	execute: async (args: {
-		account_slug?: string;
-		card_number: number;
-		step_id: string;
-		content?: string;
-		completed?: boolean;
-	}) => {
-		const slug = resolveAccount(args.account_slug);
-		const client = getFizzyClient();
-		const result = await client.updateStep(
-			slug,
-			args.card_number,
-			args.step_id,
+		return JSON.stringify(
 			{
-				content: args.content,
-				completed: args.completed,
+				id: updateResult.value.id,
+				content: updateResult.value.content,
+				completed: updateResult.value.completed,
 			},
+			null,
+			2,
 		);
-		if (isErr(result)) {
-			throw toUserError(result.error, {
-				resourceType: "Step",
-				resourceId: args.step_id,
-				container: `card #${args.card_number}`,
-			});
-		}
-		return JSON.stringify(formatStep(result.value), null, 2);
-	},
-};
-
-export const deleteStepTool = {
-	name: "fizzy_delete_step",
-	description: `Delete a step from a card.
-
-Remove a checklist item permanently.
-
-**When to use:**
-1. Step is no longer relevant to the task
-2. Consolidating or reorganizing checklist items
-
-**Don't use when:** You want to preserve history — consider marking complete instead.
-
-**Arguments:** \`account_slug\` (optional), \`card_number\` (required), \`step_id\` (required)
-
-**Returns:** Confirmation message.
-
-**Related:** Get step IDs from \`fizzy_get_card\`. Consider \`fizzy_update_step\` with \`completed: true\` to preserve history.`,
-	parameters: z.object({
-		account_slug: z
-			.string()
-			.optional()
-			.describe("Account slug. Uses default if omitted."),
-		card_number: z.number().describe("Card number the step belongs to."),
-		step_id: z.string().describe("Step ID to delete. Get from fizzy_get_card."),
-	}),
-	execute: async (args: {
-		account_slug?: string;
-		card_number: number;
-		step_id: string;
-	}) => {
-		const slug = resolveAccount(args.account_slug);
-		const client = getFizzyClient();
-		const result = await client.deleteStep(
-			slug,
-			args.card_number,
-			args.step_id,
-		);
-		if (isErr(result)) {
-			throw toUserError(result.error, {
-				resourceType: "Step",
-				resourceId: args.step_id,
-				container: `card #${args.card_number}`,
-			});
-		}
-		return `Step ${args.step_id} deleted from card #${args.card_number}.`;
 	},
 };

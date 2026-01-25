@@ -3,7 +3,7 @@ import { NotFoundError } from "../client/errors.js";
 import * as client from "../client/index.js";
 import { clearDefaultAccount, setDefaultAccount } from "../state/session.js";
 import { err, ok } from "../types/result.js";
-import { bulkCloseCardsTool, createCardFullTool } from "./composite.js";
+import { bulkCloseCardsTool } from "./composite.js";
 
 const mockCard = {
 	id: "card_1",
@@ -361,76 +361,5 @@ describe("bulkCloseCardsTool", () => {
 			status: "open",
 			tag_ids: ["tag_1"],
 		}); // Should find "Bug" tag
-	});
-});
-
-describe("createCardFullTool", () => {
-	beforeEach(() => {
-		vi.restoreAllMocks();
-		clearDefaultAccount();
-		process.env.FIZZY_ACCESS_TOKEN = "test-token";
-	});
-
-	test("should create card with all options", async () => {
-		const createCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const createStepFn = vi.fn().mockResolvedValue(ok({ id: "step_1" }));
-		const toggleTagFn = vi.fn().mockResolvedValue(ok(undefined));
-		const toggleAssigneeFn = vi.fn().mockResolvedValue(ok(undefined));
-		const triageCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createCard: createCardFn,
-			createStep: createStepFn,
-			toggleTag: toggleTagFn,
-			toggleAssignee: toggleAssigneeFn,
-			triageCard: triageCardFn,
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("test-account");
-		const result = await createCardFullTool.execute({
-			board_id: "board_1",
-			title: "New Card",
-			description: "Description",
-			steps: ["Step 1", "Step 2"],
-			tags: ["Bug"],
-			assignees: ["user_1"],
-			column_id: "col_1",
-		});
-
-		const parsed = JSON.parse(result);
-		expect(parsed.card.number).toBe(42);
-		expect(parsed.steps_created).toBe(2);
-		expect(parsed.tags_added).toEqual(["Bug"]);
-		expect(parsed.assignees_added).toEqual(["user_1"]);
-		expect(parsed.triaged_to).toBe("col_1");
-		expect(parsed.failures).toEqual([]);
-	});
-
-	test("should report failures for optional operations", async () => {
-		const createCardFn = vi.fn().mockResolvedValue(ok(mockCard));
-		const createStepFn = vi
-			.fn()
-			.mockResolvedValueOnce(ok({ id: "step_1" }))
-			.mockResolvedValueOnce(err(new NotFoundError()));
-		const toggleTagFn = vi.fn().mockResolvedValue(err(new NotFoundError()));
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			createCard: createCardFn,
-			createStep: createStepFn,
-			toggleTag: toggleTagFn,
-		} as unknown as client.FizzyClient);
-
-		setDefaultAccount("test-account");
-		const result = await createCardFullTool.execute({
-			board_id: "board_1",
-			title: "New Card",
-			steps: ["Step 1", "Step 2"],
-			tags: ["Bug"],
-		});
-
-		const parsed = JSON.parse(result);
-		expect(parsed.steps_created).toBe(1);
-		expect(parsed.tags_added).toEqual([]);
-		expect(parsed.failures).toHaveLength(2);
-		expect(parsed.failures[0].operation).toBe("add_step:Step 2");
-		expect(parsed.failures[1].operation).toBe("toggle_tag:Bug");
 	});
 });

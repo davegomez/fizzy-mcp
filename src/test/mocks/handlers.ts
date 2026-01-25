@@ -1051,6 +1051,44 @@ export const handlers = [
 	),
 
 	// Step handlers
+	http.get(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/steps`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			const cardNumber = Number(params.cardNumber);
+			const card = mockCards.find((c) => c.number === cardNumber);
+			if (!card) {
+				return HttpResponse.json({}, { status: 404 });
+			}
+
+			// Mock steps for card 1 (has steps_count: 2, completed_steps_count: 1)
+			if (cardNumber === 1) {
+				return HttpResponse.json([
+					{ id: "step_1", content: "Review PR changes", completed: true },
+					{ id: "step_2", content: "Run test suite", completed: false },
+				]);
+			}
+
+			// Mock steps for card 3 (has steps_count: 5, completed_steps_count: 5)
+			if (cardNumber === 3) {
+				return HttpResponse.json([
+					{ id: "step_3a", content: "Write introduction", completed: true },
+					{ id: "step_3b", content: "Document API endpoints", completed: true },
+					{ id: "step_3c", content: "Add code examples", completed: true },
+					{ id: "step_3d", content: "Review formatting", completed: true },
+					{ id: "step_3e", content: "Publish docs", completed: true },
+				]);
+			}
+
+			// Other cards have no steps
+			return HttpResponse.json([]);
+		},
+	),
+
 	http.post(
 		`${BASE_URL}/:accountSlug/cards/:cardNumber/steps`,
 		async ({ request, params }) => {

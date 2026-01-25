@@ -1,54 +1,6 @@
-import { beforeEach, describe, expect, test, vi } from "vitest";
-import { AuthenticationError } from "../client/errors.js";
-import * as client from "../client/index.js";
+import { beforeEach, describe, expect, test } from "vitest";
 import { clearDefaultAccount, getDefaultAccount } from "../state/session.js";
-import { err, ok } from "../types/result.js";
-import { defaultAccountTool, whoamiTool } from "./identity.js";
-
-describe("whoamiTool", () => {
-	beforeEach(() => {
-		vi.restoreAllMocks();
-		process.env.FIZZY_ACCESS_TOKEN = "test-token";
-	});
-
-	test("should return identity JSON on success", async () => {
-		const mockIdentity = {
-			accounts: [
-				{
-					id: "acc_123",
-					name: "Test",
-					slug: "/897362094",
-					created_at: "2024-01-01",
-					user: {
-						id: "u1",
-						name: "User",
-						role: "owner" as const,
-						active: true,
-						email_address: "a@b.com",
-						created_at: "2024-01-01",
-						url: "https://example.com",
-					},
-				},
-			],
-		};
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			whoami: vi.fn().mockResolvedValue(ok(mockIdentity)),
-		} as unknown as client.FizzyClient);
-
-		const result = await whoamiTool.execute({});
-		expect(JSON.parse(result)).toEqual(mockIdentity);
-	});
-
-	test("should throw UserError on API error", async () => {
-		vi.spyOn(client, "getFizzyClient").mockReturnValue({
-			whoami: vi.fn().mockResolvedValue(err(new AuthenticationError())),
-		} as unknown as client.FizzyClient);
-
-		await expect(whoamiTool.execute({})).rejects.toThrow(
-			"Authentication failed",
-		);
-	});
-});
+import { defaultAccountTool } from "./identity.js";
 
 describe("defaultAccountTool", () => {
 	beforeEach(() => {
@@ -88,7 +40,7 @@ describe("defaultAccountTool", () => {
 			await expect(
 				defaultAccountTool.execute({ action: "set" }),
 			).rejects.toThrow(
-				"Action 'set' requires account_slug. Use fizzy_whoami to find available accounts.",
+				"Action 'set' requires account_slug. Use fizzy_boards to discover available accounts.",
 			);
 		});
 
