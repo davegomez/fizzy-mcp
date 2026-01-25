@@ -437,9 +437,10 @@ export class FizzyClient {
 			path = decodedUrl.replace(this.baseUrl, "");
 		} else {
 			const params = new URLSearchParams();
-			if (filters?.board_id) params.set("board_id", filters.board_id);
-			if (filters?.column_id) params.set("column_id", filters.column_id);
-			if (filters?.status) params.set("status", filters.status);
+			for (const id of filters?.board_ids ?? []) {
+				params.append("board_ids[]", id);
+			}
+			if (filters?.indexed_by) params.set("indexed_by", filters.indexed_by);
 			for (const id of filters?.tag_ids ?? []) {
 				params.append("tag_ids[]", id);
 			}
