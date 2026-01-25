@@ -51,12 +51,14 @@ MCP server for [Fizzy](https://fizzy.do) task management. Exposes 8 tools for ma
 
 ## How to Install from Source
 
+**Requires [pnpm](https://pnpm.io/).** npm and yarn are blocked by the project configuration.
+
 1. Clone and build:
    ```bash
    git clone https://github.com/davegomez/fizzy-mcp.git
    cd fizzy-mcp
-   npm install
-   npm run build
+   pnpm install
+   pnpm build
    ```
 
 2. Add to your MCP settings:

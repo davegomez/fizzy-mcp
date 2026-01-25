@@ -4,15 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build & Development
 
+**This project uses pnpm exclusively.** npm/yarn will fail at install.
+
 ```bash
-npm run build         # Compile TypeScript to dist/
-npm run dev           # Run with tsx (live development)
-npm run test          # Vitest watch mode
-npm run test:run      # Run tests once
-npm test -- src/client/fizzy.test.ts  # Single test file
-npm run lint          # Check with Biome
-npm run lint:fix      # Auto-fix lint issues
-npm run check         # Lint + typecheck (CI-ready)
+pnpm build            # Compile TypeScript to dist/
+pnpm dev              # Run with tsx (live development)
+pnpm test             # Vitest watch mode
+pnpm test:run         # Run tests once
+pnpm test src/client/fizzy.test.ts  # Single test file
+pnpm lint             # Check with Biome
+pnpm lint:fix         # Auto-fix lint issues
+pnpm check            # Lint + typecheck (CI-ready)
 ```
 
 ## Architecture
