@@ -33,7 +33,7 @@ MCP server exposing Fizzy task management API via FastMCP. Five layers:
 
 ## Patterns
 
-**Result type**: Client methods return `Result<T, E>` - check with `isErr()`, extract `.value`.
+**Result type**: Client methods return `Result<T, E>` - check with `isErr()`, extract `.value`. Lifecycle methods (`closeCard`, `reopenCard`, `triageCard`, `unTriageCard`, `notNowCard`) return `Result<void, FizzyApiError>` - API returns 204 No Content.
 
 **Error handling**: Client returns `FizzyApiError` subclasses (AuthenticationError, NotFoundError, ValidationError, RateLimitError, ForbiddenError). Convert to `UserError` via `toUserError(error, context?)` with optional context for instructive recovery messages.
 
