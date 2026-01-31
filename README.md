@@ -24,7 +24,7 @@ Add to your config file:
 ```json
 {
   "mcpServers": {
-    "fizzy": {
+    "Fizzy": {
       "command": "npx",
       "args": ["-y", "@silky/fizzy-mcp"],
       "env": {
@@ -46,7 +46,7 @@ Restart Claude Desktop completely, then verify: "List my Fizzy boards."
 Use the CLI:
 
 ```bash
-claude mcp add --transport stdio fizzy --env FIZZY_TOKEN=your-token-here -- npx -y @silky/fizzy-mcp
+claude mcp add --transport stdio Fizzy --env FIZZY_TOKEN=your-token-here -- npx -y @silky/fizzy-mcp
 ```
 
 Or add to `~/.claude.json`:
@@ -54,7 +54,7 @@ Or add to `~/.claude.json`:
 ```json
 {
   "mcpServers": {
-    "fizzy": {
+    "Fizzy": {
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@silky/fizzy-mcp"],
@@ -77,7 +77,7 @@ Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 ```json
 {
   "mcpServers": {
-    "fizzy": {
+    "Fizzy": {
       "command": "npx",
       "args": ["-y", "@silky/fizzy-mcp"],
       "env": {
@@ -107,7 +107,7 @@ Add to `.vscode/mcp.json` in your workspace:
     }
   ],
   "servers": {
-    "fizzy": {
+    "Fizzy": {
       "command": "npx",
       "args": ["-y", "@silky/fizzy-mcp"],
       "env": {
@@ -129,7 +129,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 ```json
 {
   "mcpServers": {
-    "fizzy": {
+    "Fizzy": {
       "command": "npx",
       "args": ["-y", "@silky/fizzy-mcp"],
       "env": {
@@ -155,7 +155,7 @@ Add to the Cline MCP settings file:
 ```json
 {
   "mcpServers": {
-    "fizzy": {
+    "Fizzy": {
       "command": "npx",
       "args": ["-y", "@silky/fizzy-mcp"],
       "env": {
