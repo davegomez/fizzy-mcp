@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.4.0
+
+[compare changes](https://github.com/davegomez/fizzy-mcp/compare/v0.3.0...v0.4.0)
+
+### Features
+
+- **tools:** ⚠️  Remove fizzy_bulk_close tool ([3d5dca8](https://github.com/davegomez/fizzy-mcp/commit/3d5dca8))
+- **tools:** ⚠️  Replace fizzy_complete_step with unified fizzy_step ([4aa8ea8](https://github.com/davegomez/fizzy-mcp/commit/4aa8ea8))
+
+### Refactors
+
+- **schema:** Add optional steps array to CardSchema ([c498350](https://github.com/davegomez/fizzy-mcp/commit/c498350))
+- **client:** Remove broken listSteps method ([f76d0e7](https://github.com/davegomez/fizzy-mcp/commit/f76d0e7))
+
+### Documentation
+
+- Remove fizzy_bulk_close references from documentation ([29b2c77](https://github.com/davegomez/fizzy-mcp/commit/29b2c77))
+- Update tool reference for fizzy_step ([a810e3c](https://github.com/davegomez/fizzy-mcp/commit/a810e3c))
+- Capitalize Fizzy server name in installation examples ([1fcd46b](https://github.com/davegomez/fizzy-mcp/commit/1fcd46b))
+- Add required type field to VS Code MCP config example ([fe398e3](https://github.com/davegomez/fizzy-mcp/commit/fe398e3))
+
+#### ⚠️ Breaking Changes
+
+- **tools:** ⚠️  Remove fizzy_bulk_close tool ([3d5dca8](https://github.com/davegomez/fizzy-mcp/commit/3d5dca8))
+- **tools:** ⚠️  Replace fizzy_complete_step with unified fizzy_step ([4aa8ea8](https://github.com/davegomez/fizzy-mcp/commit/4aa8ea8))
+
+### ❤️ Contributors
+
+- David Gomez <code@davidgomez.dev>
+
 ## v0.3.0
 
 [compare changes](https://github.com/davegomez/fizzy-mcp/compare/v0.2.1...v0.3.0)
