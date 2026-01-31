@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.2.1
+
+[compare changes](https://github.com/davegomez/fizzy-mcp/compare/v0.2.0...v0.2.1)
+
+### Bug Fixes
+
+- **schema:** Align CardTagSchema with API response format ([01404b2](https://github.com/davegomez/fizzy-mcp/commit/01404b2))
+
+### ❤️ Contributors
+
+- David Gomez <code@davidgomez.dev>
+
 ## v0.2.0
 
 [compare changes](https://github.com/davegomez/fizzy-mcp/compare/v0.1.0...v0.2.0)

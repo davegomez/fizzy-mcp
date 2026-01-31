@@ -1,6 +1,6 @@
 {
 	"name": "@silky/fizzy-mcp",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "MCP server for Fizzy task management",
 	"author": "David Gómez",
 	"homepage": "https://github.com/davegomez/fizzy-mcp",
