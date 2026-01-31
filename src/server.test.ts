@@ -38,9 +38,9 @@ describe("createServer", () => {
 		expect(toolNames).toContain("fizzy_comment");
 	});
 
-	test("should have complete_step tool available", () => {
+	test("should have step tool available", () => {
 		const toolNames = allTools.map((t) => t.name);
-		expect(toolNames).toContain("fizzy_complete_step");
+		expect(toolNames).toContain("fizzy_step");
 	});
 
 	test("should export exactly 7 tools in allTools", () => {
