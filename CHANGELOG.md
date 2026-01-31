@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.3.0
+
+[compare changes](https://github.com/davegomez/fizzy-mcp/compare/v0.2.1...v0.3.0)
+
+### Features
+
+- **config:** ⚠️  Remove deprecated FIZZY_ACCESS_TOKEN support ([6251918](https://github.com/davegomez/fizzy-mcp/commit/6251918))
+
+#### ⚠️ Breaking Changes
+
+- **config:** ⚠️  Remove deprecated FIZZY_ACCESS_TOKEN support ([6251918](https://github.com/davegomez/fizzy-mcp/commit/6251918))
+
+### ❤️ Contributors
+
+- David Gomez <code@davidgomez.dev>
+
 ## v0.2.1
 
 [compare changes](https://github.com/davegomez/fizzy-mcp/compare/v0.2.0...v0.2.1)
