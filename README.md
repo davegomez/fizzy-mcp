@@ -1,6 +1,6 @@
 # fizzy-mcp
 
-MCP server for [Fizzy](https://fizzy.do) task management. Exposes 8 tools for managing boards, cards, comments, and checklists.
+MCP server for [Fizzy](https://fizzy.do) task management. Exposes 7 tools for managing boards, cards, comments, and checklists.
 
 ## Prerequisites
 
@@ -38,6 +38,7 @@ Add to your config file:
 **Windows only:** Add `"APPDATA": "C:\\Users\\YourUsername\\AppData\\Roaming"` to the `env` block.
 
 Restart Claude Desktop completely, then verify: "List my Fizzy boards."
+
 </details>
 
 <details>
@@ -67,6 +68,7 @@ Or add to `~/.claude.json`:
 ```
 
 Restart Claude Code, then verify: "List my Fizzy boards."
+
 </details>
 
 <details>
@@ -89,6 +91,7 @@ Add to `~/.cursor/mcp.json` (global) or `.cursor/mcp.json` (project):
 ```
 
 Restart Cursor completely, then verify in Agent mode (Ctrl+I).
+
 </details>
 
 <details>
@@ -108,6 +111,7 @@ Add to `.vscode/mcp.json` in your workspace:
   ],
   "servers": {
     "Fizzy": {
+      "type": "stdio",
       "command": "npx",
       "args": ["-y", "@silky/fizzy-mcp"],
       "env": {
@@ -119,6 +123,7 @@ Add to `.vscode/mcp.json` in your workspace:
 ```
 
 Or use user settings via Command Palette → "MCP: Open User Configuration".
+
 </details>
 
 <details>
@@ -141,6 +146,7 @@ Add to `~/.codeium/windsurf/mcp_config.json`:
 ```
 
 Set `FIZZY_TOKEN` in your shell environment, or hardcode the value. Restart Windsurf.
+
 </details>
 
 <details>
@@ -167,6 +173,7 @@ Add to the Cline MCP settings file:
   }
 }
 ```
+
 </details>
 
 <details>
@@ -184,6 +191,7 @@ mcpServers:
     env:
       FIZZY_TOKEN: ${{ secrets.FIZZY_TOKEN }}
 ```
+
 </details>
 
 <details>
@@ -199,18 +207,18 @@ pnpm build
 ```
 
 Replace `npx -y @silky/fizzy-mcp` with `node /absolute/path/to/fizzy-mcp/dist/index.js` in any config above.
+
 </details>
 
 ---
 
 ## Configuration Reference
 
-| Variable         | Required | Default                | Description                                    |
-| ---------------- | -------- | ---------------------- | ---------------------------------------------- |
-| `FIZZY_TOKEN`    | Yes      | —                      | API token from Fizzy settings                  |
-| `FIZZY_ACCOUNT`  | No       | —                      | Default account slug (e.g., `897362094`)       |
-| `FIZZY_BASE_URL` | No       | `https://app.fizzy.do` | API base URL                                   |
-
+| Variable         | Required | Default                | Description                              |
+| ---------------- | -------- | ---------------------- | ---------------------------------------- |
+| `FIZZY_TOKEN`    | Yes      | —                      | API token from Fizzy settings            |
+| `FIZZY_ACCOUNT`  | No       | —                      | Default account slug (e.g., `897362094`) |
+| `FIZZY_BASE_URL` | No       | `https://app.fizzy.do` | API base URL                             |
 
 ### Account Resolution
 
@@ -229,12 +237,13 @@ Tools resolve `account_slug` in this order:
 
 Gets, sets, or lists accounts for subsequent tool calls.
 
-| Parameter      | Type                              | Required  | Description                 |
-| -------------- | --------------------------------- | --------- | --------------------------- |
+| Parameter      | Type                           | Required  | Description                 |
+| -------------- | ------------------------------ | --------- | --------------------------- |
 | `action`       | `"get"` \| `"set"` \| `"list"` | Yes       | Action to perform           |
-| `account_slug` | string                            | For `set` | Account slug from Fizzy URL |
+| `account_slug` | string                         | For `set` | Account slug from Fizzy URL |
 
 **Returns:**
+
 - `get`: `{ "action": "get", "account_slug": "897362094" | null }`
 - `set`: `{ "action": "set", "account_slug": "897362094" }`
 - `list`: `{ "action": "list", "accounts": [{ "slug": "...", "name": "...", "id": "..." }] }`
@@ -259,15 +268,15 @@ Lists boards in the account with column summaries.
 
 Searches for cards with filters.
 
-| Parameter      | Type                                                                          | Required | Description                        |
-| -------------- | ----------------------------------------------------------------------------- | -------- | ---------------------------------- |
-| `account_slug` | string                                                                        | No       | Account slug                       |
-| `board_id`     | string                                                                        | No       | Filter by board                    |
-| `tag_ids`      | string[]                                                                      | No       | Filter by ALL tags                 |
-| `assignee_ids` | string[]                                                                      | No       | Filter by ANY assignees            |
+| Parameter      | Type                                                                                     | Required | Description                        |
+| -------------- | ---------------------------------------------------------------------------------------- | -------- | ---------------------------------- |
+| `account_slug` | string                                                                                   | No       | Account slug                       |
+| `board_id`     | string                                                                                   | No       | Filter by board                    |
+| `tag_ids`      | string[]                                                                                 | No       | Filter by ALL tags                 |
+| `assignee_ids` | string[]                                                                                 | No       | Filter by ANY assignees            |
 | `indexed_by`   | `"closed"` \| `"not_now"` \| `"all"` \| `"stalled"` \| `"postponing_soon"` \| `"golden"` | No       | Filter by index                    |
-| `limit`        | number                                                                        | No       | Items per page (1-100, default 25) |
-| `cursor`       | string                                                                        | No       | Pagination cursor                  |
+| `limit`        | number                                                                                   | No       | Items per page (1-100, default 25) |
+| `cursor`       | string                                                                                   | No       | Pagination cursor                  |
 
 **Returns:** `{ "items": Card[], "pagination": {...} }`
 
@@ -331,16 +340,17 @@ Adds a comment to a card.
 
 Create, complete, update, uncomplete, or delete a step on a card.
 
-| Parameter      | Type             | Required | Description                                          |
-| -------------- | ---------------- | -------- | ---------------------------------------------------- |
-| `account_slug` | string           | No       | Account slug                                         |
-| `card_number`  | number           | Yes      | Card containing the step                             |
-| `step`         | string \| number | No       | Content substring OR 1-based index. Omit to create.  |
-| `content`      | string           | No       | Step text for create or update                       |
-| `completed`    | boolean          | No       | Set completion state                                 |
-| `delete`       | boolean          | No       | Delete the step                                      |
+| Parameter      | Type             | Required | Description                                         |
+| -------------- | ---------------- | -------- | --------------------------------------------------- |
+| `account_slug` | string           | No       | Account slug                                        |
+| `card_number`  | number           | Yes      | Card containing the step                            |
+| `step`         | string \| number | No       | Content substring OR 1-based index. Omit to create. |
+| `content`      | string           | No       | Step text for create or update                      |
+| `completed`    | boolean          | No       | Set completion state                                |
+| `delete`       | boolean          | No       | Delete the step                                     |
 
 **Mode detection:**
+
 - `step` absent → CREATE (requires `content`)
 - `step` present, no other params → COMPLETE
 - `step` + `content` → UPDATE
@@ -376,12 +386,12 @@ List operations return:
 
 ## Error Reference
 
-| Error                                                                                              | Cause                                            |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------ |
-| "No account specified. Set FIZZY_ACCOUNT env var, use fizzy_account tool, or pass account_slug." | No account resolvable via any method             |
-| "Account \"...\" not found"                                                                       | Invalid slug passed to `fizzy_account` set       |
-| "Card #N not found"                                                                                | Card number does not exist                       |
-| "Board not found"                                                                                  | Invalid `board_id`                               |
+| Error                                                                                            | Cause                                      |
+| ------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| "No account specified. Set FIZZY_ACCOUNT env var, use fizzy_account tool, or pass account_slug." | No account resolvable via any method       |
+| "Account \"...\" not found"                                                                      | Invalid slug passed to `fizzy_account` set |
+| "Card #N not found"                                                                              | Card number does not exist                 |
+| "Board not found"                                                                                | Invalid `board_id`                         |
 
 ---
 
