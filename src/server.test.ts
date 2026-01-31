@@ -43,12 +43,7 @@ describe("createServer", () => {
 		expect(toolNames).toContain("fizzy_complete_step");
 	});
 
-	test("should have bulk_close tool available", () => {
-		const toolNames = allTools.map((t) => t.name);
-		expect(toolNames).toContain("fizzy_bulk_close");
-	});
-
-	test("should export exactly 8 tools in allTools", () => {
-		expect(allTools.length).toBe(8);
+	test("should export exactly 7 tools in allTools", () => {
+		expect(allTools.length).toBe(7);
 	});
 });
