@@ -42,7 +42,7 @@
 		"start": "node dist/index.js",
 		"changelog": "changelogen",
 		"release": "changelogen --bump --release --push --no-github",
-		"release:dry": "changelogen --bump --release --no-github --dry"
+		"release:dry": "changelogen --bump --release --no-github"
 	},
 	"dependencies": {
 		"fastmcp": "^3.28.0",
