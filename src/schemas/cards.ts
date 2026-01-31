@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { StepSchema } from "./steps.js";
 
 export const CardAssigneeSchema = z.object({
 	id: z.string(),
@@ -37,6 +38,7 @@ export const CardSchema = z.object({
 	steps_count: z.number(),
 	completed_steps_count: z.number(),
 	comments_count: z.number(),
+	steps: z.array(StepSchema).optional(),
 	created_at: z.string(),
 	updated_at: z.string(),
 	closed_at: z.string().nullable(),
