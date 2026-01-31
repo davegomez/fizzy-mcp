@@ -1,7 +1,6 @@
 import { FastMCP } from "fastmcp";
 import {
 	boardsTool,
-	bulkCloseCardsTool,
 	commentTool,
 	completeStepTool,
 	defaultAccountTool,
@@ -23,7 +22,6 @@ export function createServer(): FastMCP {
 	server.addTool(taskTool);
 	server.addTool(commentTool);
 	server.addTool(completeStepTool);
-	server.addTool(bulkCloseCardsTool);
 
 	return server;
 }
