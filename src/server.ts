@@ -2,10 +2,10 @@ import { FastMCP } from "fastmcp";
 import {
 	boardsTool,
 	commentTool,
-	completeStepTool,
 	defaultAccountTool,
 	getCardTool,
 	searchTool,
+	stepTool,
 	taskTool,
 } from "./tools/index.js";
 
@@ -21,7 +21,7 @@ export function createServer(): FastMCP {
 	server.addTool(getCardTool);
 	server.addTool(taskTool);
 	server.addTool(commentTool);
-	server.addTool(completeStepTool);
+	server.addTool(stepTool);
 
 	return server;
 }

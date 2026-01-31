@@ -163,7 +163,7 @@ The \`card_number\` is the \`#\` visible in the UI (e.g., #42). The \`card_id\` 
 JSON with id, number, title, description (markdown), status, board_id, column_id, tags array, assignees array, steps_count, completed_steps_count, comments_count, url, created_at, updated_at, closed_at (null if open).
 Example: \`{"id": "card_abc", "number": 42, "title": "Fix bug", "status": "open", "steps_count": 3, ...}\`
 
-**Related:** Use \`fizzy_comment\` or \`fizzy_complete_step\` for deeper interaction.`,
+**Related:** Use \`fizzy_comment\` or \`fizzy_step\` for deeper interaction.`,
 	parameters: z
 		.object({
 			account_slug: z
