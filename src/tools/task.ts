@@ -283,10 +283,9 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 			// Pre-check avoids toggling tags that are already in desired state
 			if (args.add_tags && args.add_tags.length > 0) {
 				const tagsAdded: string[] = [];
-				const currentTagTitles = card.tags.map((t) => t.title);
 
 				for (const tagTitle of args.add_tags) {
-					if (currentTagTitles.includes(tagTitle)) {
+					if (card.tags.includes(tagTitle)) {
 						continue;
 					}
 					const tagResult = await client.toggleTag(slug, cardNumber, tagTitle);
@@ -306,10 +305,9 @@ Update: \`{card_number: 42, status: "closed", add_tags: ["done"]}\``,
 
 			if (args.remove_tags && args.remove_tags.length > 0) {
 				const tagsRemoved: string[] = [];
-				const currentTagTitles = card.tags.map((t) => t.title);
 
 				for (const tagTitle of args.remove_tags) {
-					if (!currentTagTitles.includes(tagTitle)) {
+					if (!card.tags.includes(tagTitle)) {
 						continue;
 					}
 					const tagResult = await client.toggleTag(slug, cardNumber, tagTitle);

@@ -69,7 +69,7 @@ describe("CardSchema", () => {
 		closed: false,
 		board_id: "board_1",
 		column_id: "col_1",
-		tags: [{ id: "tag_1", title: "Bug", color: "#ff0000" }],
+		tags: ["Bug"],
 		assignees: [
 			{ id: "user_1", name: "Jane Doe", email_address: "jane@example.com" },
 		],

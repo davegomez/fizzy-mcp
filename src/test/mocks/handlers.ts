@@ -48,7 +48,7 @@ const mockCards = [
 		closed: false,
 		board_id: "board_1",
 		column_id: "col_1",
-		tags: [{ id: "tag_1", title: "Bug", color: "#ff0000" }],
+		tags: ["Bug"],
 		assignees: [
 			{ id: "user_1", name: "Jane Doe", email_address: "jane@example.com" },
 		],
@@ -69,7 +69,7 @@ const mockCards = [
 		closed: false,
 		board_id: "board_1",
 		column_id: "col_2",
-		tags: [{ id: "tag_2", title: "Feature", color: "#00ff00" }],
+		tags: ["Feature"],
 		assignees: [],
 		steps_count: 0,
 		completed_steps_count: 0,
@@ -88,7 +88,7 @@ const mockCards = [
 		closed: true,
 		board_id: "board_1",
 		column_id: "col_3",
-		tags: [{ id: "tag_3", title: "Documentation", color: "#0000ff" }],
+		tags: ["Documentation"],
 		assignees: [
 			{ id: "user_2", name: "John Smith", email_address: "john@example.com" },
 		],
@@ -568,8 +568,11 @@ export const handlers = [
 
 		const tagIds = url.searchParams.getAll("tag_ids[]");
 		if (tagIds.length > 0) {
+			const tagTitles = tagIds
+				.map((id) => mockTags.find((t) => t.id === id)?.title)
+				.filter(Boolean);
 			filteredCards = filteredCards.filter((c) =>
-				c.tags.some((t) => tagIds.includes(t.id)),
+				c.tags.some((t) => tagTitles.includes(t)),
 			);
 		}
 

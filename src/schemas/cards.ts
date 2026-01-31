@@ -6,11 +6,8 @@ export const CardAssigneeSchema = z.object({
 	email_address: z.string(),
 });
 
-export const CardTagSchema = z.object({
-	id: z.string(),
-	title: z.string(),
-	color: z.string(),
-});
+// Card responses return tags as plain string titles (e.g., ["bug", "feature"])
+export const CardTagSchema = z.string();
 
 // Publication status: published (visible) or drafted (hidden)
 export const CardStatusSchema = z.enum(["published", "drafted"]);

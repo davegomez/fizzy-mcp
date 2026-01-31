@@ -33,7 +33,7 @@ const mockCard = {
 	closed: false,
 	board_id: "board_1",
 	column_id: null,
-	tags: [{ id: "tag_1", title: "Bug", color: "red" }],
+	tags: ["Bug"],
 	assignees: [],
 	steps_count: 0,
 	completed_steps_count: 0,
