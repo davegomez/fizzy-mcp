@@ -1,6 +1,6 @@
 import { HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { ENV_BASE_URL, ENV_TOKEN, ENV_TOKEN_LEGACY } from "../config.js";
+import { ENV_BASE_URL, ENV_TOKEN } from "../config.js";
 import { server } from "../test/mocks/server.js";
 import { isErr, isOk } from "../types/result.js";
 import {
@@ -30,26 +30,11 @@ describe("FizzyClient", () => {
 	describe("constructor", () => {
 		test("should throw when token env var is missing", () => {
 			delete process.env[ENV_TOKEN];
-			delete process.env[ENV_TOKEN_LEGACY];
 			expect(() => new FizzyClient()).toThrow(ENV_TOKEN);
 		});
 
 		test("should use FIZZY_TOKEN when set", () => {
 			process.env[ENV_TOKEN] = "test-token";
-			const client = new FizzyClient();
-			expect(client.baseUrl).toBe("https://app.fizzy.do");
-		});
-
-		test("should fall back to FIZZY_ACCESS_TOKEN for backward compatibility", () => {
-			delete process.env[ENV_TOKEN];
-			process.env[ENV_TOKEN_LEGACY] = "legacy-token";
-			const client = new FizzyClient();
-			expect(client.baseUrl).toBe("https://app.fizzy.do");
-		});
-
-		test("should prefer FIZZY_TOKEN over FIZZY_ACCESS_TOKEN", () => {
-			process.env[ENV_TOKEN] = "primary-token";
-			process.env[ENV_TOKEN_LEGACY] = "legacy-token";
 			const client = new FizzyClient();
 			expect(client.baseUrl).toBe("https://app.fizzy.do");
 		});

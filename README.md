@@ -211,7 +211,6 @@ Replace `npx -y @silky/fizzy-mcp` with `node /absolute/path/to/fizzy-mcp/dist/in
 | `FIZZY_ACCOUNT`  | No       | —                      | Default account slug (e.g., `897362094`)       |
 | `FIZZY_BASE_URL` | No       | `https://app.fizzy.do` | API base URL                                   |
 
-> **Note:** `FIZZY_ACCESS_TOKEN` is supported for backward compatibility but deprecated.
 
 ### Account Resolution
 
