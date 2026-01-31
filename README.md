@@ -341,25 +341,6 @@ Marks a checklist step as complete.
 
 ---
 
-### fizzy_bulk_close
-
-Closes multiple cards at once.
-
-| Parameter         | Type     | Required | Description                         |
-| ----------------- | -------- | -------- | ----------------------------------- |
-| `account_slug`    | string   | No       | Account slug                        |
-| `card_numbers`    | number[] | No       | Explicit card numbers               |
-| `column_id`       | string   | No       | Filter: cards in column             |
-| `tag_title`       | string   | No       | Filter: cards with tag              |
-| `older_than_days` | number   | No       | Filter: cards not updated in N days |
-| `force`           | boolean  | Yes      | Must be `true` to execute           |
-
-Provide `card_numbers` OR at least one filter. Filters combine with AND.
-
-**Returns:** `{ "closed": number[], "failed": [...], "total": number, "success_count": number }`
-
----
-
 ## Pagination Reference
 
 List operations return:
@@ -391,8 +372,6 @@ List operations return:
 | "Account \"...\" not found"                                                                       | Invalid slug passed to `fizzy_account` set       |
 | "Card #N not found"                                                                                | Card number does not exist                       |
 | "Board not found"                                                                                  | Invalid `board_id`                               |
-| "Tag not found"                                                                                    | Invalid tag title in `fizzy_bulk_close`          |
-| "Bulk close requires force: true"                                                                  | Missing confirmation flag                        |
 
 ---
 
