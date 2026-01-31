@@ -25,7 +25,7 @@ MCP server exposing Fizzy task management API via FastMCP. Five layers:
 
 **Schemas** (`/src/schemas/`) - Zod schemas for all API types. Pattern: `EntitySchema`, `CreateEntityInputSchema`, `UpdateEntityInputSchema` per domain.
 
-**Tools** (`/src/tools/`) - 8 outcome-focused MCP tools registered in server.ts. Each exports tool object with `name`, `description`, `parameters` (Zod), and `execute` function. Tools: `fizzy_default_account`, `fizzy_boards`, `fizzy_search`, `fizzy_get_card`, `fizzy_task`, `fizzy_comment`, `fizzy_complete_step`, `fizzy_bulk_close`.
+**Tools** (`/src/tools/`) - 7 outcome-focused MCP tools registered in server.ts. Each exports tool object with `name`, `description`, `parameters` (Zod), and `execute` function. Tools: `fizzy_default_account`, `fizzy_boards`, `fizzy_search`, `fizzy_get_card`, `fizzy_task`, `fizzy_comment`, `fizzy_complete_step`.
 
 **Types** (`/src/types/`) - Shared type utilities including `Result<T, E>` ADT with `ok()`, `err()`, `isOk()`, `isErr()` helpers.
 
