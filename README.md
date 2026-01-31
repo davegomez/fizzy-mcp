@@ -327,15 +327,25 @@ Adds a comment to a card.
 
 ---
 
-### fizzy_complete_step
+### fizzy_step
 
-Marks a checklist step as complete.
+Create, complete, update, uncomplete, or delete a step on a card.
 
-| Parameter      | Type             | Required | Description                        |
-| -------------- | ---------------- | -------- | ---------------------------------- |
-| `account_slug` | string           | No       | Account slug                       |
-| `card_number`  | number           | Yes      | Card containing the step           |
-| `step`         | string \| number | Yes      | Content substring OR 1-based index |
+| Parameter      | Type             | Required | Description                                          |
+| -------------- | ---------------- | -------- | ---------------------------------------------------- |
+| `account_slug` | string           | No       | Account slug                                         |
+| `card_number`  | number           | Yes      | Card containing the step                             |
+| `step`         | string \| number | No       | Content substring OR 1-based index. Omit to create.  |
+| `content`      | string           | No       | Step text for create or update                       |
+| `completed`    | boolean          | No       | Set completion state                                 |
+| `delete`       | boolean          | No       | Delete the step                                      |
+
+**Mode detection:**
+- `step` absent → CREATE (requires `content`)
+- `step` present, no other params → COMPLETE
+- `step` + `content` → UPDATE
+- `step` + `completed: false` → UNCOMPLETE
+- `step` + `delete: true` → DELETE
 
 **Returns:** `{ "id": "...", "content": "...", "completed": true }`
 
