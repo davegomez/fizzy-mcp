@@ -124,9 +124,9 @@
    git checkout -b feature/your-feature
    ```
 
-2. Make atomic commits with imperative subjects:
+2. Make atomic commits using [Conventional Commits](https://www.conventionalcommits.org/) format:
    ```bash
-   git commit -m "Add fizzy_your_feature tool"
+   git commit -m "feat(tools): add fizzy_your_feature tool"
    ```
 
 3. Run all checks before pushing:
@@ -139,6 +139,25 @@
    git push -u origin feature/your-feature
    gh pr create
    ```
+
+## How to Release a New Version
+
+Releases are automated via [changelogen](https://github.com/unjs/changelogen) and GitHub Actions. The version bump is determined by commit types since the last tag.
+
+1. Preview the release locally (commits and tags locally, does not push):
+   ```bash
+   pnpm release:dry
+   ```
+
+2. If everything looks good, reset the local changes and run the actual release:
+   ```bash
+   git reset --hard HEAD~1 && git tag -d v<version>
+   pnpm release
+   ```
+
+   This bumps the version in `package.json`, updates `CHANGELOG.md`, commits, tags, and pushes to the remote.
+
+3. The tag push triggers the Release workflow, which runs CI, publishes to npm, and creates a GitHub Release.
 
 ---
 
@@ -217,6 +236,8 @@ Each domain follows this pattern:
 | `pnpm lint` | Check with Biome |
 | `pnpm lint:fix` | Auto-fix lint issues |
 | `pnpm check` | Lint + typecheck (CI-ready) |
+| `pnpm release` | Bump version, update changelog, commit, tag, and push |
+| `pnpm release:dry` | Same as `release` but without pushing (local preview) |
 
 ### Running Specific Tests
 
