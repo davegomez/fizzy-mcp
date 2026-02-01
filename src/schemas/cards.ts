@@ -45,6 +45,7 @@ export const CardSchema = z.object({
 	id: z.string(),
 	number: z.number(),
 	title: z.string(),
+	description: z.string().nullable().optional(),
 	description_html: z.string().nullable(),
 	status: CardStatusSchema,
 	closed: z.boolean(),
