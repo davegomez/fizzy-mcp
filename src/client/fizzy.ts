@@ -447,6 +447,10 @@ export class FizzyClient {
 			for (const id of filters?.assignee_ids ?? []) {
 				params.append("assignee_ids[]", id);
 			}
+			if (filters?.sorted_by) params.set("sorted_by", filters.sorted_by);
+			for (const term of filters?.terms ?? []) {
+				params.append("terms[]", term);
+			}
 			const queryString = params.toString();
 			path = `/${accountSlug}/cards${queryString ? `?${queryString}` : ""}`;
 		}

@@ -261,6 +261,27 @@ describe("CardFiltersSchema", () => {
 		const result = CardFiltersSchema.safeParse({ board_id: "board_1" });
 		expect(result.success).toBe(false);
 	});
+
+	test("should parse filter with sorted_by", () => {
+		const result = CardFiltersSchema.safeParse({ sorted_by: "newest" });
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.sorted_by).toBe("newest");
+		}
+	});
+
+	test("should reject invalid sorted_by value", () => {
+		const result = CardFiltersSchema.safeParse({ sorted_by: "alphabetical" });
+		expect(result.success).toBe(false);
+	});
+
+	test("should parse filter with terms array", () => {
+		const result = CardFiltersSchema.safeParse({ terms: ["login", "bug"] });
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.terms).toEqual(["login", "bug"]);
+		}
+	});
 });
 
 describe("CreateCardInputSchema", () => {

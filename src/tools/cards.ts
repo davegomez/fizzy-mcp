@@ -2,7 +2,7 @@ import { UserError } from "fastmcp";
 import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import { htmlToMarkdown } from "../client/markdown.js";
-import type { Card, IndexedBy } from "../schemas/cards.js";
+import type { Card, IndexedBy, SortedBy } from "../schemas/cards.js";
 import { DEFAULT_LIMIT } from "../schemas/pagination.js";
 import { resolveAccount } from "../state/account-resolver.js";
 import { isErr } from "../types/result.js";
@@ -54,6 +54,8 @@ Find cards matching criteria or review board contents.
 - \`indexed_by\` (optional): Filter by index category: closed | not_now | all | stalled | postponing_soon | golden
 - \`tag_ids\` (optional): Filter to cards with ALL these tag IDs
 - \`assignee_ids\` (optional): Filter to cards assigned to ANY of these user IDs
+- \`sorted_by\` (optional): Sort order: newest | oldest | recently_active
+- \`terms\` (optional): Search terms to filter cards by text content
 - \`limit\` (optional): Max items, 1-100 (default: 25)
 - \`cursor\` (optional): Continuation cursor from previous response
 
@@ -95,6 +97,14 @@ Find cards matching criteria or review board contents.
 			.array(z.string())
 			.optional()
 			.describe("Filter to cards assigned to ANY of these user IDs."),
+		sorted_by: z
+			.enum(["newest", "oldest", "recently_active"])
+			.optional()
+			.describe("Sort order: newest | oldest | recently_active."),
+		terms: z
+			.array(z.string())
+			.optional()
+			.describe("Search terms to filter cards by text content."),
 		limit: z
 			.number()
 			.int()
@@ -115,6 +125,8 @@ Find cards matching criteria or review board contents.
 		indexed_by?: IndexedBy;
 		tag_ids?: string[];
 		assignee_ids?: string[];
+		sorted_by?: SortedBy;
+		terms?: string[];
 		limit: number;
 		cursor?: string;
 	}) => {
@@ -127,6 +139,8 @@ Find cards matching criteria or review board contents.
 				indexed_by: args.indexed_by,
 				tag_ids: args.tag_ids,
 				assignee_ids: args.assignee_ids,
+				sorted_by: args.sorted_by,
+				terms: args.terms,
 			},
 			{ limit: args.limit, cursor: args.cursor },
 		);
