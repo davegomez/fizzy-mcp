@@ -385,6 +385,33 @@ describe("getCardTool", () => {
 		).rejects.toThrow("[NOT_FOUND] Card nonexistent_id");
 	});
 
+	test("should include image_url when present", async () => {
+		setTestAccount("897362094");
+		const imageCard = { ...mockCard, image_url: "https://example.com/img.png" };
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardIdentifier`, () => {
+				return HttpResponse.json(imageCard);
+			}),
+		);
+
+		const result = await getCardTool.execute({ card_number: 42 });
+		const parsed = JSON.parse(result);
+		expect(parsed.image_url).toBe("https://example.com/img.png");
+	});
+
+	test("should default image_url to null when absent", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardIdentifier`, () => {
+				return HttpResponse.json(mockCard);
+			}),
+		);
+
+		const result = await getCardTool.execute({ card_number: 42 });
+		const parsed = JSON.parse(result);
+		expect(parsed.image_url).toBeNull();
+	});
+
 	test("should include golden field in response", async () => {
 		setTestAccount("897362094");
 		const goldenCard = { ...mockCard, golden: true };
