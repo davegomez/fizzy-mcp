@@ -75,14 +75,33 @@ export const CardSchema = z.object({
 // Sorted-by options for card search
 export const SortedBySchema = z.enum(["newest", "oldest", "recently_active"]);
 
+// Date range filter for creation/closure queries
+export const DateRangeSchema = z.enum([
+	"today",
+	"yesterday",
+	"thisweek",
+	"thismonth",
+	"last7",
+	"last14",
+	"last30",
+]);
+
+export const AssignmentStatusSchema = z.enum(["unassigned"]);
+
 export const CardFiltersSchema = z
 	.object({
 		board_ids: z.array(z.string()).optional(),
 		indexed_by: IndexedBySchema.optional(),
 		tag_ids: z.array(z.string()).optional(),
 		assignee_ids: z.array(z.string()).optional(),
+		creator_ids: z.array(z.string()).optional(),
+		closer_ids: z.array(z.string()).optional(),
+		card_ids: z.array(z.string()).optional(),
+		assignment_status: AssignmentStatusSchema.optional(),
 		sorted_by: SortedBySchema.optional(),
 		terms: z.array(z.string()).optional(),
+		creation: DateRangeSchema.optional(),
+		closure: DateRangeSchema.optional(),
 	})
 	.strict();
 
@@ -103,5 +122,7 @@ export type IndexedBy = z.infer<typeof IndexedBySchema>;
 export type Card = z.infer<typeof CardSchema>;
 export type CardFilters = z.infer<typeof CardFiltersSchema>;
 export type SortedBy = z.infer<typeof SortedBySchema>;
+export type DateRange = z.infer<typeof DateRangeSchema>;
+export type AssignmentStatus = z.infer<typeof AssignmentStatusSchema>;
 export type CreateCardInput = z.infer<typeof CreateCardInputSchema>;
 export type UpdateCardInput = z.infer<typeof UpdateCardInputSchema>;

@@ -2,7 +2,13 @@ import { UserError } from "fastmcp";
 import { z } from "zod";
 import { getFizzyClient, toUserError } from "../client/index.js";
 import { htmlToMarkdown } from "../client/markdown.js";
-import type { Card, IndexedBy, SortedBy } from "../schemas/cards.js";
+import type {
+	AssignmentStatus,
+	Card,
+	DateRange,
+	IndexedBy,
+	SortedBy,
+} from "../schemas/cards.js";
 import { DEFAULT_LIMIT } from "../schemas/pagination.js";
 import { resolveAccount } from "../state/account-resolver.js";
 import { isErr } from "../types/result.js";
@@ -109,6 +115,50 @@ Find cards matching criteria or review board contents.
 			.array(z.string())
 			.optional()
 			.describe("Search terms to filter cards by text content."),
+		creator_ids: z
+			.array(z.string())
+			.optional()
+			.describe("Filter to cards created by these user IDs."),
+		closer_ids: z
+			.array(z.string())
+			.optional()
+			.describe("Filter to cards closed by these user IDs."),
+		card_ids: z
+			.array(z.string())
+			.optional()
+			.describe("Filter to specific card IDs."),
+		assignment_status: z
+			.enum(["unassigned"])
+			.optional()
+			.describe("Filter by assignment status: unassigned."),
+		creation: z
+			.enum([
+				"today",
+				"yesterday",
+				"thisweek",
+				"thismonth",
+				"last7",
+				"last14",
+				"last30",
+			])
+			.optional()
+			.describe(
+				"Filter by creation date range: today | yesterday | thisweek | thismonth | last7 | last14 | last30.",
+			),
+		closure: z
+			.enum([
+				"today",
+				"yesterday",
+				"thisweek",
+				"thismonth",
+				"last7",
+				"last14",
+				"last30",
+			])
+			.optional()
+			.describe(
+				"Filter by closure date range: today | yesterday | thisweek | thismonth | last7 | last14 | last30.",
+			),
 		limit: z
 			.number()
 			.int()
@@ -129,8 +179,14 @@ Find cards matching criteria or review board contents.
 		indexed_by?: IndexedBy;
 		tag_ids?: string[];
 		assignee_ids?: string[];
+		creator_ids?: string[];
+		closer_ids?: string[];
+		card_ids?: string[];
+		assignment_status?: AssignmentStatus;
 		sorted_by?: SortedBy;
 		terms?: string[];
+		creation?: DateRange;
+		closure?: DateRange;
 		limit: number;
 		cursor?: string;
 	}) => {
@@ -143,8 +199,14 @@ Find cards matching criteria or review board contents.
 				indexed_by: args.indexed_by,
 				tag_ids: args.tag_ids,
 				assignee_ids: args.assignee_ids,
+				creator_ids: args.creator_ids,
+				closer_ids: args.closer_ids,
+				card_ids: args.card_ids,
+				assignment_status: args.assignment_status,
 				sorted_by: args.sorted_by,
 				terms: args.terms,
+				creation: args.creation,
+				closure: args.closure,
 			},
 			{ limit: args.limit, cursor: args.cursor },
 		);

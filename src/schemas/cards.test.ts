@@ -4,6 +4,7 @@ import {
 	CardSchema,
 	CardStatusSchema,
 	CreateCardInputSchema,
+	DateRangeSchema,
 	IndexedBySchema,
 	UpdateCardInputSchema,
 } from "./cards.js";
@@ -311,6 +312,94 @@ describe("CardFiltersSchema", () => {
 		if (result.success) {
 			expect(result.data.terms).toEqual(["login", "bug"]);
 		}
+	});
+
+	test("should parse filter with creator_ids array", () => {
+		const result = CardFiltersSchema.safeParse({
+			creator_ids: ["user_1", "user_2"],
+		});
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.creator_ids).toEqual(["user_1", "user_2"]);
+		}
+	});
+
+	test("should parse filter with closer_ids array", () => {
+		const result = CardFiltersSchema.safeParse({
+			closer_ids: ["user_1"],
+		});
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.closer_ids).toEqual(["user_1"]);
+		}
+	});
+
+	test("should parse filter with card_ids array", () => {
+		const result = CardFiltersSchema.safeParse({
+			card_ids: ["card_1", "card_2"],
+		});
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.card_ids).toEqual(["card_1", "card_2"]);
+		}
+	});
+
+	test("should parse filter with assignment_status", () => {
+		const result = CardFiltersSchema.safeParse({
+			assignment_status: "unassigned",
+		});
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.assignment_status).toBe("unassigned");
+		}
+	});
+
+	test("should reject invalid assignment_status", () => {
+		const result = CardFiltersSchema.safeParse({
+			assignment_status: "assigned",
+		});
+		expect(result.success).toBe(false);
+	});
+
+	test("should parse filter with creation date range", () => {
+		const result = CardFiltersSchema.safeParse({ creation: "thisweek" });
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.creation).toBe("thisweek");
+		}
+	});
+
+	test("should parse filter with closure date range", () => {
+		const result = CardFiltersSchema.safeParse({ closure: "last30" });
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.closure).toBe("last30");
+		}
+	});
+
+	test("should reject invalid creation date range", () => {
+		const result = CardFiltersSchema.safeParse({ creation: "nextyear" });
+		expect(result.success).toBe(false);
+	});
+});
+
+describe("DateRangeSchema", () => {
+	test.each([
+		"today",
+		"yesterday",
+		"thisweek",
+		"thismonth",
+		"last7",
+		"last14",
+		"last30",
+	])("should accept '%s' value", (value) => {
+		const result = DateRangeSchema.safeParse(value);
+		expect(result.success).toBe(true);
+	});
+
+	test("should reject invalid value", () => {
+		const result = DateRangeSchema.safeParse("nextyear");
+		expect(result.success).toBe(false);
 	});
 });
 
