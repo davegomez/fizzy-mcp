@@ -399,6 +399,33 @@ describe("getCardTool", () => {
 		expect(parsed.golden).toBe(true);
 	});
 
+	test("should include last_active_at when present", async () => {
+		setTestAccount("897362094");
+		const activeCard = { ...mockCard, last_active_at: "2024-01-20T00:00:00Z" };
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardIdentifier`, () => {
+				return HttpResponse.json(activeCard);
+			}),
+		);
+
+		const result = await getCardTool.execute({ card_number: 42 });
+		const parsed = JSON.parse(result);
+		expect(parsed.last_active_at).toBe("2024-01-20T00:00:00Z");
+	});
+
+	test("should default last_active_at to null when absent", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardIdentifier`, () => {
+				return HttpResponse.json(mockCard);
+			}),
+		);
+
+		const result = await getCardTool.execute({ card_number: 42 });
+		const parsed = JSON.parse(result);
+		expect(parsed.last_active_at).toBeNull();
+	});
+
 	test("should default golden to false when absent", async () => {
 		setTestAccount("897362094");
 		server.use(
