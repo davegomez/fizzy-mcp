@@ -1,13 +1,65 @@
 # Changelog
 
+## v1.0.0
+
+[compare changes](https://github.com/davegomez/fizzy-mcp/compare/v0.4.0...v1.0.0)
+
+### Features
+
+- **schemas:** Expand CardSchema with missing API fields ([7a28692](https://github.com/davegomez/fizzy-mcp/commit/7a28692))
+- **search:** Add sorted_by and terms filters ([21a5506](https://github.com/davegomez/fizzy-mcp/commit/21a5506))
+- **tools:** Add 6 missing search filters to fizzy_search ([ced2bfc](https://github.com/davegomez/fizzy-mcp/commit/ced2bfc))
+- Add server.json for MCP Registry publishing ([1ba735b](https://github.com/davegomez/fizzy-mcp/commit/1ba735b))
+- **pkg:** Add mcpName for MCP Registry verification ([efeeb72](https://github.com/davegomez/fizzy-mcp/commit/efeeb72))
+
+### Bug Fixes
+
+- **release:** Push commit with tag and disable changelogen GitHub release ([ee1f5b2](https://github.com/davegomez/fizzy-mcp/commit/ee1f5b2))
+- **release:** Remove non-existent --dry flag from release:dry script ([4bf7419](https://github.com/davegomez/fizzy-mcp/commit/4bf7419))
+- **schemas:** Align Board and Column schemas with live API ([8c02ada](https://github.com/davegomez/fizzy-mcp/commit/8c02ada))
+- **tests:** Align mockCard tags with API string format ([e600cd7](https://github.com/davegomez/fizzy-mcp/commit/e600cd7))
+- **tools:** Add golden field to formatCard output ([e0276ab](https://github.com/davegomez/fizzy-mcp/commit/e0276ab))
+- **tools:** Add last_active_at field to formatCard output ([3573840](https://github.com/davegomez/fizzy-mcp/commit/3573840))
+- **tools:** Add image_url field to formatCard output ([f545e55](https://github.com/davegomez/fizzy-mcp/commit/f545e55))
+- **tools:** Add steps array to formatCard output ([265c0c0](https://github.com/davegomez/fizzy-mcp/commit/265c0c0))
+- **tools:** Add list/update/delete actions to fizzy_comment ([c5ebb8b](https://github.com/davegomez/fizzy-mcp/commit/c5ebb8b))
+- **tools:** Return 201+Location from step creation mock handler ([fdcffbb](https://github.com/davegomez/fizzy-mcp/commit/fdcffbb))
+- **schemas:** Add optional description field to CardSchema ([5a740fa](https://github.com/davegomez/fizzy-mcp/commit/5a740fa))
+
+### Documentation
+
+- Document release workflow and conventional commits ([5b0dd4e](https://github.com/davegomez/fizzy-mcp/commit/5b0dd4e))
+- Update fizzy_comment README section for new actions ([58f62d5](https://github.com/davegomez/fizzy-mcp/commit/58f62d5))
+- Update fizzy_search parameter table with new filters ([7f895c8](https://github.com/davegomez/fizzy-mcp/commit/7f895c8))
+
+### Build
+
+- Orchestrate release with version-syncing script ([167779e](https://github.com/davegomez/fizzy-mcp/commit/167779e))
+
+### Chore
+
+- **release:** Remove release:dry script ([7335b71](https://github.com/davegomez/fizzy-mcp/commit/7335b71))
+
+### Tests
+
+- **tools:** Add board pagination continuation test ([2ded9a9](https://github.com/davegomez/fizzy-mcp/commit/2ded9a9))
+
+### CI
+
+- Publish to MCP Registry after npm release ([3fcf525](https://github.com/davegomez/fizzy-mcp/commit/3fcf525))
+
+### ❤️ Contributors
+
+- David Gomez <code@davidgomez.dev>
+
 ## v0.4.0
 
 [compare changes](https://github.com/davegomez/fizzy-mcp/compare/v0.3.0...v0.4.0)
 
 ### Features
 
-- **tools:** ⚠️  Remove fizzy_bulk_close tool ([3d5dca8](https://github.com/davegomez/fizzy-mcp/commit/3d5dca8))
-- **tools:** ⚠️  Replace fizzy_complete_step with unified fizzy_step ([4aa8ea8](https://github.com/davegomez/fizzy-mcp/commit/4aa8ea8))
+- **tools:** ⚠️ Remove fizzy_bulk_close tool ([3d5dca8](https://github.com/davegomez/fizzy-mcp/commit/3d5dca8))
+- **tools:** ⚠️ Replace fizzy_complete_step with unified fizzy_step ([4aa8ea8](https://github.com/davegomez/fizzy-mcp/commit/4aa8ea8))
 
 ### Refactors
 
@@ -23,8 +75,8 @@
 
 #### ⚠️ Breaking Changes
 
-- **tools:** ⚠️  Remove fizzy_bulk_close tool ([3d5dca8](https://github.com/davegomez/fizzy-mcp/commit/3d5dca8))
-- **tools:** ⚠️  Replace fizzy_complete_step with unified fizzy_step ([4aa8ea8](https://github.com/davegomez/fizzy-mcp/commit/4aa8ea8))
+- **tools:** ⚠️ Remove fizzy_bulk_close tool ([3d5dca8](https://github.com/davegomez/fizzy-mcp/commit/3d5dca8))
+- **tools:** ⚠️ Replace fizzy_complete_step with unified fizzy_step ([4aa8ea8](https://github.com/davegomez/fizzy-mcp/commit/4aa8ea8))
 
 ### ❤️ Contributors
 
@@ -36,11 +88,11 @@
 
 ### Features
 
-- **config:** ⚠️  Remove deprecated FIZZY_ACCESS_TOKEN support ([6251918](https://github.com/davegomez/fizzy-mcp/commit/6251918))
+- **config:** ⚠️ Remove deprecated FIZZY_ACCESS_TOKEN support ([6251918](https://github.com/davegomez/fizzy-mcp/commit/6251918))
 
 #### ⚠️ Breaking Changes
 
-- **config:** ⚠️  Remove deprecated FIZZY_ACCESS_TOKEN support ([6251918](https://github.com/davegomez/fizzy-mcp/commit/6251918))
+- **config:** ⚠️ Remove deprecated FIZZY_ACCESS_TOKEN support ([6251918](https://github.com/davegomez/fizzy-mcp/commit/6251918))
 
 ### ❤️ Contributors
 
@@ -79,7 +131,7 @@
 - **client:** Follow Location header on 201 Created responses ([5378b52](https://github.com/davegomez/fizzy-mcp/commit/5378b52))
 - **mocks:** Align mock data with new card schema ([b634818](https://github.com/davegomez/fizzy-mcp/commit/b634818))
 - **client:** Serialize board_ids[] and indexed_by in listCards ([70693d0](https://github.com/davegomez/fizzy-mcp/commit/70693d0))
-- **tools:** ⚠️  Update searchTool for indexed_by, remove column_id ([e9208d4](https://github.com/davegomez/fizzy-mcp/commit/e9208d4))
+- **tools:** ⚠️ Update searchTool for indexed_by, remove column_id ([e9208d4](https://github.com/davegomez/fizzy-mcp/commit/e9208d4))
 - **tools:** Adapt composite and task tools to card.closed field ([1063461](https://github.com/davegomez/fizzy-mcp/commit/1063461))
 - **state:** Set cache on safety check early return ([dbbaa2e](https://github.com/davegomez/fizzy-mcp/commit/dbbaa2e))
 
@@ -88,7 +140,7 @@
 - **state:** Expand session to store full account/user context ([46466e8](https://github.com/davegomez/fizzy-mcp/commit/46466e8))
 - **tools:** Use shared resolveAccount across all tools ([43bd9aa](https://github.com/davegomez/fizzy-mcp/commit/43bd9aa))
 - **tools:** Convert tests from vi.spyOn to MSW mocks ([9fe88f6](https://github.com/davegomez/fizzy-mcp/commit/9fe88f6))
-- **schemas:** ⚠️  Change CardStatus to publication state, add closed boolean ([342d630](https://github.com/davegomez/fizzy-mcp/commit/342d630))
+- **schemas:** ⚠️ Change CardStatus to publication state, add closed boolean ([342d630](https://github.com/davegomez/fizzy-mcp/commit/342d630))
 
 ### Documentation
 
@@ -109,8 +161,8 @@
 
 #### ⚠️ Breaking Changes
 
-- **tools:** ⚠️  Update searchTool for indexed_by, remove column_id ([e9208d4](https://github.com/davegomez/fizzy-mcp/commit/e9208d4))
-- **schemas:** ⚠️  Change CardStatus to publication state, add closed boolean ([342d630](https://github.com/davegomez/fizzy-mcp/commit/342d630))
+- **tools:** ⚠️ Update searchTool for indexed_by, remove column_id ([e9208d4](https://github.com/davegomez/fizzy-mcp/commit/e9208d4))
+- **schemas:** ⚠️ Change CardStatus to publication state, add closed boolean ([342d630](https://github.com/davegomez/fizzy-mcp/commit/342d630))
 
 ### ❤️ Contributors
 
