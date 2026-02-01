@@ -447,10 +447,23 @@ export class FizzyClient {
 			for (const id of filters?.assignee_ids ?? []) {
 				params.append("assignee_ids[]", id);
 			}
+			for (const id of filters?.creator_ids ?? []) {
+				params.append("creator_ids[]", id);
+			}
+			for (const id of filters?.closer_ids ?? []) {
+				params.append("closer_ids[]", id);
+			}
+			for (const id of filters?.card_ids ?? []) {
+				params.append("card_ids[]", id);
+			}
+			if (filters?.assignment_status)
+				params.set("assignment_status", filters.assignment_status);
 			if (filters?.sorted_by) params.set("sorted_by", filters.sorted_by);
 			for (const term of filters?.terms ?? []) {
 				params.append("terms[]", term);
 			}
+			if (filters?.creation) params.set("creation", filters.creation);
+			if (filters?.closure) params.set("closure", filters.closure);
 			const queryString = params.toString();
 			path = `/${accountSlug}/cards${queryString ? `?${queryString}` : ""}`;
 		}

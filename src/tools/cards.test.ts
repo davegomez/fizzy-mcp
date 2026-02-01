@@ -170,6 +170,108 @@ describe("searchTool", () => {
 		});
 	});
 
+	test("should pass creator_ids filter to client", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				const url = new URL(request.url);
+				expect(url.searchParams.getAll("creator_ids[]")).toEqual([
+					"user_1",
+					"user_2",
+				]);
+				return HttpResponse.json([]);
+			}),
+		);
+
+		await searchTool.execute({
+			creator_ids: ["user_1", "user_2"],
+			limit: 25,
+		});
+	});
+
+	test("should pass closer_ids filter to client", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				const url = new URL(request.url);
+				expect(url.searchParams.getAll("closer_ids[]")).toEqual(["user_3"]);
+				return HttpResponse.json([]);
+			}),
+		);
+
+		await searchTool.execute({
+			closer_ids: ["user_3"],
+			limit: 25,
+		});
+	});
+
+	test("should pass card_ids filter to client", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				const url = new URL(request.url);
+				expect(url.searchParams.getAll("card_ids[]")).toEqual([
+					"card_1",
+					"card_2",
+				]);
+				return HttpResponse.json([]);
+			}),
+		);
+
+		await searchTool.execute({
+			card_ids: ["card_1", "card_2"],
+			limit: 25,
+		});
+	});
+
+	test("should pass assignment_status filter to client", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				const url = new URL(request.url);
+				expect(url.searchParams.get("assignment_status")).toBe("unassigned");
+				return HttpResponse.json([]);
+			}),
+		);
+
+		await searchTool.execute({
+			assignment_status: "unassigned",
+			limit: 25,
+		});
+	});
+
+	test("should pass creation date range filter to client", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				const url = new URL(request.url);
+				expect(url.searchParams.get("creation")).toBe("thisweek");
+				return HttpResponse.json([]);
+			}),
+		);
+
+		await searchTool.execute({
+			creation: "thisweek",
+			limit: 25,
+		});
+	});
+
+	test("should pass closure date range filter to client", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				const url = new URL(request.url);
+				expect(url.searchParams.get("closure")).toBe("last30");
+				return HttpResponse.json([]);
+			}),
+		);
+
+		await searchTool.execute({
+			closure: "last30",
+			limit: 25,
+		});
+	});
+
 	test("should convert singular board_id to board_ids array", async () => {
 		setTestAccount("897362094");
 		server.use(
