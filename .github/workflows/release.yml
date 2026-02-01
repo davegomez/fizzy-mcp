@@ -36,8 +36,23 @@ jobs:
       - name: Build
         run: pnpm build
 
+      - name: Sync server.json version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"$VERSION\"/g" server.json
+
       - name: Publish to npm
         run: npm publish --provenance --access public
+
+      - name: Install mcp-publisher
+        run: |
+          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+
+      - name: Publish to MCP Registry
+        run: |
+          mcp-publisher login github-oidc
+          mcp-publisher publish
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
