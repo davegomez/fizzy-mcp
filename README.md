@@ -268,15 +268,25 @@ Lists boards in the account with column summaries.
 
 Searches for cards with filters.
 
-| Parameter      | Type                                                                                     | Required | Description                        |
-| -------------- | ---------------------------------------------------------------------------------------- | -------- | ---------------------------------- |
-| `account_slug` | string                                                                                   | No       | Account slug                       |
-| `board_id`     | string                                                                                   | No       | Filter by board                    |
-| `tag_ids`      | string[]                                                                                 | No       | Filter by ALL tags                 |
-| `assignee_ids` | string[]                                                                                 | No       | Filter by ANY assignees            |
-| `indexed_by`   | `"closed"` \| `"not_now"` \| `"all"` \| `"stalled"` \| `"postponing_soon"` \| `"golden"` | No       | Filter by index                    |
-| `limit`        | number                                                                                   | No       | Items per page (1-100, default 25) |
-| `cursor`       | string                                                                                   | No       | Pagination cursor                  |
+| Parameter           | Type                                                                                     | Required | Description                        |
+| ------------------- | ---------------------------------------------------------------------------------------- | -------- | ---------------------------------- |
+| `account_slug`      | string                                                                                   | No       | Account slug                       |
+| `board_id`          | string                                                                                   | No       | Filter by board                    |
+| `tag_ids`           | string[]                                                                                 | No       | Filter by ALL tags                 |
+| `assignee_ids`      | string[]                                                                                 | No       | Filter by ANY assignees            |
+| `creator_ids`       | string[]                                                                                 | No       | Filter by card creator             |
+| `closer_ids`        | string[]                                                                                 | No       | Filter by who closed               |
+| `card_ids`          | string[]                                                                                 | No       | Filter to specific card IDs        |
+| `indexed_by`        | `"closed"` \| `"not_now"` \| `"all"` \| `"stalled"` \| `"postponing_soon"` \| `"golden"` | No       | Filter by index                    |
+| `assignment_status` | `"unassigned"`                                                                           | No       | Filter by assignment status        |
+| `sorted_by`         | `"newest"` \| `"oldest"` \| `"recently_active"`                                         | No       | Sort order                         |
+| `terms`             | string[]                                                                                 | No       | Free-text search terms             |
+| `creation`          | date range\*                                                                             | No       | Filter by creation date            |
+| `closure`           | date range\*                                                                             | No       | Filter by closure date             |
+| `limit`             | number                                                                                   | No       | Items per page (1-100, default 25) |
+| `cursor`            | string                                                                                   | No       | Pagination cursor                  |
+
+\*Date range values: `today`, `yesterday`, `thisweek`, `thismonth`, `last7`, `last14`, `last30`.
 
 **Returns:** `{ "items": Card[], "pagination": {...} }`
 
