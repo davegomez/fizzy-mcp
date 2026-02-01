@@ -23,6 +23,24 @@ export const IndexedBySchema = z.enum([
 	"golden",
 ]);
 
+export const BoardRefSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	url: z.string(),
+});
+
+export const ColumnRefSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	color: z.string(),
+});
+
+export const CreatorRefSchema = z.object({
+	id: z.string(),
+	name: z.string(),
+	role: z.string(),
+});
+
 export const CardSchema = z.object({
 	id: z.string(),
 	number: z.number(),
@@ -43,6 +61,14 @@ export const CardSchema = z.object({
 	updated_at: z.string(),
 	closed_at: z.string().nullable(),
 	url: z.string(),
+	image_url: z.string().nullable().optional(),
+	golden: z.boolean().optional(),
+	last_active_at: z.string().optional(),
+	board: BoardRefSchema.optional(),
+	column: ColumnRefSchema.optional(),
+	creator: CreatorRefSchema.optional(),
+	comments_url: z.string().optional(),
+	reactions_url: z.string().optional(),
 });
 
 export const CardFiltersSchema = z
