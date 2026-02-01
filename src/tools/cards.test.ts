@@ -385,6 +385,33 @@ describe("getCardTool", () => {
 		).rejects.toThrow("[NOT_FOUND] Card nonexistent_id");
 	});
 
+	test("should include golden field in response", async () => {
+		setTestAccount("897362094");
+		const goldenCard = { ...mockCard, golden: true };
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardIdentifier`, () => {
+				return HttpResponse.json(goldenCard);
+			}),
+		);
+
+		const result = await getCardTool.execute({ card_number: 42 });
+		const parsed = JSON.parse(result);
+		expect(parsed.golden).toBe(true);
+	});
+
+	test("should default golden to false when absent", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardIdentifier`, () => {
+				return HttpResponse.json(mockCard);
+			}),
+		);
+
+		const result = await getCardTool.execute({ card_number: 42 });
+		const parsed = JSON.parse(result);
+		expect(parsed.golden).toBe(false);
+	});
+
 	describe("schema validation", () => {
 		test("should use strict schema that rejects unknown keys", () => {
 			const result = getCardTool.parameters.safeParse({
