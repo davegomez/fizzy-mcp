@@ -385,6 +385,44 @@ describe("getCardTool", () => {
 		).rejects.toThrow("[NOT_FOUND] Card nonexistent_id");
 	});
 
+	test("should include steps array when present", async () => {
+		setTestAccount("897362094");
+		const cardWithSteps = {
+			...mockCard,
+			steps: [
+				{ id: "step_1", content: "Review PR", completed: true },
+				{ id: "step_2", content: "Run tests", completed: false },
+			],
+		};
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardIdentifier`, () => {
+				return HttpResponse.json(cardWithSteps);
+			}),
+		);
+
+		const result = await getCardTool.execute({ card_number: 42 });
+		const parsed = JSON.parse(result);
+		expect(parsed.steps).toHaveLength(2);
+		expect(parsed.steps[0]).toEqual({
+			id: "step_1",
+			content: "Review PR",
+			completed: true,
+		});
+	});
+
+	test("should default steps to empty array when absent", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards/:cardIdentifier`, () => {
+				return HttpResponse.json(mockCard);
+			}),
+		);
+
+		const result = await getCardTool.execute({ card_number: 42 });
+		const parsed = JSON.parse(result);
+		expect(parsed.steps).toEqual([]);
+	});
+
 	test("should include image_url when present", async () => {
 		setTestAccount("897362094");
 		const imageCard = { ...mockCard, image_url: "https://example.com/img.png" };
