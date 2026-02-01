@@ -9,31 +9,22 @@ const mockColumns = [
 	{
 		id: "col_1",
 		name: "Backlog",
-		color: "#808080",
-		position: 0,
-		cards_count: 5,
+		color: { name: "gray", value: "#808080" },
 		created_at: "2024-01-01T00:00:00Z",
-		updated_at: "2024-01-15T00:00:00Z",
 		url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_1",
 	},
 	{
 		id: "col_2",
 		name: "In Progress",
-		color: "#0000ff",
-		position: 1,
-		cards_count: 3,
+		color: { name: "blue", value: "#0000ff" },
 		created_at: "2024-01-02T00:00:00Z",
-		updated_at: "2024-01-16T00:00:00Z",
 		url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_2",
 	},
 	{
 		id: "col_3",
 		name: "Done",
-		color: "#00ff00",
-		position: 2,
-		cards_count: 10,
+		color: { name: "green", value: "#00ff00" },
 		created_at: "2024-01-03T00:00:00Z",
-		updated_at: "2024-01-17T00:00:00Z",
 		url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_3",
 	},
 ];
@@ -145,47 +136,49 @@ const mockTags = [
 	},
 ];
 
+const mockCreator = {
+	id: "user_1",
+	name: "Jane Doe",
+	role: "owner",
+	active: true,
+	email_address: "jane@example.com",
+	created_at: "2024-01-01T00:00:00Z",
+	url: "https://app.fizzy.do/users/user_1",
+};
+
 const mockBoards = [
 	{
 		id: "board_1",
 		name: "Project Alpha",
-		slug: "project-alpha",
-		description: "Main project board",
+		all_access: true,
+		creator: mockCreator,
 		columns: [
 			{
 				id: "col_1",
 				name: "Backlog",
-				color: "gray",
-				cards_count: 5,
-				position: 0,
+				color: { name: "gray", value: "#808080" },
 			},
 			{
 				id: "col_2",
 				name: "In Progress",
-				color: "blue",
-				cards_count: 3,
-				position: 1,
+				color: { name: "blue", value: "#0000ff" },
 			},
 			{
 				id: "col_3",
 				name: "Done",
-				color: "green",
-				cards_count: 10,
-				position: 2,
+				color: { name: "green", value: "#00ff00" },
 			},
 		],
 		created_at: "2024-01-01T00:00:00Z",
-		updated_at: "2024-01-15T00:00:00Z",
 		url: "https://app.fizzy.do/897362094/boards/board_1",
 	},
 	{
 		id: "board_2",
 		name: "Project Beta",
-		slug: "project-beta",
-		description: null,
+		all_access: false,
+		creator: mockCreator,
 		columns: [],
 		created_at: "2024-02-01T00:00:00Z",
-		updated_at: "2024-02-15T00:00:00Z",
 		url: "https://app.fizzy.do/897362094/boards/board_2",
 	},
 ];
@@ -307,11 +300,10 @@ export const handlers = [
 		return HttpResponse.json({
 			id: "board_new",
 			name: body.board.name,
-			slug: body.board.name.toLowerCase().replace(/\s+/g, "-"),
-			description: body.board.description ?? null,
+			all_access: true,
+			creator: mockCreator,
 			columns: [],
 			created_at: "2024-03-01T00:00:00Z",
-			updated_at: "2024-03-01T00:00:00Z",
 			url: `https://app.fizzy.do/897362094/boards/board_new`,
 		});
 	}),
@@ -336,8 +328,6 @@ export const handlers = [
 			return HttpResponse.json({
 				...board,
 				name: body.board?.name ?? board.name,
-				description: body.board?.description ?? board.description,
-				updated_at: "2024-03-15T00:00:00Z",
 			});
 		},
 	),
@@ -445,11 +435,8 @@ export const handlers = [
 			return HttpResponse.json({
 				id: "col_new",
 				name: body.column.name,
-				color: body.column.color ?? "#808080",
-				position: 3,
-				cards_count: 0,
+				color: { name: "gray", value: body.column.color ?? "#808080" },
 				created_at: "2024-03-01T00:00:00Z",
-				updated_at: "2024-03-01T00:00:00Z",
 				url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_new",
 			});
 		},
@@ -475,8 +462,6 @@ export const handlers = [
 			return HttpResponse.json({
 				...column,
 				name: body.column?.name ?? column.name,
-				color: body.column?.color ?? column.color,
-				updated_at: "2024-03-15T00:00:00Z",
 			});
 		},
 	),

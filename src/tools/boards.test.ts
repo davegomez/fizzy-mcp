@@ -23,13 +23,22 @@ function setTestAccount(slug: string): void {
 	});
 }
 
+const mockCreator = {
+	id: "user_1",
+	name: "Jane Doe",
+	role: "owner" as const,
+	active: true,
+	email_address: "jane@example.com",
+	created_at: "2024-01-01T00:00:00Z",
+	url: "https://app.fizzy.do/users/user_1",
+};
+
 const mockBoard = {
 	id: "board_1",
 	name: "Project Alpha",
-	slug: "project-alpha",
-	description: "<p>Main project board</p>",
+	all_access: true,
+	creator: mockCreator,
 	created_at: "2024-01-01T00:00:00Z",
-	updated_at: "2024-01-15T00:00:00Z",
 	url: "https://app.fizzy.do/897362094/boards/board_1",
 };
 
@@ -37,21 +46,15 @@ const mockColumns = [
 	{
 		id: "col_1",
 		name: "Backlog",
-		color: "gray",
-		cards_count: 5,
-		position: 0,
+		color: { name: "gray", value: "#808080" },
 		created_at: "2024-01-01T00:00:00Z",
-		updated_at: "2024-01-01T00:00:00Z",
 		url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_1",
 	},
 	{
 		id: "col_2",
 		name: "Done",
-		color: "green",
-		cards_count: 10,
-		position: 1,
+		color: { name: "green", value: "#00ff00" },
 		created_at: "2024-01-01T00:00:00Z",
-		updated_at: "2024-01-01T00:00:00Z",
 		url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_2",
 	},
 ];
@@ -188,11 +191,8 @@ describe("boardsTool", () => {
 			{
 				id: "col_3",
 				name: "Todo",
-				color: "blue",
-				cards_count: 3,
-				position: 0,
+				color: { name: "blue", value: "#0000ff" },
 				created_at: "2024-01-01T00:00:00Z",
-				updated_at: "2024-01-01T00:00:00Z",
 				url: "https://app.fizzy.do/897362094/boards/board_2/columns/col_3",
 			},
 		];
@@ -246,12 +246,9 @@ describe("boardsTool", () => {
 		expect(column).toEqual({
 			id: "col_1",
 			name: "Backlog",
-			color: "gray",
-			cards_count: 5,
-			position: 0,
+			color: { name: "gray", value: "#808080" },
 		});
 		expect(column.created_at).toBeUndefined();
-		expect(column.updated_at).toBeUndefined();
 		expect(column.url).toBeUndefined();
 	});
 

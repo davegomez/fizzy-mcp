@@ -27,15 +27,11 @@ async function hydrateColumnsForBoards(
 		const colResult = columnResults[i];
 		const columns: ColumnSummary[] =
 			colResult && isOk(colResult)
-				? colResult.value.items.map(
-						({ id, name, color, cards_count, position }) => ({
-							id,
-							name,
-							color,
-							cards_count,
-							position,
-						}),
-					)
+				? colResult.value.items.map(({ id, name, color }) => ({
+						id,
+						name,
+						color,
+					}))
 				: [];
 		return { ...board, columns };
 	});

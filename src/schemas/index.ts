@@ -1,6 +1,7 @@
 export {
 	type Board,
 	BoardSchema,
+	ColumnColorSchema,
 	type ColumnSummary,
 	ColumnSummarySchema,
 	type CreateBoardInput,

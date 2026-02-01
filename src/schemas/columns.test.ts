@@ -9,11 +9,8 @@ describe("ColumnSchema", () => {
 	const validColumn = {
 		id: "col_abc123",
 		name: "In Progress",
-		color: "#FF5733",
-		position: 1,
-		cards_count: 5,
+		color: { name: "blue", value: "#0000ff" },
 		created_at: "2024-01-01T00:00:00Z",
-		updated_at: "2024-01-15T00:00:00Z",
 		url: "https://app.fizzy.do/897362094/boards/board_1/columns/col_abc123",
 	};
 
@@ -23,9 +20,7 @@ describe("ColumnSchema", () => {
 		if (result.success) {
 			expect(result.data.id).toBe("col_abc123");
 			expect(result.data.name).toBe("In Progress");
-			expect(result.data.color).toBe("#FF5733");
-			expect(result.data.position).toBe(1);
-			expect(result.data.cards_count).toBe(5);
+			expect(result.data.color).toEqual({ name: "blue", value: "#0000ff" });
 		}
 	});
 
@@ -47,15 +42,8 @@ describe("ColumnSchema", () => {
 		expect(result.success).toBe(false);
 	});
 
-	test("requires position", () => {
-		const { position: _, ...noPosition } = validColumn;
-		const result = ColumnSchema.safeParse(noPosition);
-		expect(result.success).toBe(false);
-	});
-
-	test("requires cards_count", () => {
-		const { cards_count: _, ...noCardsCount } = validColumn;
-		const result = ColumnSchema.safeParse(noCardsCount);
+	test("rejects string color", () => {
+		const result = ColumnSchema.safeParse({ ...validColumn, color: "#FF5733" });
 		expect(result.success).toBe(false);
 	});
 
