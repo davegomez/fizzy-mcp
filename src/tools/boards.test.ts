@@ -287,6 +287,51 @@ describe("boardsTool", () => {
 		expect(parsed.pagination.returned).toBe(0);
 	});
 
+	test("should paginate with cursor continuation", async () => {
+		setTestAccount("897362094");
+
+		const board2 = { ...mockBoard, id: "board_2", name: "Project Beta" };
+
+		server.use(
+			http.get(`${BASE_URL}/897362094/boards`, ({ request }) => {
+				const url = new URL(request.url);
+				const page = Number.parseInt(url.searchParams.get("page") || "1", 10);
+
+				if (page === 1) {
+					return HttpResponse.json([mockBoard], {
+						headers: {
+							Link: `<${BASE_URL}/897362094/boards?page=2>; rel="next"`,
+						},
+					});
+				}
+
+				return HttpResponse.json([board2]);
+			}),
+			http.get(`${BASE_URL}/897362094/boards/:boardId/columns`, () => {
+				return HttpResponse.json([]);
+			}),
+		);
+
+		// Page 1: has_more=true with cursor
+		const page1 = JSON.parse(await boardsTool.execute({ limit: 25 }));
+		expect(page1.items).toHaveLength(1);
+		expect(page1.items[0].name).toBe("Project Alpha");
+		expect(page1.pagination.has_more).toBe(true);
+		expect(page1.pagination.next_cursor).toBeDefined();
+
+		// Page 2: use cursor, has_more=false
+		const page2 = JSON.parse(
+			await boardsTool.execute({
+				limit: 25,
+				cursor: page1.pagination.next_cursor,
+			}),
+		);
+		expect(page2.items).toHaveLength(1);
+		expect(page2.items[0].name).toBe("Project Beta");
+		expect(page2.pagination.has_more).toBe(false);
+		expect(page2.pagination.next_cursor).toBeUndefined();
+	});
+
 	test("should throw UserError on API error", async () => {
 		setTestAccount("897362094");
 
