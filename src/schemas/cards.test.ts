@@ -186,6 +186,36 @@ describe("CardSchema", () => {
 			expect(result.data.image_url).toBeNull();
 		}
 	});
+
+	test("should parse card with plain text description", () => {
+		const result = CardSchema.safeParse({
+			...validCard,
+			description: "Plain text description",
+		});
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.description).toBe("Plain text description");
+		}
+	});
+
+	test("should parse card with null description", () => {
+		const result = CardSchema.safeParse({
+			...validCard,
+			description: null,
+		});
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.description).toBeNull();
+		}
+	});
+
+	test("should parse card without description field", () => {
+		const result = CardSchema.safeParse(validCard);
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.description).toBeUndefined();
+		}
+	});
 });
 
 describe("CardFiltersSchema", () => {
