@@ -324,15 +324,17 @@ Creates or updates a card.
 
 ### fizzy_comment
 
-Adds a comment to a card.
+Create, list, update, or delete a comment on a card.
 
-| Parameter      | Type   | Required | Description                         |
-| -------------- | ------ | -------- | ----------------------------------- |
-| `account_slug` | string | No       | Account slug                        |
-| `card_number`  | number | Yes      | Card to comment on                  |
-| `body`         | string | Yes      | Comment in markdown (1-10000 chars) |
+| Parameter      | Type   | Required | Description                                                     |
+| -------------- | ------ | -------- | --------------------------------------------------------------- |
+| `action`       | string | No       | `"create"` (default), `"list"`, `"update"`, `"delete"`          |
+| `account_slug` | string | No       | Account slug                                                    |
+| `card_number`  | number | Yes      | Card number                                                     |
+| `comment_id`   | string | No       | Comment ID. Required for update/delete                          |
+| `body`         | string | No       | Comment in markdown (1-10000 chars). Required for create/update |
 
-**Returns:** Comment object with `id`, `body` (markdown), `creator`, timestamps, `url`.
+**Returns:** Comment object with `id`, `body` (markdown), `creator`, timestamps, `url`. List returns `{ comments, pagination }`. Delete returns `{ comment_id, deleted }`.
 
 ---
 
