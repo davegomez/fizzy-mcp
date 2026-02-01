@@ -151,6 +151,41 @@ describe("CardSchema", () => {
 		const result = CardSchema.safeParse(incompleteCard);
 		expect(result.success).toBe(false);
 	});
+
+	test("should parse card with expanded API fields", () => {
+		const expanded = {
+			...validCard,
+			image_url: "https://example.com/image.png",
+			golden: true,
+			last_active_at: "2024-01-20T00:00:00Z",
+			board: {
+				id: "board_1",
+				name: "Dev",
+				url: "https://app.fizzy.do/boards/1",
+			},
+			column: { id: "col_1", name: "In Progress", color: "blue" },
+			creator: { id: "user_1", name: "Jane", role: "owner" },
+			comments_url: "https://app.fizzy.do/cards/42/comments",
+			reactions_url: "https://app.fizzy.do/cards/42/reactions",
+		};
+		const result = CardSchema.safeParse(expanded);
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.golden).toBe(true);
+			expect(result.data.board?.name).toBe("Dev");
+			expect(result.data.column?.color).toBe("blue");
+			expect(result.data.creator?.role).toBe("owner");
+			expect(result.data.image_url).toBe("https://example.com/image.png");
+		}
+	});
+
+	test("should parse card with null image_url", () => {
+		const result = CardSchema.safeParse({ ...validCard, image_url: null });
+		expect(result.success).toBe(true);
+		if (result.success) {
+			expect(result.data.image_url).toBeNull();
+		}
+	});
 });
 
 describe("CardFiltersSchema", () => {
