@@ -33,7 +33,7 @@ const mockCard = {
 	closed: false,
 	board_id: "board_1",
 	column_id: "col_1",
-	tags: [{ id: "tag_1", title: "bug", color: "red" }],
+	tags: ["bug"],
 	assignees: [
 		{ id: "user_1", name: "Alice", email_address: "alice@example.com" },
 	],
@@ -308,7 +308,7 @@ describe("getCardTool", () => {
 		expect(parsed.status).toBe("published");
 		expect(parsed.closed).toBe(false);
 		expect(parsed.tags).toHaveLength(1);
-		expect(parsed.tags[0].title).toBe("bug");
+		expect(parsed.tags[0]).toBe("bug");
 		expect(parsed.assignees).toHaveLength(1);
 	});
 
