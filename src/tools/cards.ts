@@ -33,6 +33,7 @@ function formatCard(card: Card): string {
 			closed_at: card.closed_at,
 			golden: card.golden ?? false,
 			last_active_at: card.last_active_at ?? null,
+			image_url: card.image_url ?? null,
 		},
 		null,
 		2,
