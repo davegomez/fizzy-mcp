@@ -34,6 +34,7 @@ function formatCard(card: Card): string {
 			golden: card.golden ?? false,
 			last_active_at: card.last_active_at ?? null,
 			image_url: card.image_url ?? null,
+			steps: card.steps ?? [],
 		},
 		null,
 		2,
