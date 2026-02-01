@@ -47,6 +47,17 @@ const mockComment = {
 	url: "https://app.fizzy.do/897362094/cards/42/comments/comment_1",
 };
 
+const mockComment2 = {
+	...mockComment,
+	id: "comment_2",
+	body: {
+		plain_text: "I agree with Alice",
+		html: "<p>I agree with Alice</p>",
+	},
+	creator: { ...mockComment.creator, id: "user_2", name: "Bob" },
+	url: "https://app.fizzy.do/897362094/cards/42/comments/comment_2",
+};
+
 describe("commentTool", () => {
 	beforeAll(() => {
 		server.listen({ onUnhandledRequest: "error" });
@@ -65,6 +76,8 @@ describe("commentTool", () => {
 	afterEach(() => {
 		server.resetHandlers();
 	});
+
+	// === CREATE (default action) ===
 
 	test("should resolve account from args", async () => {
 		let capturedAccountSlug: string | undefined;
@@ -179,6 +192,223 @@ describe("commentTool", () => {
 
 		await expect(
 			commentTool.execute({ card_number: 999, body: "Test" }),
+		).rejects.toThrow("[NOT_FOUND] Comment");
+	});
+
+	test("create action works explicitly", async () => {
+		setTestAccount("897362094");
+
+		server.use(
+			http.post(`${BASE_URL}/897362094/cards/42/comments`, () => {
+				return HttpResponse.json(mockComment, { status: 201 });
+			}),
+		);
+
+		const result = await commentTool.execute({
+			action: "create",
+			card_number: 42,
+			body: "New comment",
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.id).toBe("comment_1");
+	});
+
+	test("create without body throws", async () => {
+		setTestAccount("897362094");
+
+		await expect(
+			commentTool.execute({ action: "create", card_number: 42 }),
+		).rejects.toThrow(/body/);
+	});
+
+	// === LIST ===
+
+	test("list returns formatted comments", async () => {
+		setTestAccount("897362094");
+
+		server.use(
+			http.get(`${BASE_URL}/897362094/cards/42/comments`, () => {
+				return HttpResponse.json([mockComment, mockComment2]);
+			}),
+		);
+
+		const result = await commentTool.execute({
+			action: "list",
+			card_number: 42,
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.comments).toHaveLength(2);
+		expect(parsed.comments[0].id).toBe("comment_2");
+		expect(parsed.comments[1].id).toBe("comment_1");
+	});
+
+	test("list on card with no comments returns empty", async () => {
+		setTestAccount("897362094");
+
+		server.use(
+			http.get(`${BASE_URL}/897362094/cards/42/comments`, () => {
+				return HttpResponse.json([]);
+			}),
+		);
+
+		const result = await commentTool.execute({
+			action: "list",
+			card_number: 42,
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.comments).toHaveLength(0);
+		expect(parsed.pagination.has_more).toBe(false);
+	});
+
+	test("list propagates pagination info", async () => {
+		setTestAccount("897362094");
+
+		server.use(
+			http.get(`${BASE_URL}/897362094/cards/42/comments`, () => {
+				return HttpResponse.json([mockComment], {
+					headers: {
+						Link: `<${BASE_URL}/897362094/cards/42/comments?page=2>; rel="next"`,
+					},
+				});
+			}),
+		);
+
+		const result = await commentTool.execute({
+			action: "list",
+			card_number: 42,
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.pagination.has_more).toBe(true);
+		expect(parsed.pagination.next_cursor).toBeDefined();
+	});
+
+	// === UPDATE ===
+
+	test("update with comment_id and body returns updated comment", async () => {
+		setTestAccount("897362094");
+
+		const updatedComment = {
+			...mockComment,
+			body: {
+				plain_text: "Updated text",
+				html: "<p>Updated text</p>",
+			},
+			updated_at: "2024-01-16T10:30:00Z",
+		};
+
+		server.use(
+			http.put(`${BASE_URL}/897362094/cards/42/comments/comment_1`, () => {
+				return HttpResponse.json(updatedComment);
+			}),
+		);
+
+		const result = await commentTool.execute({
+			action: "update",
+			card_number: 42,
+			comment_id: "comment_1",
+			body: "Updated text",
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.id).toBe("comment_1");
+		expect(parsed.body).toBe("Updated text");
+	});
+
+	test("update without comment_id throws", async () => {
+		setTestAccount("897362094");
+
+		await expect(
+			commentTool.execute({
+				action: "update",
+				card_number: 42,
+				body: "Updated text",
+			}),
+		).rejects.toThrow(/comment_id/);
+	});
+
+	test("update without body throws", async () => {
+		setTestAccount("897362094");
+
+		await expect(
+			commentTool.execute({
+				action: "update",
+				card_number: 42,
+				comment_id: "comment_1",
+			}),
+		).rejects.toThrow(/body/);
+	});
+
+	test("update nonexistent comment returns error", async () => {
+		setTestAccount("897362094");
+
+		server.use(
+			http.put(`${BASE_URL}/897362094/cards/42/comments/nonexistent`, () => {
+				return HttpResponse.json({}, { status: 404 });
+			}),
+		);
+
+		await expect(
+			commentTool.execute({
+				action: "update",
+				card_number: 42,
+				comment_id: "nonexistent",
+				body: "Updated text",
+			}),
+		).rejects.toThrow("[NOT_FOUND] Comment");
+	});
+
+	// === DELETE ===
+
+	test("delete with comment_id returns confirmation", async () => {
+		setTestAccount("897362094");
+
+		server.use(
+			http.delete(`${BASE_URL}/897362094/cards/42/comments/comment_1`, () => {
+				return new HttpResponse(null, { status: 204 });
+			}),
+		);
+
+		const result = await commentTool.execute({
+			action: "delete",
+			card_number: 42,
+			comment_id: "comment_1",
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.deleted).toBe(true);
+		expect(parsed.comment_id).toBe("comment_1");
+	});
+
+	test("delete without comment_id throws", async () => {
+		setTestAccount("897362094");
+
+		await expect(
+			commentTool.execute({
+				action: "delete",
+				card_number: 42,
+			}),
+		).rejects.toThrow(/comment_id/);
+	});
+
+	test("delete nonexistent comment returns error", async () => {
+		setTestAccount("897362094");
+
+		server.use(
+			http.delete(`${BASE_URL}/897362094/cards/42/comments/nonexistent`, () => {
+				return HttpResponse.json({}, { status: 404 });
+			}),
+		);
+
+		await expect(
+			commentTool.execute({
+				action: "delete",
+				card_number: 42,
+				comment_id: "nonexistent",
+			}),
 		).rejects.toThrow("[NOT_FOUND] Comment");
 	});
 });
