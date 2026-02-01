@@ -31,6 +31,7 @@ function formatCard(card: Card): string {
 			created_at: card.created_at,
 			updated_at: card.updated_at,
 			closed_at: card.closed_at,
+			golden: card.golden ?? false,
 		},
 		null,
 		2,
