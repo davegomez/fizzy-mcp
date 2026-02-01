@@ -1,0 +1,40 @@
+{
+	"$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+	"name": "io.github.davegomez/fizzy",
+	"description": "MCP server for Fizzy task management",
+	"repository": {
+		"url": "https://github.com/davegomez/fizzy-mcp",
+		"source": "github"
+	},
+	"version": "0.4.0",
+	"packages": [
+		{
+			"registryType": "npm",
+			"identifier": "@silky/fizzy-mcp",
+			"version": "0.4.0",
+			"transport": {
+				"type": "stdio"
+			},
+			"environmentVariables": [
+				{
+					"name": "FIZZY_TOKEN",
+					"description": "Fizzy API authentication token",
+					"isRequired": true,
+					"isSecret": true
+				},
+				{
+					"name": "FIZZY_BASE_URL",
+					"description": "Fizzy API base URL (defaults to production)",
+					"isRequired": false,
+					"isSecret": false
+				},
+				{
+					"name": "FIZZY_ACCOUNT",
+					"description": "Default Fizzy account slug",
+					"isRequired": false,
+					"isSecret": false
+				}
+			]
+		}
+	]
+}
