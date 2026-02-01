@@ -138,6 +138,38 @@ describe("searchTool", () => {
 		});
 	});
 
+	test("should pass sorted_by filter to client", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				const url = new URL(request.url);
+				expect(url.searchParams.get("sorted_by")).toBe("newest");
+				return HttpResponse.json([]);
+			}),
+		);
+
+		await searchTool.execute({
+			sorted_by: "newest",
+			limit: 25,
+		});
+	});
+
+	test("should pass terms filter to client", async () => {
+		setTestAccount("897362094");
+		server.use(
+			http.get(`${BASE_URL}/:accountSlug/cards`, ({ request }) => {
+				const url = new URL(request.url);
+				expect(url.searchParams.getAll("terms[]")).toEqual(["login", "bug"]);
+				return HttpResponse.json([]);
+			}),
+		);
+
+		await searchTool.execute({
+			terms: ["login", "bug"],
+			limit: 25,
+		});
+	});
+
 	test("should convert singular board_id to board_ids array", async () => {
 		setTestAccount("897362094");
 		server.use(

@@ -71,12 +71,17 @@ export const CardSchema = z.object({
 	reactions_url: z.string().optional(),
 });
 
+// Sorted-by options for card search
+export const SortedBySchema = z.enum(["newest", "oldest", "recently_active"]);
+
 export const CardFiltersSchema = z
 	.object({
 		board_ids: z.array(z.string()).optional(),
 		indexed_by: IndexedBySchema.optional(),
 		tag_ids: z.array(z.string()).optional(),
 		assignee_ids: z.array(z.string()).optional(),
+		sorted_by: SortedBySchema.optional(),
+		terms: z.array(z.string()).optional(),
 	})
 	.strict();
 
@@ -96,5 +101,6 @@ export type CardStatus = z.infer<typeof CardStatusSchema>;
 export type IndexedBy = z.infer<typeof IndexedBySchema>;
 export type Card = z.infer<typeof CardSchema>;
 export type CardFilters = z.infer<typeof CardFiltersSchema>;
+export type SortedBy = z.infer<typeof SortedBySchema>;
 export type CreateCardInput = z.infer<typeof CreateCardInputSchema>;
 export type UpdateCardInput = z.infer<typeof UpdateCardInputSchema>;
