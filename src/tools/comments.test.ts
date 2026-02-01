@@ -214,6 +214,14 @@ describe("commentTool", () => {
 		expect(parsed.id).toBe("comment_1");
 	});
 
+	test("create without body throws", async () => {
+		setTestAccount("897362094");
+
+		await expect(
+			commentTool.execute({ action: "create", card_number: 42 }),
+		).rejects.toThrow(/body/);
+	});
+
 	// === LIST ===
 
 	test("list returns formatted comments", async () => {
