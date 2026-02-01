@@ -1,22 +1,25 @@
 import { z } from "zod";
+import { UserSchema } from "./identity.js";
 
-// Embedded in BoardSchema - lighter than full ColumnSchema (omits timestamps, url)
+export const ColumnColorSchema = z.object({
+	name: z.string(),
+	value: z.string(),
+});
+
+// Embedded in BoardSchema - lighter than full ColumnSchema
 export const ColumnSummarySchema = z.object({
 	id: z.string(),
 	name: z.string(),
-	color: z.string(),
-	cards_count: z.number(),
-	position: z.number(),
+	color: ColumnColorSchema,
 });
 
 export const BoardSchema = z.object({
 	id: z.string(),
 	name: z.string(),
-	slug: z.string(),
-	description: z.string().nullable(),
+	all_access: z.boolean(),
+	creator: UserSchema,
 	columns: z.array(ColumnSummarySchema).optional(),
 	created_at: z.string(),
-	updated_at: z.string(),
 	url: z.string().url(),
 });
 

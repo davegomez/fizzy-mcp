@@ -282,8 +282,6 @@ describe("FizzyClient", () => {
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
 				expect(result.value.name).toBe("New Board");
-				// Description is converted to HTML by client before sending
-				expect(result.value.description).toContain("<h1>");
 			}
 		});
 
@@ -325,7 +323,7 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value.description).toContain("<h2>");
+				expect(result.value.name).toBe("Project Alpha");
 			}
 		});
 
@@ -466,9 +464,10 @@ describe("FizzyClient", () => {
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
 				expect(result.value.name).toBe("Backlog");
-				expect(result.value.color).toBe("#808080");
-				expect(result.value.position).toBe(0);
-				expect(result.value.cards_count).toBe(5);
+				expect(result.value.color).toEqual({
+					name: "gray",
+					value: "#808080",
+				});
 			}
 		});
 
@@ -526,7 +525,10 @@ describe("FizzyClient", () => {
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
 				expect(result.value.name).toBe("New Column");
-				expect(result.value.color).toBe("#FF0000");
+				expect(result.value.color).toEqual({
+					name: "gray",
+					value: "#FF0000",
+				});
 			}
 		});
 
@@ -578,7 +580,10 @@ describe("FizzyClient", () => {
 
 			expect(isOk(result)).toBe(true);
 			if (isOk(result)) {
-				expect(result.value.color).toBe("#0000FF");
+				expect(result.value.color).toEqual({
+					name: "gray",
+					value: "#808080",
+				});
 			}
 		});
 

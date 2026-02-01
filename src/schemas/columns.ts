@@ -1,13 +1,11 @@
 import { z } from "zod";
+import { ColumnColorSchema } from "./boards.js";
 
 export const ColumnSchema = z.object({
 	id: z.string(),
 	name: z.string(),
-	color: z.string(),
-	position: z.number(),
-	cards_count: z.number(),
+	color: ColumnColorSchema,
 	created_at: z.string(),
-	updated_at: z.string(),
 	url: z.string().url(),
 });
 

@@ -6,14 +6,22 @@ import {
 	UpdateBoardInputSchema,
 } from "./boards.js";
 
+const mockCreator = {
+	id: "user_1",
+	name: "Jane Doe",
+	role: "owner" as const,
+	active: true,
+	email_address: "jane@example.com",
+	created_at: "2024-01-01T00:00:00Z",
+	url: "https://app.fizzy.do/users/user_1",
+};
+
 describe("ColumnSummarySchema", () => {
 	test("should parse valid column summary", () => {
 		const column = {
 			id: "col_123",
 			name: "To Do",
-			color: "blue",
-			cards_count: 5,
-			position: 0,
+			color: { name: "blue", value: "#0000ff" },
 		};
 		expect(ColumnSummarySchema.parse(column)).toEqual(column);
 	});
@@ -28,36 +36,26 @@ describe("BoardSchema", () => {
 	const validBoard = {
 		id: "board_123",
 		name: "Project Board",
-		slug: "project-board",
-		description: "A project board",
+		all_access: true,
+		creator: mockCreator,
 		columns: [
 			{
 				id: "col_1",
 				name: "Backlog",
-				color: "gray",
-				cards_count: 10,
-				position: 0,
+				color: { name: "gray", value: "#808080" },
 			},
 			{
 				id: "col_2",
 				name: "In Progress",
-				color: "blue",
-				cards_count: 3,
-				position: 1,
+				color: { name: "blue", value: "#0000ff" },
 			},
 		],
 		created_at: "2024-01-01T00:00:00Z",
-		updated_at: "2024-01-15T12:00:00Z",
 		url: "https://app.fizzy.do/897362094/boards/board_123",
 	};
 
 	test("should parse valid board", () => {
 		expect(BoardSchema.parse(validBoard)).toEqual(validBoard);
-	});
-
-	test("should parse board with null description", () => {
-		const board = { ...validBoard, description: null };
-		expect(BoardSchema.parse(board)).toEqual(board);
 	});
 
 	test("should parse board with empty columns", () => {
