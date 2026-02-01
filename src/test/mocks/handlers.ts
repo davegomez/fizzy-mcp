@@ -5,6 +5,9 @@ const BASE_URL = "https://app.fizzy.do";
 // Stores last created card for GET retrieval after POST 201
 let lastCreatedCard: Record<string, unknown> | null = null;
 
+// Stores last created step for GET retrieval after POST 201
+let lastCreatedStep: Record<string, unknown> | null = null;
+
 const mockColumns = [
 	{
 		id: "col_1",
@@ -1113,11 +1116,37 @@ export const handlers = [
 				);
 			}
 
-			return HttpResponse.json({
+			// Store for subsequent GET
+			lastCreatedStep = {
 				id: "step_new",
 				content: body.step.content,
 				completed: body.step.completed ?? false,
+			};
+
+			// Return 201 with Location header, no body (matches real API)
+			return new HttpResponse(null, {
+				status: 201,
+				headers: {
+					Location: `${BASE_URL}/${params.accountSlug}/cards/${cardNumber}/steps/step_new`,
+				},
 			});
+		},
+	),
+
+	// GET created step by ID
+	http.get(
+		`${BASE_URL}/:accountSlug/cards/:cardNumber/steps/:stepId`,
+		({ request, params }) => {
+			const auth = request.headers.get("Authorization");
+			if (!auth || auth === "Bearer invalid") {
+				return HttpResponse.json({}, { status: 401 });
+			}
+
+			if (params.stepId === "step_new" && lastCreatedStep) {
+				return HttpResponse.json(lastCreatedStep);
+			}
+
+			return HttpResponse.json({}, { status: 404 });
 		},
 	),
 

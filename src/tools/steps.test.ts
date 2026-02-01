@@ -78,15 +78,14 @@ describe("stepTool", () => {
 				`${BASE_URL}/897362094/cards/:cardNumber/steps`,
 				async ({ request }) => {
 					createBody = await request.json();
-					return HttpResponse.json(
-						{ id: "step_new", content: "New step", completed: false },
-						{
-							status: 201,
-							headers: {
-								Location: "/897362094/cards/42/steps/step_new",
-							},
+					// Fall through to base handler by returning undefined? No — capture body, then delegate.
+					// Re-implement 201+Location to capture the body for assertion
+					return new HttpResponse(null, {
+						status: 201,
+						headers: {
+							Location: "/897362094/cards/42/steps/step_new",
 						},
-					);
+					});
 				},
 			),
 			http.get(`${BASE_URL}/897362094/cards/:cardNumber/steps/step_new`, () =>
@@ -107,6 +106,47 @@ describe("stepTool", () => {
 		expect(parsed.id).toBe("step_new");
 		expect(parsed.content).toBe("New step");
 		expect(createBody).toEqual({ step: { content: "New step" } });
+	});
+
+	test("should create a step with completed: true", async () => {
+		setTestAccount("897362094");
+
+		let createBody: unknown;
+		server.use(
+			http.post(
+				`${BASE_URL}/897362094/cards/:cardNumber/steps`,
+				async ({ request }) => {
+					createBody = await request.json();
+					return new HttpResponse(null, {
+						status: 201,
+						headers: {
+							Location: "/897362094/cards/42/steps/step_new",
+						},
+					});
+				},
+			),
+			http.get(`${BASE_URL}/897362094/cards/:cardNumber/steps/step_new`, () =>
+				HttpResponse.json({
+					id: "step_new",
+					content: "Done step",
+					completed: true,
+				}),
+			),
+		);
+
+		const result = await stepTool.execute({
+			card_number: 42,
+			content: "Done step",
+			completed: true,
+		});
+
+		const parsed = JSON.parse(result);
+		expect(parsed.id).toBe("step_new");
+		expect(parsed.content).toBe("Done step");
+		expect(parsed.completed).toBe(true);
+		expect(createBody).toEqual({
+			step: { content: "Done step", completed: true },
+		});
 	});
 
 	test("should throw when creating without content", async () => {
