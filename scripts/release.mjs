@@ -37,7 +37,7 @@ writeFileSync(serverJsonPath, `${JSON.stringify(serverJson, null, "\t")}\n`);
 // Commit, tag, push
 run("git add package.json server.json CHANGELOG.md");
 run(`git commit -m "chore(release): v${version}"`);
-run(`git tag v${version}`);
+run(`git tag -a v${version} -m "v${version}"`);
 run("git push --follow-tags");
 
 console.log(`\nReleased v${version}`);
