@@ -56,7 +56,6 @@ Or add to `~/.claude.json`:
 {
   "mcpServers": {
     "Fizzy": {
-      "type": "stdio",
       "command": "npx",
       "args": ["-y", "@silky/fizzy-mcp"],
       "env": {
@@ -111,7 +110,6 @@ Add to `.vscode/mcp.json` in your workspace:
   ],
   "servers": {
     "Fizzy": {
-      "type": "stdio",
       "command": "npx",
       "args": ["-y", "@silky/fizzy-mcp"],
       "env": {
