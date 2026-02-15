@@ -1,0 +1,27 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    required:
+      - FIZZY_TOKEN
+    properties:
+      FIZZY_TOKEN:
+        type: string
+        description: "API token from Fizzy settings (Settings > API Access)"
+      FIZZY_ACCOUNT:
+        type: string
+        description: "Default account slug (optional)"
+      FIZZY_BASE_URL:
+        type: string
+        default: "https://app.fizzy.do"
+        description: "API base URL"
+  commandFunction: |-
+    (config) => ({
+      command: 'npx',
+      args: ['-y', '@silky/fizzy-mcp'],
+      env: {
+        FIZZY_TOKEN: config.FIZZY_TOKEN,
+        ...(config.FIZZY_ACCOUNT && { FIZZY_ACCOUNT: config.FIZZY_ACCOUNT }),
+        ...(config.FIZZY_BASE_URL && { FIZZY_BASE_URL: config.FIZZY_BASE_URL })
+      }
+    })
